@@ -1,0 +1,21 @@
+# ---- Compilados de Maven ----
+target/
+*.class
+
+# ---- Configuracion local de editores ----
+.vscode/
+.idea/
+*.iml
+.settings/
+.classpath
+.project
+
+# ---- Herramientas de modernizacion (las genera una extension de VS Code) ----
+.github/modernize/
+
+# ---- Archivos del sistema operativo ----
+.DS_Store
+Thumbs.db
+
+# ---- Logs ----
+*.log
