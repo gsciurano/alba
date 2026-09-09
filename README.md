@@ -22,16 +22,25 @@ alcanza con usarlo desde la carpeta del proyecto.
 
 ## Cómo levantarlo
 
-**Primero la base de datos.** Son tres scripts y van en este orden. El primero
-crea todo de cero y carga el catálogo; los otros dos agregan las tablas de las
-funcionalidades que sumamos después.
+**Primero la base de datos.** Son cuatro scripts y van en este orden. El
+primero crea todo de cero y carga el catálogo; los dos siguientes agregan las
+tablas de las funcionalidades que sumamos después; el último carga datos de
+ejemplo.
 
 ```bash
 cd src/main/resources/db
 mysql -u root -p < gestor_inventario_alba.sql
 mysql -u root -p < agregar_solicitudes_cancelacion.sql
 mysql -u root -p < agregar_preguntas_frecuentes.sql
+mysql -u root -p gestor_inventario < agregar_datos_demo.sql
 ```
+
+El cuarto es el que hace que todos arranquemos viendo lo mismo: pedidos en los
+cuatro estados y solicitudes de cancelación aprobadas, rechazadas y esperando
+respuesta. Sin él la base queda con un solo pedido y ninguna solicitud, y no se
+puede mostrar el circuito de cancelaciones. Las fechas que usa son relativas
+(`NOW() - INTERVAL 3 HOUR`), así que la regla de las 24 horas se puede
+demostrar siempre, no solo el día que lo corriste.
 
 OJO con el primero: arranca con `DROP DATABASE IF EXISTS gestor_inventario`.
 Si ya tenés la base cargada con pedidos que te importan, no lo corras.
