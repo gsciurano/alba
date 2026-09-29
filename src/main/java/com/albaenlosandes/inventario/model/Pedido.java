@@ -48,6 +48,14 @@ public class Pedido {
      * cascade = ALL: al guardar el pedido se guardan sus renglones.
      * mappedBy = "pedido": la FK vive en la tabla detalle_pedido.
      */
+    /**
+     * Baja logica, igual que en productos y usuarios. Un pedido inactivo
+     * deja de aparecer en los listados pero su fila y su historial quedan:
+     * borrar una venta de verdad haria desaparecer plata que entro.
+     */
+    @Column(nullable = false)
+    private Boolean activo = true;
+
     @NotEmpty(message = "El pedido debe tener al menos un producto")
     @Valid   // @Valid propaga la validacion a cada renglon de la lista
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL)
@@ -68,6 +76,8 @@ public class Pedido {
     public void setMedioPago(MedioPago medioPago) { this.medioPago = medioPago; }
     public BigDecimal getTotal() { return total; }
     public void setTotal(BigDecimal total) { this.total = total; }
+    public Boolean getActivo() { return activo; }
+    public void setActivo(Boolean activo) { this.activo = activo; }
     public List<DetallePedido> getDetalles() { return detalles; }
     public void setDetalles(List<DetallePedido> detalles) { this.detalles = detalles; }
 }

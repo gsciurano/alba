@@ -205,6 +205,40 @@ public class SolicitudCancelacionService {
     }
 
     // ==================================================================
+    //  BAJA LOGICA
+    // ==================================================================
+
+    /**
+     * Da de baja una solicitud. NO borra la fila: el reclamo del cliente
+     * queda registrado. Solo deja de aparecer en la bandeja.
+     *
+     * Se usa para sacar de la vista solicitudes duplicadas o cargadas por
+     * error, no para hacer desaparecer un reclamo legitimo.
+     *
+     * Una solicitud que sigue abierta no se puede dar de baja sin resolverla
+     * antes: dejaria al cliente esperando una respuesta que nunca llega.
+     */
+    @Transactional
+    public void eliminar(Integer idSolicitud) {
+        SolicitudCancelacion s = solicitudRepository.findById(idSolicitud)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No existe la solicitud con id " + idSolicitud));
+
+        if (Boolean.FALSE.equals(s.getActivo())) {
+            throw new IllegalArgumentException(
+                    "La solicitud #" + idSolicitud + " ya estaba dada de baja.");
+        }
+        if (s.estaAbierta()) {
+            throw new IllegalArgumentException(
+                    "La solicitud #" + idSolicitud + " sigue abierta (" + s.getEstado() + "). "
+                    + "Hay que aprobarla o rechazarla antes de darla de baja: si no, el "
+                    + "cliente queda esperando una respuesta que nunca llega.");
+        }
+        s.setActivo(false);
+        solicitudRepository.save(s);
+    }
+
+    // ==================================================================
     //  AYUDANTES
     // ==================================================================
 

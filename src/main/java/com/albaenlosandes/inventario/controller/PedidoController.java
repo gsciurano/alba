@@ -58,6 +58,17 @@ public class PedidoController {
         return service.crearPedido(pedido);
     }
 
+    /**
+     * DELETE /api/pedidos/3 -> baja logica del pedido.
+     * Si estaba CONFIRMADO, primero lo cancela (lo que devuelve el stock)
+     * y despues lo marca inactivo. La fila y su historial no se borran.
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
+        service.eliminar(id);
+        return ResponseEntity.noContent().build();
+    }
+
     /** PUT /api/pedidos/1/estado?valor=ENTREGADO (o CANCELADO: devuelve stock) */
     @PutMapping("/{id}/estado")
     public Pedido cambiarEstado(@PathVariable Integer id,

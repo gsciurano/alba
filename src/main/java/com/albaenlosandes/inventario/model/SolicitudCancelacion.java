@@ -70,6 +70,10 @@ public class SolicitudCancelacion {
     @Column(name = "resuelta_automaticamente", nullable = false)
     private Boolean resueltaAutomaticamente = false;
 
+    /** Baja logica: la solicitud deja de listarse pero el reclamo queda registrado. */
+    @Column(nullable = false)
+    private Boolean activo = true;
+
     public SolicitudCancelacion() { }
 
     /** ¿Sigue abierta? Sirve para no dejar pedir dos veces lo mismo. */
@@ -99,6 +103,8 @@ public class SolicitudCancelacion {
     public void setRespuesta(String respuesta) { this.respuesta = respuesta; }
     public Usuario getResueltoPor() { return resueltoPor; }
     public void setResueltoPor(Usuario u) { this.resueltoPor = u; }
+    public Boolean getActivo() { return activo; }
+    public void setActivo(Boolean activo) { this.activo = activo; }
     public Boolean getResueltaAutomaticamente() { return resueltaAutomaticamente; }
     public void setResueltaAutomaticamente(Boolean b) { this.resueltaAutomaticamente = b; }
 }

@@ -21,6 +21,7 @@ public interface SolicitudCancelacionRepository extends JpaRepository<SolicitudC
            LEFT JOIN FETCH s.pedido p
            LEFT JOIN FETCH p.detalles d
            LEFT JOIN FETCH d.producto
+           WHERE s.activo = true
            ORDER BY s.fechaSolicitud DESC
            """)
     List<SolicitudCancelacion> buscarTodasConDetalle();

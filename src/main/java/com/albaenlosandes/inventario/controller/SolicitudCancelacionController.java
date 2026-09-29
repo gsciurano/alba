@@ -104,6 +104,17 @@ public class SolicitudCancelacionController {
         return service.resolver(id, aprobar, cuerpo.get("respuesta"), idAdmin);
     }
 
+    /**
+     * DELETE /api/solicitudes/5 -> baja logica de la solicitud.
+     * Solo se puede sobre una solicitud ya resuelta: una abierta dejaria al
+     * cliente esperando una respuesta que nunca llega.
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
+        service.eliminar(id);
+        return ResponseEntity.noContent().build();
+    }
+
     // ---- conversiones con mensajes claros ----
 
     private Integer entero(Object v, String campo) {

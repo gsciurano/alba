@@ -19,9 +19,25 @@ public interface MovimientoStockRepository extends JpaRepository<MovimientoStock
            LEFT JOIN FETCH m.producto
            LEFT JOIN FETCH m.usuario
            LEFT JOIN FETCH m.pedidoRelacionado
+           WHERE m.activo = true
            ORDER BY m.fecha DESC, m.idMovimiento DESC
            """)
     List<MovimientoStock> buscarTodosConDetalle();
+
+    /**
+     * La vista COMPLETA de auditoria: incluye los movimientos anulados y los
+     * contra-asientos que los corrigen. Es la que hay que mirar cuando algo
+     * no cierra, porque muestra tambien los errores y sus correcciones.
+     */
+    @Query("""
+           SELECT m FROM MovimientoStock m
+           LEFT JOIN FETCH m.producto
+           LEFT JOIN FETCH m.usuario
+           LEFT JOIN FETCH m.pedidoRelacionado
+           LEFT JOIN FETCH m.movimientoAnulado
+           ORDER BY m.fecha DESC, m.idMovimiento DESC
+           """)
+    List<MovimientoStock> buscarTodosIncluyendoAnulados();
 
     /** Trazabilidad de un producto: todos sus movimientos, del mas nuevo al mas viejo */
     @Query("""

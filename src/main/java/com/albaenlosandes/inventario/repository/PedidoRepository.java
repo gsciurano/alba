@@ -35,6 +35,7 @@ public interface PedidoRepository extends JpaRepository<Pedido, Integer> {
            LEFT JOIN FETCH p.usuario
            LEFT JOIN FETCH p.detalles d
            LEFT JOIN FETCH d.producto
+           WHERE p.activo = true
            ORDER BY p.fecha DESC
            """)
     List<Pedido> buscarTodosConDetalle();
@@ -54,7 +55,7 @@ public interface PedidoRepository extends JpaRepository<Pedido, Integer> {
            LEFT JOIN FETCH p.usuario u
            LEFT JOIN FETCH p.detalles d
            LEFT JOIN FETCH d.producto
-           WHERE u.idUsuario = :idUsuario
+           WHERE u.idUsuario = :idUsuario AND p.activo = true
            ORDER BY p.fecha DESC
            """)
     List<Pedido> buscarPorUsuarioConDetalle(@Param("idUsuario") Integer idUsuario);

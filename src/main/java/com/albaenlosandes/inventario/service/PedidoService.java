@@ -152,6 +152,39 @@ public class PedidoService {
     }
 
     // ==================================================================
+    //  BAJA LOGICA
+    // ==================================================================
+
+    /**
+     * Da de baja un pedido. NO borra la fila.
+     *
+     * Si el pedido estaba CONFIRMADO, primero lo CANCELA, y eso devuelve el
+     * stock y deja el movimiento de AJUSTE. Si no se hiciera, las botellas
+     * de ese pedido quedarian descontadas para siempre sin que nadie las
+     * hubiera comprado.
+     *
+     * Despues lo marca inactivo: deja de aparecer en los listados, pero la
+     * venta y su historial siguen en la base. Borrar una venta de verdad
+     * haria desaparecer plata que entro.
+     */
+    @Transactional
+    public void eliminar(Integer idPedido) {
+        Pedido pedido = pedidoRepository.findById(idPedido)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No existe el pedido con id " + idPedido));
+
+        if (Boolean.FALSE.equals(pedido.getActivo())) {
+            throw new IllegalArgumentException(
+                    "El pedido #" + idPedido + " ya estaba dado de baja.");
+        }
+        if (pedido.getEstado() == EstadoPedido.CONFIRMADO) {
+            cambiarEstado(idPedido, EstadoPedido.CANCELADO);
+        }
+        pedido.setActivo(false);
+        pedidoRepository.save(pedido);
+    }
+
+    // ==================================================================
     //  CAMBIO DE ESTADO
     // ==================================================================
 
