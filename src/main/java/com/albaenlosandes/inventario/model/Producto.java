@@ -66,13 +66,6 @@ public class Producto {
 
     public Producto() { }
 
-    public Producto(String nombre, Linea linea, String varietal, BigDecimal precio) {
-        this.nombre = nombre;
-        this.linea = linea;
-        this.varietal = varietal;
-        this.precio = precio;
-    }
-
     /** Regla de negocio simple expuesta en el JSON: ¿hay que reponer? */
     @Transient
     public boolean isBajoStockMinimo() {

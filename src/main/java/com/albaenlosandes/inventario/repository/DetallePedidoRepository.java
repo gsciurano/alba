@@ -8,9 +8,23 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repositorio de los renglones de un pedido.
+ *
+ * Un DetallePedido no tiene vida propia: nace con su pedido y dice que vino
+ * se compro, cuantas botellas y a que precio. Este repositorio existe para
+ * poder modificar la composicion de un pedido ya confirmado sin tener que
+ * cargar y guardar el pedido entero cada vez.
+ */
 public interface DetallePedidoRepository extends JpaRepository<DetallePedido, Integer> {
 
-    /** Los renglones de un pedido, con el vino de cada uno en la misma consulta. */
+    /**
+     * Los renglones de un pedido, con el vino de cada uno EN LA MISMA CONSULTA.
+     *
+     * El JOIN FETCH evita el problema N+1: sin el, Hibernate traeria los
+     * renglones en una consulta y despues pediria el producto de cada uno
+     * por separado.
+     */
     @Query("""
            SELECT d FROM DetallePedido d
            LEFT JOIN FETCH d.producto
@@ -29,6 +43,15 @@ public interface DetallePedidoRepository extends JpaRepository<DetallePedido, In
            """)
     Optional<DetallePedido> buscarPorIdConDetalle(@Param("id") Integer id);
 
-    /** Cuantos renglones le quedan al pedido. Se usa para no dejarlo vacio. */
+    /**
+     * Cuantos renglones le quedan al pedido.
+     *
+     * Lo usa DetallePedidoService antes de quitar uno: si es el ultimo, no
+     * deja borrarlo. Un pedido sin renglones no tiene sentido; si el cliente
+     * ya no quiere nada, lo que corresponde es cancelar el pedido entero.
+     *
+     * Es otra consulta derivada del nombre: "count" + "By" + la ruta del
+     * campo "pedido.idPedido" escrita sin puntos.
+     */
     long countByPedidoIdPedido(Integer idPedido);
 }
