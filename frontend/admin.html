@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administracion — Alba en los Andes</title>
+  <link rel="stylesheet" href="css/estilos.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="admin">
+
+  <!-- ======================= LOGIN ======================= -->
+  <section id="pantallaLogin" class="login">
+    <form class="login__caja" id="formLogin" novalidate>
+      <h1 class="login__titulo">Alba en los Andes</h1>
+      <p class="login__sub">Panel de administracion</p>
+      <div class="form-grupo">
+        <label for="usuario">Usuario</label>
+        <input type="text" id="usuario" autocomplete="username" required>
+      </div>
+      <div class="form-grupo">
+        <label for="password">Contrasena</label>
+        <input type="password" id="password" autocomplete="current-password" required>
+      </div>
+      <span class="form-error" id="loginError" aria-live="polite"></span>
+      <button type="submit" class="btn btn--primario btn--bloque">Ingresar</button>
+      <p class="login__ayuda">
+        Prueba: <strong>admin / admin123</strong> (administrador) ·
+        <strong>ejecutivo / ventas123</strong> (ejecutivo)
+      </p>
+    </form>
+  </section>
+
+  <!-- ======================= APP ADMIN ======================= -->
+  <div id="appAdmin" class="oculto">
+    <header class="admin-top">
+      <div class="admin-top__marca">
+        <strong>Alba en los Andes</strong><span>Administracion</span>
+      </div>
+      <nav class="admin-nav" aria-label="Secciones del panel">
+        <button class="admin-nav__item activo" data-vista="dashboard">Dashboard</button>
+        <button class="admin-nav__item" data-vista="productos">Productos</button>
+        <button class="admin-nav__item" data-vista="pedidos">Pedidos</button>
+        <button class="admin-nav__item" data-vista="categorias">Categorias</button>
+        <button class="admin-nav__item" data-vista="auditoria">Auditoria</button>
+      </nav>
+      <div class="admin-top__usuario">
+        <a href="index.html" class="btn btn--fantasma btn--chico" target="_blank">Ver tienda ↗</a>
+        <span id="usuarioActual"></span>
+        <button class="btn btn--fantasma btn--chico" id="btnSalir">Salir</button>
+      </div>
+    </header>
+
+    <main class="admin-main" id="vistaContenedor"></main>
+  </div>
+
+  <div id="raizModal"></div>
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>

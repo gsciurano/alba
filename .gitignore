@@ -1,4 +1,11 @@
+# ============================================================
+#  Archivos que NO se suben a GitHub.
+#  Aplica a todo el repositorio: backend/ y frontend/.
+# ============================================================
+
 # ---- Compilados de Maven ----
+# backend/target/ pesa mas de 50 MB y se regenera solo al compilar:
+# subirlo seria llenar el repositorio de archivos que nadie necesita.
 target/
 *.class
 

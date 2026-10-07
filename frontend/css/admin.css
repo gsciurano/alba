@@ -1,0 +1,70 @@
+/* ============================================================
+   admin.css — estilos propios del panel de administracion
+   ============================================================ */
+.admin { background: var(--fondo); }
+
+/* ---- Login ---- */
+.login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.login__caja {
+  background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio);
+  padding: 40px; width: 100%; max-width: 400px; box-shadow: var(--sombra);
+}
+.login__titulo { font-size: 26px; text-align: center; }
+.login__sub { text-align: center; color: var(--oro); letter-spacing: 2px; text-transform: uppercase;
+  font-size: 12px; margin-bottom: 28px; }
+.login__ayuda { margin-top: 18px; font-size: 12px; color: var(--texto-tenue); text-align: center; line-height: 1.8; }
+
+/* ---- Top bar ---- */
+.admin-top {
+  display: flex; align-items: center; gap: 24px; padding: 14px 24px;
+  background: var(--fondo-alt); border-bottom: 1px solid var(--borde);
+  position: sticky; top: 0; z-index: 40; flex-wrap: wrap;
+}
+.admin-top__marca { display: flex; flex-direction: column; line-height: 1.2; }
+.admin-top__marca span { font-size: 11px; color: var(--oro); text-transform: uppercase; letter-spacing: 2px; }
+.admin-nav { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
+.admin-nav__item {
+  background: transparent; border: none; color: var(--texto-tenue); padding: 8px 14px;
+  border-radius: var(--radio-s); font-size: 14px; transition: all .2s;
+}
+.admin-nav__item:hover { color: var(--texto); background: var(--superficie); }
+.admin-nav__item.activo { color: var(--oro-claro); background: var(--superficie); }
+.admin-top__usuario { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--texto-tenue); }
+
+.admin-main { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+.admin-main h2 { margin-bottom: 20px; font-size: 26px; }
+
+/* ---- Dashboard ---- */
+.metricas { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 18px; margin-bottom: 36px; }
+.metrica {
+  background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio); padding: 22px;
+}
+.metrica__valor { font-size: 34px; font-weight: 700; font-family: var(--fuente-titulo); color: var(--oro-claro); }
+.metrica__etiqueta { color: var(--texto-tenue); font-size: 13px; margin-top: 4px; }
+.metrica--alerta .metrica__valor { color: var(--advertencia); }
+
+/* ---- Tablas ---- */
+.tabla-env { overflow-x: auto; border: 1px solid var(--borde); border-radius: var(--radio); }
+table { width: 100%; border-collapse: collapse; min-width: 640px; }
+th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--borde); font-size: 14px; }
+th { background: var(--fondo-alt); color: var(--texto-tenue); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
+tbody tr:hover { background: var(--superficie); }
+td.num { text-align: right; }
+.celda-edit { background: var(--fondo); border: 1px solid var(--borde); color: var(--texto);
+  border-radius: 4px; padding: 6px 8px; width: 90px; font-size: 14px; }
+.celda-edit:focus { border-color: var(--oro); outline: none; }
+
+.pill { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.pill--activo { background: rgba(107,191,138,.15); color: var(--ok); }
+.pill--inactivo { background: rgba(169,153,139,.15); color: var(--texto-tenue); }
+.pill--pendiente { background: rgba(217,164,65,.15); color: var(--advertencia); }
+.pill--preparacion { background: rgba(176,141,87,.18); color: var(--oro-claro); }
+.pill--enviado { background: rgba(107,150,191,.15); color: #6b96bf; }
+.pill--entregado { background: rgba(107,191,138,.15); color: var(--ok); }
+.pill--cancelado { background: rgba(217,101,75,.15); color: var(--error); }
+
+.barra-acciones { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }
+.mini-foto { width: 42px; height: 54px; object-fit: contain; background: var(--foto-fondo); border-radius: 4px; }
+
+.preview-foto { width: 120px; height: 150px; object-fit: contain; background: var(--foto-fondo);
+  border-radius: var(--radio-s); border: 1px solid var(--borde); margin-top: 8px; }
