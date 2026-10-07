@@ -5,6 +5,7 @@ import com.albaenlosandes.inventario.model.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repositorio de usuarios (clientes y administradores).
@@ -32,6 +33,19 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
      * y la de la base actua aunque alguien escriba por fuera de la aplicacion.
      */
     boolean existsByEmail(String email);
+
+    /**
+     * Trae el usuario con ese email, si existe.
+     *
+     * La usa el ingreso a la cuenta: el email es la identificacion del
+     * cliente (la columna es UNIQUE), asi que alcanza para encontrarlo.
+     *
+     * Devuelve Optional y no Usuario a proposito: que no haya ninguno con
+     * ese email es un caso normal (alguien se equivoco al escribirlo), no
+     * un error. Optional obliga a quien llama a decidir que hacer, en vez
+     * de dejar pasar un null que despues explota en otro lado.
+     */
+    Optional<Usuario> findByEmail(String email);
 
     /**
      * Los usuarios que siguen de alta. Es el listado que usan los

@@ -31,6 +31,43 @@ public class UsuarioService {
         return repository.findById(id);
     }
 
+    /**
+     * ==================================================================
+     *  INGRESO A LA CUENTA
+     * ==================================================================
+     *
+     * Busca el usuario por email y compara la contrasena. Devuelve vacio
+     * si el email no existe, si la contrasena no coincide o si el usuario
+     * esta dado de baja.
+     *
+     * POR QUE DEVUELVE LO MISMO EN LOS TRES CASOS: si contestara "ese
+     * email no existe" estaria confirmando, a cualquiera que pregunte,
+     * que direcciones estan registradas. Un mensaje unico no regala esa
+     * informacion.
+     *
+     * LIMITACION IMPORTANTE, A LA VISTA:
+     * la contrasena se compara EN TEXTO PLANO, porque asi se guardo en la
+     * base. El campo se llama passwordHash pero todavia no guarda un hash.
+     * Esto NO es aceptable en un sistema real: si alguien lee la tabla
+     * usuarios, se lleva todas las contrasenas. La forma correcta es
+     * guardar un hash con BCrypt al registrar y comparar con el hash al
+     * ingresar, de manera que la contrasena original no quede en ningun
+     * lado. Queda asi porque el alcance de esta entrega no incluye
+     * seguridad, y se deja senalado para no darlo por resuelto.
+     *
+     * Tampoco hay sesiones ni tokens: el servidor confirma quien es y el
+     * navegador lo recuerda. Cualquiera que llame a la API directamente
+     * puede operar sin pasar por aca.
+     */
+    public Optional<Usuario> autenticar(String email, String password) {
+        if (email == null || email.isBlank() || password == null || password.isEmpty()) {
+            return Optional.empty();
+        }
+        return repository.findByEmail(email.trim())
+                .filter(u -> Boolean.TRUE.equals(u.getActivo()))
+                .filter(u -> password.equals(u.getPasswordHash()));
+    }
+
     public Usuario registrar(Usuario usuario) {
         if (repository.existsByEmail(usuario.getEmail())) {
             throw new IllegalArgumentException("Ya existe un usuario con el email " + usuario.getEmail());

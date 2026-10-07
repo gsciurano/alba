@@ -124,10 +124,19 @@ CREATE TABLE movimientos_stock (
 -- Usuarios: 1 admin + 2 clientes de prueba.
 -- NOTA: el hash es un placeholder; la app lo generara con BCrypt
 -- cuando se agregue la etapa de seguridad.
+-- NOTA SOBRE LAS CONTRASENAS
+-- Se guardan EN TEXTO PLANO. La columna se llama password_hash pero
+-- todavia no guarda un hash: el alcance de esta entrega no incluye
+-- seguridad. En un sistema real habria que guardar un hash BCrypt al
+-- registrar y comparar contra el hash al ingresar, para que la contrasena
+-- original no quede en ningun lado.
+-- Estas son credenciales de DEMO, pensadas para mostrar el circuito:
+--   admin@albaenlosandes.com / admin123    (administrador)
+--   juan@mail.com            / cliente123  (cliente)
 INSERT INTO usuarios (nombre, apellido, email, password_hash, telefono, rol) VALUES
-('Admin',  'Bodega',  'admin@albaenlosandes.com', '$2a$10$placeholderhashadmin', '261-0000000', 'ADMIN'),
-('Juan',   'Perez',   'juan.perez@mail.com',      '$2a$10$placeholderhashjuan',  '261-1111111', 'CLIENTE'),
-('Ana',    'Garcia',  'ana.garcia@mail.com',      '$2a$10$placeholderhashana',   '261-2222222', 'CLIENTE');
+('Admin',  'Bodega',  'admin@albaenlosandes.com', 'admin123', '261-0000000', 'ADMIN'),
+('Juan',   'Perez',   'juan.perez@mail.com',      'cliente123',  '261-1111111', 'CLIENTE'),
+('Ana',    'Garcia',  'ana.garcia@mail.com',      'cliente123',   '261-2222222', 'CLIENTE');
 
 -- ------------------------------------------------------------
 --  CATALOGO REAL DE ALBA EN LOS ANDES

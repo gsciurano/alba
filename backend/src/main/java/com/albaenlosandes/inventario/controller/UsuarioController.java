@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
 
 /**
  * API REST de usuarios: cubre tanto a los CLIENTES que compran como a los
@@ -41,6 +42,36 @@ public class UsuarioController {
     @GetMapping
     public List<Usuario> obtenerTodos() {
         return service.obtenerTodos();
+    }
+
+    /**
+     * POST /api/usuarios/login
+     * Cuerpo: { "email": "admin@albaenlosandes.com", "password": "..." }
+     *
+     * Devuelve 200 con el usuario (sin la contrasena, que la entidad tiene
+     * marcada como solo escritura) o 401 si los datos no coinciden.
+     *
+     * De la respuesta sale el ROL, y con eso el frontend decide a donde
+     * mandar a cada uno: un ADMIN al panel de gestion, un CLIENTE a seguir
+     * comprando.
+     *
+     * POR QUE EL MISMO MENSAJE PARA TODOS LOS FALLOS: distinguir entre
+     * "ese email no existe" y "la contrasena esta mal" le confirmaria a
+     * cualquiera que pregunte que direcciones estan registradas.
+     *
+     * QUE NO HACE ESTE ENDPOINT, PARA NO DARLO POR MAS DE LO QUE ES:
+     * no crea una sesion ni entrega un token. Solo responde si los datos
+     * son correctos; despues es el navegador el que recuerda quien entro.
+     * Eso significa que los endpoints de administracion siguen abiertos:
+     * cualquiera que llame a la API directamente puede operar sin pasar
+     * por aca. Protegerlos es trabajo de Spring Security, que queda fuera
+     * del alcance de esta entrega.
+     */
+    @PostMapping("/login")
+    public ResponseEntity<Usuario> login(@RequestBody Map<String, String> credenciales) {
+        return service.autenticar(credenciales.get("email"), credenciales.get("password"))
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
 
     /**
