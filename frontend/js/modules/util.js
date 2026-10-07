@@ -11,15 +11,27 @@ export function pesos(n) {
   return "$ " + Number(n).toLocaleString("es-AR", { minimumFractionDigits: 0 });
 }
 
-/** Formatea una fecha ISO a dd/mm/aaaa hh:mm. */
+/** Fecha y hora: "07/10/2026, 11:16 a. m." */
 export function fecha(iso) {
   if (!iso) return "";
-  const d = new Date(iso);
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
-  return `${dd}/${mm}/${d.getFullYear()} ${hh}:${mi}`;
+  return new Date(iso).toLocaleString("es-AR", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit"
+  });
+}
+
+/** Solo la fecha: "07/10/2026". Para columnas donde la hora no aporta. */
+export function fechaCorta(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("es-AR", {
+    day: "2-digit", month: "2-digit", year: "numeric"
+  });
+}
+
+/** Solo la hora: "11:16 a. m." */
+export function hora(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
 }
 
 /**

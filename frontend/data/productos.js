@@ -21,7 +21,7 @@ export const VARIETALES = [
   "Chardonnay", "Malbec", "Cabernet Franc", "Cabernet Sauvignon", "Blend"
 ];
 
-export const LINEAS = ["Finca", "Estate Reserve", "Gran Reserva", "Edicion Especial"];
+export const LINEAS = ["Finca", "Estate Reserve", "Gran Reserva", "Ediciones Especiales"];
 
 export const USUARIOS_SEED = [
   { usuario: "admin",     password: "admin123",  nombre: "Admin Bodega",    rol: "administrador" },

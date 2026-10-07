@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Administracion — Alba en los Andes</title>
+  <title>Panel de gestion — Alba en los Andes</title>
   <link rel="stylesheet" href="css/estilos.css">
   <link rel="stylesheet" href="css/admin.css">
 </head>
@@ -13,7 +13,7 @@
   <section id="pantallaLogin" class="login">
     <form class="login__caja" id="formLogin" novalidate>
       <h1 class="login__titulo">Alba en los Andes</h1>
-      <p class="login__sub">Panel de administracion</p>
+      <p class="login__sub">Panel de gestion</p>
       <div class="form-grupo">
         <label for="usuario">Usuario</label>
         <input type="text" id="usuario" autocomplete="username" required>
@@ -33,25 +33,103 @@
 
   <!-- ======================= APP ADMIN ======================= -->
   <div id="appAdmin" class="oculto">
-    <header class="admin-top">
-      <div class="admin-top__marca">
-        <strong>Alba en los Andes</strong><span>Administracion</span>
-      </div>
-      <nav class="admin-nav" aria-label="Secciones del panel">
-        <button class="admin-nav__item activo" data-vista="dashboard">Dashboard</button>
-        <button class="admin-nav__item" data-vista="productos">Productos</button>
-        <button class="admin-nav__item" data-vista="pedidos">Pedidos</button>
-        <button class="admin-nav__item" data-vista="categorias">Categorias</button>
-        <button class="admin-nav__item" data-vista="auditoria">Auditoria</button>
+
+    <!--
+      Barra superior oscura. Los iconos van como SVG escrito a mano dentro
+      del HTML: asi no hace falta ninguna libreria de iconos ni bajar nada,
+      que es la regla del proyecto (HTML + CSS + JS, sin dependencias).
+    -->
+    <header class="barra">
+      <a class="marca" href="admin.html">
+        <svg class="marca__sello" viewBox="0 0 32 32" aria-hidden="true">
+          <circle cx="16" cy="16" r="15" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <circle cx="16" cy="16" r="9"  fill="none" stroke="currentColor" stroke-width="1"/>
+          <circle cx="16" cy="16" r="3"  fill="currentColor"/>
+          <path d="M16 1v30M1 16h30M5.5 5.5l21 21M26.5 5.5l-21 21"
+                stroke="currentColor" stroke-width=".6" opacity=".55"/>
+        </svg>
+        <span class="marca__texto">
+          <strong>Alba en los Andes</strong>
+          <small>Panel de gestion</small>
+        </span>
+      </a>
+
+      <nav class="barra__nav" aria-label="Secciones del panel">
+        <button class="nav-item" data-vista="tablero">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1"/>
+            <rect x="9" y="1.5" width="5.5" height="5.5" rx="1"/>
+            <rect x="1.5" y="9" width="5.5" height="5.5" rx="1"/>
+            <rect x="9" y="9" width="5.5" height="5.5" rx="1"/>
+          </svg>Tablero</button>
+
+        <button class="nav-item" data-vista="inventario">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="8" cy="3" r="2"/><circle cx="3" cy="12" r="2"/><circle cx="13" cy="12" r="2"/>
+            <path d="M8 5v3M6.5 9.5L4.5 11M9.5 9.5l2 1.5M8 8L8 8"/>
+            <path d="M7 8.5L4.3 10.6M9 8.5l2.7 2.1M8 5.2v3.1"/>
+          </svg>Inventario</button>
+
+        <button class="nav-item" data-vista="ingreso">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M8 1.5v8M5 7l3 3 3-3M2 12.5v1a1 1 0 001 1h10a1 1 0 001-1v-1"/>
+          </svg>Ingreso</button>
+
+        <button class="nav-item" data-vista="movimientos">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M2 4h1.5M6 4h8M2 8h1.5M6 8h8M2 12h1.5M6 12h8"/>
+          </svg>Movimientos</button>
+
+        <button class="nav-item" data-vista="pedidos">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <rect x="1.5" y="3.5" width="13" height="9" rx="1.5"/>
+            <circle cx="8" cy="8" r="2"/>
+          </svg>Pedidos</button>
+
+        <button class="nav-item" data-vista="clientes">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="6" cy="5" r="2.5"/>
+            <path d="M1.5 13.5c0-2.2 2-3.5 4.5-3.5s4.5 1.3 4.5 3.5"/>
+            <path d="M11 3.2a2.4 2.4 0 010 4.6M12.5 13.5c0-1.6-.6-2.6-1.6-3.2"/>
+          </svg>Clientes</button>
+
+        <button class="nav-item" data-vista="solicitudes">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <rect x="1.5" y="3" width="13" height="10" rx="1.5"/>
+            <path d="M1.5 9h3l1 1.5h5L11.5 9h3"/>
+          </svg>Solicitudes</button>
+
+        <button class="nav-item" data-vista="faq">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="8" cy="8" r="6.5"/>
+            <path d="M6.3 6.2a1.8 1.8 0 113 1.4c-.7.5-1.3.8-1.3 1.6"/>
+            <circle cx="8" cy="11.6" r=".7" fill="currentColor" stroke="none"/>
+          </svg>FAQ</button>
       </nav>
-      <div class="admin-top__usuario">
-        <a href="index.html" class="btn btn--fantasma btn--chico" target="_blank">Ver tienda ↗</a>
-        <span id="usuarioActual"></span>
-        <button class="btn btn--fantasma btn--chico" id="btnSalir">Salir</button>
+
+      <div class="barra__derecha">
+        <!--
+          Quien opera. No es decorativo: el back-end guarda el id_usuario en
+          cada movimiento de stock, asi que lo que se elija aca es lo que
+          queda firmado en la tabla movimientos_stock.
+        -->
+        <label class="operador">
+          <span class="operador__rotulo">Operador</span>
+          <select id="selectorOperador" class="operador__select"></select>
+        </label>
+
+        <a href="index.html" class="barra__tienda" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M2 6.5h12v7a1 1 0 01-1 1H3a1 1 0 01-1-1v-7z"/>
+            <path d="M1.5 6.5L3 2.2h10l1.5 4.3"/>
+            <path d="M6.3 14.5v-4h3.4v4"/>
+          </svg>Tienda</a>
+
+        <button class="barra__salir" id="btnSalir" title="Cerrar sesion">Salir</button>
       </div>
     </header>
 
-    <main class="admin-main" id="vistaContenedor"></main>
+    <main class="lienzo" id="vistaContenedor"></main>
   </div>
 
   <div id="raizModal"></div>

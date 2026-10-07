@@ -103,7 +103,7 @@ const LINEA_A_TEXTO = {
   FINCA:            "Finca",
   ESTATE_RESERVE:   "Estate Reserve",
   GRAN_RESERVA:     "Gran Reserva",
-  EDICION_ESPECIAL: "Edicion Especial"
+  EDICION_ESPECIAL: "Ediciones Especiales"
 };
 const TEXTO_A_LINEA = Object.fromEntries(
   Object.entries(LINEA_A_TEXTO).map(([k, v]) => [v, k]));
@@ -249,9 +249,21 @@ export const api = {
     actualizar:(id, datos)   => put("/productos/" + id, productoHaciaApi(datos)).then(productoDesdeApi),
     /** Baja logica: el back-end pone activo = false, no borra la fila. */
     eliminar:  (id)          => borrar("/productos/" + id),
-    alertas:   ()            => get("/productos/alertas").then(l => l.map(productoDesdeApi))
+    alertas:   ()            => get("/productos/alertas").then(l => l.map(productoDesdeApi)),
     // No hay un endpoint /reactivar: se reactiva con el PUT de arriba
     // mandando activo = true. Lo hace store.productos.reactivar().
+
+    /**
+     * Ingreso de mercaderia. Sube el stock Y deja registrado el movimiento
+     * de ENTRADA con su responsable, en una sola operacion del servidor.
+     * No se hace con un PUT de stock: eso cambiaria el numero sin dejar
+     * rastro de quien ni por que.
+     */
+    ingreso: (id, cantidad, idUsuario, motivo) =>
+      post("/productos/" + id + "/ingreso?cantidad=" + cantidad +
+           "&idUsuario=" + idUsuario +
+           (motivo ? "&motivo=" + encodeURIComponent(motivo) : ""), {})
+        .then(productoDesdeApi)
   },
 
   pedidos: {
@@ -282,7 +294,16 @@ export const api = {
 
   usuarios: {
     listar: () => get("/usuarios"),
+    /** Incluye los dados de baja. Para el panel de gestion. */
+    listarTodos: () => get("/usuarios/auditoria"),
     crear:  (datos) => post("/usuarios", datos),
+    /**
+     * Modificacion. UsuarioService conserva la contrasena si no se manda,
+     * asi que el formulario del panel nunca necesita pedirla para editar.
+     */
+    actualizar: (id, datos) => put("/usuarios/" + id, datos),
+    /** Baja logica. El back-end rechaza dar de baja al ultimo ADMIN. */
+    eliminar: (id) => borrar("/usuarios/" + id),
     /**
      * El back-end no tiene un endpoint "buscar por email", pero el email es
      * unico en la tabla, asi que se busca en la lista. Con un catalogo de
@@ -305,8 +326,31 @@ export const api = {
     listar: () => get("/movimientos")
   },
 
-  faq:         { listar: () => get("/faq") },
-  solicitudes: { listar: () => get("/solicitudes") },
+  /**
+   * Preguntas frecuentes del circuito de cancelaciones. Son las que ve el
+   * cliente cuando elige un motivo: estan para resolverle el problema sin
+   * que tenga que esperar una respuesta.
+   */
+  faq: {
+    /** /faq devuelve solo las activas; /faq/todas incluye las quitadas. */
+    listar:     () => get("/faq/todas"),
+    activas:    () => get("/faq"),
+    crear:      (datos)     => post("/faq", datos),
+    actualizar: (id, datos) => put("/faq/" + id, datos),
+    eliminar:   (id)        => borrar("/faq/" + id)
+  },
+
+  solicitudes: {
+    listar: () => get("/solicitudes"),
+    /**
+     * PUT /api/solicitudes/5/resolver?aprobar=true&idAdmin=1
+     * Si se aprueba, el back-end cancela el pedido y devuelve el stock:
+     * por eso quien llama tiene que refrescar productos y pedidos despues.
+     */
+    resolver: (id, aprobar, idAdmin, respuesta) =>
+      put("/solicitudes/" + id + "/resolver?aprobar=" + aprobar + "&idAdmin=" + idAdmin,
+          { respuesta })
+  },
 
   /** Ping para avisar en pantalla si el back-end esta caido. */
   async disponible() {
