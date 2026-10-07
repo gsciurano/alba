@@ -36,7 +36,6 @@
  */
 
 import { api, ErrorApi } from "./api.js";
-import { USUARIOS_SEED } from "../../data/productos.js";
 
 export { ErrorApi };
 export { ESTADOS_REALES } from "./api.js";
@@ -242,23 +241,62 @@ export const auditoria = {
 };
 
 // ============================================================
-//  SESION DEL ADMIN (sin endpoint de login todavia)
+//  SESION — ahora contra el servidor
 // ============================================================
 
 const CLAVE_SESION = "alba_sesion";
 
+/**
+ * QUE CAMBIO: antes el ingreso se validaba contra una lista escrita en el
+ * propio JavaScript, asi que el rol de cada persona lo decidia el
+ * navegador. Ahora lo decide POST /api/usuarios/login y el navegador solo
+ * recuerda la respuesta.
+ *
+ * HASTA DONDE LLEGA ESTO: el servidor confirma quien es, pero no entrega
+ * ninguna credencial de sesion. Lo que queda guardado es un dato, no una
+ * llave: sirve para que la pagina sepa a quien saludar y que mostrar, no
+ * para autorizar nada. Los endpoints de administracion siguen abiertos a
+ * cualquiera que llame a la API directamente. Cerrarlos es trabajo de
+ * Spring Security, fuera del alcance de esta entrega.
+ *
+ * La contrasena no se guarda en ningun lado: viaja una vez y se descarta.
+ */
 export const sesion = {
-  login(usuario, password) {
-    const u = USUARIOS_SEED.find(x => x.usuario === usuario && x.password === password);
-    if (!u) return null;
-    const datos = { usuario: u.usuario, nombre: u.nombre, rol: u.rol };
+  async login(email, password) {
+    const u = await api.usuarios.login(email, password);
+    const datos = {
+      idUsuario: u.idUsuario,
+      nombre:    u.nombre,
+      apellido:  u.apellido,
+      email:     u.email,
+      telefono:  u.telefono || "",
+      rol:       u.rol                       // ADMIN o CLIENTE
+    };
     localStorage.setItem(CLAVE_SESION, JSON.stringify(datos));
     return datos;
   },
+
+  /** Alta de cliente nuevo. Si sale bien, lo deja ya ingresado. */
+  async registrar({ nombre, apellido, email, telefono, password }) {
+    await api.usuarios.crear({
+      nombre, apellido, email, telefono,
+      rol: "CLIENTE",
+      passwordHash: password
+    });
+    return this.login(email, password);
+  },
+
   actual() {
     try { return JSON.parse(localStorage.getItem(CLAVE_SESION)) || null; }
     catch { return null; }
   },
+
+  esAdmin()   { return this.actual()?.rol === "ADMIN"; },
+  nombreCompleto() {
+    const u = this.actual();
+    return u ? [u.nombre, u.apellido].filter(Boolean).join(" ") : "";
+  },
+
   logout() { localStorage.removeItem(CLAVE_SESION); }
 };
 

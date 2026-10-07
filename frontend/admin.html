@@ -9,27 +9,12 @@
 </head>
 <body class="admin">
 
-  <!-- ======================= LOGIN ======================= -->
-  <section id="pantallaLogin" class="login">
-    <form class="login__caja" id="formLogin" novalidate>
-      <h1 class="login__titulo">Alba en los Andes</h1>
-      <p class="login__sub">Panel de gestion</p>
-      <div class="form-grupo">
-        <label for="usuario">Usuario</label>
-        <input type="text" id="usuario" autocomplete="username" required>
-      </div>
-      <div class="form-grupo">
-        <label for="password">Contrasena</label>
-        <input type="password" id="password" autocomplete="current-password" required>
-      </div>
-      <span class="form-error" id="loginError" aria-live="polite"></span>
-      <button type="submit" class="btn btn--primario btn--bloque">Ingresar</button>
-      <p class="login__ayuda">
-        Prueba: <strong>admin / admin123</strong> (administrador) ·
-        <strong>ejecutivo / ventas123</strong> (ejecutivo)
-      </p>
-    </form>
-  </section>
+  <!--
+    Ya no hay pantalla de ingreso aca. El ingreso se hace en cuenta.html
+    contra POST /api/usuarios/login, y es el SERVIDOR el que dice el rol.
+    admin.js solo comprueba que quien llego sea un ADMIN; si no, lo manda
+    a ingresar. Ver el comentario de la guarda en admin.js.
+  -->
 
   <!-- ======================= APP ADMIN ======================= -->
   <div id="appAdmin" class="oculto">

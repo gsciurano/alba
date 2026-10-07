@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contacto — Alba en los Andes</title>
+  <meta name="description" content="Contacto de la bodega Alba en los Andes, Tupungato, Valle de Uco, Mendoza.">
+  <link rel="stylesheet" href="css/estilos.css">
+  <link rel="stylesheet" href="css/sitio.css">
+</head>
+<body data-pagina="contacto">
+  <main id="contenido">
+    <section class="portada-chica">
+      <h1>Contacto</h1>
+      <p>Escribinos por compras mayoristas, visitas a la finca o lo que necesites.</p>
+    </section>
+
+    <section class="seccion">
+      <div class="seccion__interior">
+        <div class="par">
+          <div class="par__texto">
+            <h2 class="seccion__titulo">Dónde estamos</h2>
+            <p><strong>Bodega Alba en los Andes</strong><br>
+               Tupungato, Valle de Uco<br>
+               Mendoza, Argentina</p>
+            <p><strong>Email</strong><br>
+               <a href="mailto:contacto@albaenlosandes.com">contacto@albaenlosandes.com</a></p>
+            <p><strong>Visitas a la finca</strong><br>
+               Con reserva previa, de martes a sábado.</p>
+
+            <!--
+              Aviso honesto: este formulario no manda mails. Dejarlo sin
+              decir nada haria que alguien escriba esperando respuesta.
+              Para una consulta sobre un pedido ya hecho existe el circuito
+              de cancelaciones, que SI llega al panel de gestion.
+            -->
+            <p class="nota-tenue">
+              Este formulario es parte del trabajo práctico y todavía no envía
+              correos: valida lo que escribís y lo muestra en pantalla. Si tu
+              consulta es por un pedido ya hecho, se gestiona desde
+              <a href="cuenta.html">Mis pedidos</a>, que sí llega a la bodega.
+            </p>
+          </div>
+
+          <div class="par__texto">
+            <form class="form-contacto" id="formContacto" novalidate>
+              <h2 class="seccion__titulo" style="font-size:24px">Escribinos</h2>
+
+              <div class="form-grupo">
+                <label for="nombre">Nombre y apellido</label>
+                <input type="text" id="nombre" autocomplete="name">
+                <span class="form-error" id="err-nombre" aria-live="polite"></span>
+              </div>
+              <div class="form-grupo">
+                <label for="email">Email</label>
+                <input type="email" id="email" autocomplete="email">
+                <span class="form-error" id="err-email" aria-live="polite"></span>
+              </div>
+              <div class="form-grupo">
+                <label for="asunto">Asunto</label>
+                <select id="asunto">
+                  <option>Consulta general</option>
+                  <option>Compras mayoristas</option>
+                  <option>Visita a la finca</option>
+                  <option>Prensa</option>
+                </select>
+              </div>
+              <div class="form-grupo">
+                <label for="mensaje">Mensaje</label>
+                <textarea id="mensaje" rows="6"></textarea>
+                <span class="form-error" id="err-mensaje" aria-live="polite"></span>
+              </div>
+
+              <button type="submit" class="btn btn--primario btn--bloque">Enviar consulta</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="raizModal"></div>
+  <script type="module" src="js/contacto.js"></script>
+</body>
+</html>

@@ -269,6 +269,9 @@ export const api = {
   pedidos: {
     listar: ()      => get("/pedidos").then(l => l.map(pedidoDesdeApi)),
     porId:  (id)    => get("/pedidos/" + id).then(pedidoDesdeApi),
+    /** Los pedidos de un cliente. Alimenta la seccion "Mis pedidos". */
+    deUsuario: (idUsuario) =>
+      get("/pedidos/usuario/" + idUsuario).then(l => l.map(pedidoDesdeApi)),
     /**
      * Crea el pedido. El cuerpo es el que documenta PedidoController:
      *   { usuario:{idUsuario}, medioPago, detalles:[{producto:{idProducto}, cantidad}] }
@@ -293,6 +296,24 @@ export const api = {
   },
 
   usuarios: {
+    /**
+     * Ingreso a la cuenta. Devuelve el usuario (con su rol) o lanza un
+     * ErrorApi con estado 401 si los datos no coinciden.
+     *
+     * El rol lo decide el SERVIDOR, no el navegador: es lo que permite
+     * mandar a un administrador al panel y a un cliente a la tienda.
+     */
+    async login(email, password) {
+      try {
+        return await post("/usuarios/login", { email, password });
+      } catch (e) {
+        if (e.estado === 401) {
+          throw new ErrorApi("Email o contraseña incorrectos.", 401, null);
+        }
+        throw e;
+      }
+    },
+
     listar: () => get("/usuarios"),
     /** Incluye los dados de baja. Para el panel de gestion. */
     listarTodos: () => get("/usuarios/auditoria"),
@@ -342,6 +363,26 @@ export const api = {
 
   solicitudes: {
     listar: () => get("/solicitudes"),
+
+    /**
+     * Antes de mostrarle el formulario al cliente, se le pregunta al
+     * servidor si ese pedido se puede cancelar y como.
+     *
+     * La regla (dentro de las 24 horas se cancela solo; despues pasa a
+     * revision) vive en PoliticaCancelacion, del lado del servidor. Aca
+     * solo se muestra lo que contesta: si se copiara la regla al
+     * navegador, cambiarla obligaria a tocar dos lugares y podrian quedar
+     * diciendo cosas distintas.
+     */
+    evaluar: (idPedido, motivo) =>
+      get("/solicitudes/evaluar?idPedido=" + idPedido + "&motivo=" + motivo),
+
+    /** El cliente pide cancelar. Cae en la bandeja del panel. */
+    crear: (idPedido, idUsuario, motivo, comentario) =>
+      post("/solicitudes", { idPedido, idUsuario, motivo, comentario }),
+
+    /** Las solicitudes que hizo un cliente, para que siga su estado. */
+    deUsuario: (idUsuario) => get("/solicitudes/usuario/" + idUsuario),
     /**
      * PUT /api/solicitudes/5/resolver?aprobar=true&idAdmin=1
      * Si se aprueba, el back-end cancela el pedido y devuelve el stock:

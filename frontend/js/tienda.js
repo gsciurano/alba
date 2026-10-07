@@ -13,8 +13,10 @@
  * ============================================================
  */
 
-import { productos, carrito, pedidos, cargar, alCambiarEnOtraPestana }
+import { productos, carrito, pedidos, sesion, cargar, alCambiarEnOtraPestana }
   from "./modules/store.js";
+import { montarSitio, actualizarCarrito, avisoSinServidor } from "./modules/sitio.js";
+import { tarjetaVino } from "./modules/vino.js";
 import { VARIETALES, LINEAS } from "../data/productos.js";
 import { pesos, placeholderVino, $, $$, crear, toast } from "./modules/util.js";
 
@@ -29,6 +31,7 @@ const filtros = { texto: "", varietal: "", linea: "", cosecha: "", precioMax: ""
 //  ARRANQUE
 // ------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", async () => {
+  montarSitio("tienda");         // encabezado y pie compartidos
   conectarEventos();
 
   // Mientras viaja el pedido HTTP se muestran los esqueletos de carga.
@@ -38,7 +41,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     await cargar();              // una sola ida al servidor
   } catch (e) {
-    mostrarServidorCaido(cont, e.message);
+    cont.innerHTML = "";
+    cont.append(avisoSinServidor(e.message));
     return;                      // sin catalogo no hay nada que filtrar
   }
 
@@ -48,25 +52,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Si en otra pestana se vacia el carrito, se actualiza el contador.
   alCambiarEnOtraPestana(() => actualizarBadgeCarrito());
+
+  atenderEnlaceDirecto();
 });
 
 /**
- * Pantalla de error cuando el back-end no responde. Se avisa explicitamente
- * en vez de mostrar un catalogo vacio, que haria pensar que no hay vinos.
+ * Las otras paginas enlazan a tienda.html#vino-5 o a #carrito. Aca se
+ * atiende ese ancla para que el enlace lleve a donde dice, en vez de
+ * dejar al visitante arriba de todo buscando el vino a mano.
  */
-function mostrarServidorCaido(cont, mensaje) {
-  cont.innerHTML = `
-    <div class="estado">
-      <div class="estado__icono">🔌</div>
-      <h3>No se puede conectar con el servidor</h3>
-      <p>${mensaje}</p>
-      <p style="margin-top:10px;color:var(--texto-tenue);font-size:14px">
-        El catalogo se lee de la API en <code>localhost:8080</code>.
-      </p>
-      <button class="btn btn--primario" style="margin-top:16px"
-              onclick="location.reload()">Reintentar</button>
-    </div>`;
-  $("#resultadoFiltro").textContent = "";
+function atenderEnlaceDirecto() {
+  const ancla = location.hash;
+  if (ancla === "#carrito") { abrirCarrito(); return; }
+
+  const coincide = ancla.match(/^#vino-(\d+)$/);
+  if (coincide) {
+    const id = Number(coincide[1]);
+    if (productos.getById(id)) abrirDetalle(id);
+  }
 }
 
 // ------------------------------------------------------------
@@ -155,43 +158,17 @@ function renderCatalogo() {
   }
 }
 
+/**
+ * La tarjeta la dibuja modules/vino.js, que comparten el inicio, la
+ * pagina de vinos y la tienda. Aca solo se dice que, ademas, se puede
+ * comprar y que pasa al tocarla.
+ */
 function tarjetaProducto(p) {
-  const agotado = p.stock <= 0;
-  const bajo = !agotado && p.stock <= p.stockMinimo;
-
-  const img = crear("img", {
-    src: p.imagen, alt: "Botella de " + p.nombre, loading: "lazy"
+  return tarjetaVino(p, {
+    comprable: true,
+    alAgregar: (id) => agregarAlCarrito(id, 1),
+    alAbrir:   (id) => abrirDetalle(id)
   });
-  img.addEventListener("error", () => { img.src = placeholderVino(p.nombre); });
-
-  let etiqueta = "";
-  if (agotado) etiqueta = crear("span", { class: "etiqueta-stock etiqueta-stock--agotado" }, "Agotado");
-  else if (bajo) etiqueta = crear("span", { class: "etiqueta-stock etiqueta-stock--bajo" }, "Ultimas botellas");
-
-  const btn = crear("button", {
-    class: "btn btn--primario btn--chico",
-    disabled: agotado ? "true" : null,
-    onclick: (e) => { e.stopPropagation(); agregarAlCarrito(p.id, 1); }
-  }, agotado ? "Sin stock" : "Agregar");
-
-  const tarjeta = crear("article", { class: "tarjeta", tabindex: "0",
-    role: "button", "aria-label": "Ver detalle de " + p.nombre,
-    onclick: () => abrirDetalle(p.id),
-    onkeydown: (e) => { if (e.key === "Enter") abrirDetalle(p.id); }
-  },
-    crear("div", { class: "tarjeta__foto" }, img),
-    crear("div", { class: "tarjeta__cuerpo" },
-      crear("span", { class: "tarjeta__linea" }, p.linea),
-      crear("h3", { class: "tarjeta__nombre" }, p.nombre),
-      crear("span", { class: "tarjeta__meta" }, p.varietal + " · Cosecha " + p.cosecha),
-      crear("div", { class: "tarjeta__pie" },
-        crear("span", { class: "tarjeta__precio" }, pesos(p.precio)),
-        etiqueta || ""
-      ),
-      btn
-    )
-  );
-  return tarjeta;
 }
 
 // ------------------------------------------------------------
@@ -248,12 +225,12 @@ function agregarAlCarrito(id, cantidad) {
   else toast(r.mensaje, "error");
 }
 
-function actualizarBadgeCarrito() {
-  const n = carrito.cantidadTotal();
-  const badge = $("#carritoBadge");
-  badge.textContent = n;
-  badge.classList.toggle("oculto", n === 0);
-}
+/**
+ * El contador del carrito vive en el encabezado compartido, asi que lo
+ * actualiza sitio.js. Esta funcion queda como nombre unico para que el
+ * resto de la pagina no tenga que saber de donde sale.
+ */
+function actualizarBadgeCarrito() { actualizarCarrito(); }
 
 function calcularTotales(items) {
   const subtotal = items.reduce((s, i) => s + i.precio * i.cantidad, 0);
@@ -334,12 +311,24 @@ function abrirCheckout() {
   if (items.length === 0) { toast("El carrito esta vacio", "error"); return; }
   const t = calcularTotales(items);
 
+  // Si ya entro a su cuenta, sus datos vienen cargados: no tiene por que
+  // volver a escribir lo que la bodega ya sabe. Igual puede corregirlos.
+  const u = sesion.actual();
+
   const form = crear("form", { class: "carrito-panel", novalidate: "true", id: "formCheckout" },
     crear("h2", {}, "Finalizar compra"),
-    campo("nombre", "Nombre y apellido", "text"),
-    campo("email", "Email", "email"),
-    campo("telefono", "Telefono", "tel"),
-    campo("direccion", "Direccion de entrega", "text"),
+    u
+      ? crear("p", { class: "nota-tenue", style: "margin-bottom:16px" },
+          "Comprando como " + [u.nombre, u.apellido].filter(Boolean).join(" ") + ".")
+      : crear("p", { class: "nota-tenue", style: "margin-bottom:16px" },
+          "¿Ya tenés cuenta? ",
+          crear("a", { href: "cuenta.html" }, "Ingresá"),
+          " y tus datos se completan solos."),
+    campo("nombre", "Nombre y apellido", "text",
+          u ? [u.nombre, u.apellido].filter(Boolean).join(" ") : ""),
+    campo("email", "Email", "email", u?.email || ""),
+    campo("telefono", "Teléfono", "tel", u?.telefono || ""),
+    campo("direccion", "Dirección de entrega", "text"),
     crear("div", { class: "form-grupo" },
       crear("label", { for: "medioPago" }, "Medio de pago"),
       crear("select", { id: "medioPago" },
@@ -358,10 +347,10 @@ function abrirCheckout() {
   montarModal(form);
 }
 
-function campo(id, etiqueta, tipo) {
+function campo(id, etiqueta, tipo, valor = "") {
   return crear("div", { class: "form-grupo" },
     crear("label", { for: id }, etiqueta),
-    crear("input", { type: tipo, id, name: id }),
+    crear("input", { type: tipo, id, name: id, value: valor }),
     crear("span", { class: "form-error", id: "err-" + id, "aria-live": "polite" })
   );
 }

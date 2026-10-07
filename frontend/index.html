@@ -3,123 +3,110 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Alba en los Andes — Vinos del Valle de Uco</title>
-  <meta name="description" content="Tienda online de la bodega Alba en los Andes. Vinos de Tupungato, Valle de Uco, Mendoza.">
+  <title>Alba en los Andes — Vinos de altura del Valle de Uco</title>
+  <meta name="description" content="Bodega Alba en los Andes. Vinos de altura del Valle de Uco, Tupungato, Mendoza. Cuatro lineas, diez etiquetas.">
   <link rel="stylesheet" href="css/estilos.css">
+  <link rel="stylesheet" href="css/sitio.css">
 </head>
 <body>
+  <!--
+    El encabezado y el pie los arma js/modules/sitio.js, que es el unico
+    lugar donde esta escrita la barra de navegacion. Ver el comentario de
+    ese archivo para el porque.
+  -->
+  <main id="contenido">
 
-  <!-- ======================= HEADER ======================= -->
-  <header class="cabecera">
-    <div class="cabecera__fila">
-      <a href="index.html" class="marca" aria-label="Alba en los Andes, inicio">
-        <span class="marca__nombre">Alba en los Andes</span>
-        <span class="marca__sub">Valle de Uco</span>
-      </a>
-      <nav class="nav" aria-label="Navegacion principal">
-        <a href="#catalogo">Catalogo</a>
-        <a href="#historia">La bodega</a>
-        <a href="admin.html">Administracion</a>
-      </nav>
-      <button class="carrito-boton" id="btnCarrito" aria-label="Abrir carrito">
-        Carrito
-        <span class="carrito-badge oculto" id="carritoBadge" aria-live="polite">0</span>
-      </button>
-    </div>
-  </header>
-
-  <main>
-    <!-- ======================= HERO ======================= -->
-    <section class="hero" aria-labelledby="heroTitulo">
-      <div class="contenedor hero__contenido">
-        <p class="hero__sello">Tupungato · Mendoza · 1.100 msnm</p>
-        <h1 id="heroTitulo">Vinos de altura, de una finca que progresa en cada cosecha</h1>
-        <p>Un vinedo de mas de 25 anos sobre suelos calcareos del Valle de Uco. Cosecha manual,
-           crianza en barrica de roble frances. Descubri nuestras cuatro lineas.</p>
-        <div class="hero__acciones">
-          <a href="#catalogo" class="btn btn--primario">Ver el catalogo</a>
-          <a href="#historia" class="btn btn--fantasma">Conocer la bodega</a>
+    <!-- ===================== PORTADA ===================== -->
+    <section class="portada portada--alta" id="portada">
+      <div class="portada__interior">
+        <p class="portada__encima">Valle de Uco · Mendoza · 1.100 msnm</p>
+        <h1 class="portada__titulo">Vinos de altura, de una finca que progresa en cada cosecha</h1>
+        <p class="portada__bajada">
+          Un viñedo de más de 25 años sobre suelos calcáreos al pie de la Cordillera
+          de los Andes. Cosecha manual, crianza en barrica de roble francés.
+        </p>
+        <div class="portada__acciones">
+          <a class="btn btn--primario" href="tienda.html">Comprá ahora</a>
+          <a class="btn btn--fantasma btn--claro" href="finca.html">Conocé la finca</a>
         </div>
       </div>
     </section>
 
-    <!-- ======================= CATALOGO ======================= -->
-    <section class="seccion" id="catalogo" aria-labelledby="catTitulo">
-      <div class="contenedor">
-        <h2 class="seccion__titulo" id="catTitulo">Nuestros vinos</h2>
-        <p class="seccion__bajada">Cuatro lineas, diez etiquetas. Filtra y encontra el tuyo.</p>
-
-        <!-- Filtros y busqueda -->
-        <div class="filtros" role="search">
-          <div class="filtro filtros__buscar">
-            <label for="fBuscar">Buscar</label>
-            <input type="search" id="fBuscar" placeholder="Nombre, varietal, linea...">
+    <!-- ===================== UBICADOS EN UNA REGIÓN ===================== -->
+    <section class="seccion">
+      <div class="seccion__interior">
+        <div class="par">
+          <div class="par__texto">
+            <h2 class="seccion__titulo">Ubicados en una región</h2>
+            <p>
+              La bodega está situada en el Valle de Uco, al pie de la Cordillera de
+              los Andes. Su privilegiada ubicación geográfica brinda al crecimiento
+              de la uva un contexto único en el mundo.
+            </p>
+            <p>
+              La altura, la amplitud térmica entre el día y la noche y el agua de
+              deshielo dan vinos de aromas finos y gran concentración de fruta.
+            </p>
           </div>
-          <div class="filtro">
-            <label for="fVarietal">Varietal</label>
-            <select id="fVarietal"><option value="">Todos</option></select>
-          </div>
-          <div class="filtro">
-            <label for="fLinea">Linea</label>
-            <select id="fLinea"><option value="">Todas</option></select>
-          </div>
-          <div class="filtro">
-            <label for="fCosecha">Cosecha</label>
-            <select id="fCosecha"><option value="">Todas</option></select>
-          </div>
-          <div class="filtro">
-            <label for="fPrecio">Precio maximo</label>
-            <select id="fPrecio">
-              <option value="">Sin limite</option>
-              <option value="15000">hasta $15.000</option>
-              <option value="20000">hasta $20.000</option>
-              <option value="30000">hasta $30.000</option>
-              <option value="40000">hasta $40.000</option>
-            </select>
-          </div>
-          <div class="filtro">
-            <label for="fOrden">Ordenar por</label>
-            <select id="fOrden">
-              <option value="nombre">Nombre</option>
-              <option value="precio-asc">Precio: menor a mayor</option>
-              <option value="precio-desc">Precio: mayor a menor</option>
-              <option value="cosecha">Cosecha</option>
-            </select>
-          </div>
-          <button class="btn btn--fantasma btn--chico" id="btnLimpiar">Limpiar filtros</button>
-          <p class="filtros__resultado" id="resultadoFiltro" aria-live="polite"></p>
+          <div class="par__foto" id="fotoRegion"></div>
         </div>
-
-        <!-- Aca se dibuja la grilla, el estado de carga o el vacio -->
-        <div id="contenedorCatalogo"></div>
       </div>
     </section>
 
-    <!-- ======================= HISTORIA ======================= -->
-    <section class="seccion seccion--alt" id="historia" aria-labelledby="histTitulo">
-      <div class="contenedor">
-        <h2 class="seccion__titulo" id="histTitulo">La bodega</h2>
-        <p class="seccion__bajada" style="max-width:720px;margin:0 auto 20px;">
-          Alba en los Andes nace en Tupungato, Valle de Uco, sobre un vinedo de mas de 25 anos
-          a 1.100 metros sobre el nivel del mar. Suelos calcareos de origen aluvial, cosecha
-          manual en cajas de 12 kg y crianza en barrica de roble frances definen el caracter
-          de nuestros vinos: elegancia, complejidad y una identidad de altura.
+    <!-- ===================== UNA FINCA ÚNICA ===================== -->
+    <section class="seccion seccion--gris">
+      <div class="seccion__interior">
+        <div class="par par--invertido">
+          <div class="par__texto">
+            <h2 class="seccion__titulo">Una finca única</h2>
+            <p>
+              Nuestros vinos, dotados de finos aromas y múltiples frutos, dan
+              identidad a la mejor cosecha de la región. Cada uno de ellos es el
+              resultado de la interacción entre la naturaleza, el hombre y la viña.
+            </p>
+            <p>
+              El excelente tratamiento del terruño permite que el fruto sea
+              cosechado en su punto óptimo de maduración, para poder disfrutar
+              sabiendo que estamos al pie de la Cordillera de los Andes.
+            </p>
+          </div>
+          <div class="par__foto" id="fotoFinca"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== NUESTRO PROPÓSITO ===================== -->
+    <section class="seccion">
+      <div class="seccion__interior seccion--centrada">
+        <h2 class="seccion__titulo">Nuestro propósito</h2>
+        <p class="seccion__bajada">
+          En Alba en los Andes nuestra pasión por el vino se fusiona con un
+          compromiso responsable hacia la sostenibilidad. Adoptamos prácticas
+          ambientales arraigadas en el cuidado de la tierra, la seguridad y el
+          bienestar de quienes trabajan con nosotros, y el respeto por la
+          comunidad que nos rodea.
         </p>
       </div>
     </section>
+
+    <!-- ===================== NUESTROS VINOS ===================== -->
+    <section class="seccion seccion--gris">
+      <div class="seccion__interior">
+        <div class="seccion--centrada">
+          <h2 class="seccion__titulo">Nuestros vinos</h2>
+          <p class="seccion__bajada">Cuatro líneas, diez etiquetas.</p>
+        </div>
+        <!-- Lo llena js/inicio.js con el catalogo que devuelve la API. -->
+        <div id="vinosDestacados"></div>
+        <div style="text-align:center;margin-top:40px">
+          <a class="btn btn--primario" href="tienda.html">Ver todo el catálogo</a>
+        </div>
+      </div>
+    </section>
+
   </main>
 
-  <!-- ======================= FOOTER ======================= -->
-  <footer class="pie">
-    <div class="contenedor pie__fila">
-      <span>Alba en los Andes — Tupungato, Valle de Uco, Mendoza</span>
-      <span>Trabajo Practico — Aplicaciones Interactivas · Etapa 2</span>
-    </div>
-  </footer>
-
-  <!-- Contenedor donde se montan los modales -->
   <div id="raizModal"></div>
-
-  <script type="module" src="js/tienda.js"></script>
+  <script type="module" src="js/inicio.js"></script>
 </body>
 </html>

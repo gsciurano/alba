@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nuestros vinos — Alba en los Andes</title>
+  <meta name="description" content="Las cuatro lineas de Alba en los Andes: Finca, Estate Reserve, Gran Reserva y Ediciones Especiales.">
+  <link rel="stylesheet" href="css/estilos.css">
+  <link rel="stylesheet" href="css/sitio.css">
+</head>
+<body>
+  <main id="contenido">
+    <section class="portada-chica">
+      <h1>Nuestros vinos</h1>
+      <p>Cuatro líneas que recorren la finca, de los frescos y frutados a los de guarda.</p>
+    </section>
+
+    <!--
+      Esta pagina es informativa: muestra las lineas con sus notas de cata.
+      La compra esta en tienda.html. Las dos leen el mismo catalogo de la
+      API, asi que no pueden quedar desincronizadas.
+    -->
+    <section class="seccion">
+      <div class="seccion__interior" id="lineas"></div>
+    </section>
+  </main>
+
+  <div id="raizModal"></div>
+  <script type="module" src="js/vinos.js"></script>
+</body>
+</html>

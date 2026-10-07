@@ -67,22 +67,30 @@ const ESTADOS_SOLICITUD = {
 //  ARRANQUE
 // ============================================================
 
+/**
+ * GUARDA DE ACCESO.
+ *
+ * El ingreso ya no se hace aca: se hace en cuenta.html contra
+ * POST /api/usuarios/login, y el servidor es el que dice el rol. Esta
+ * pagina solo comprueba que quien llego sea un ADMIN y, si no, lo manda
+ * a ingresar.
+ *
+ * ES UNA GUARDA DE PANTALLA, NO DE SEGURIDAD: evita que alguien entre por
+ * error o curioseando, pero los endpoints del back-end siguen abiertos a
+ * quien llame a la API directamente. Cerrarlos es trabajo de Spring
+ * Security, fuera del alcance de esta entrega.
+ */
 document.addEventListener("DOMContentLoaded", () => {
-  $("#formLogin").addEventListener("submit", intentarLogin);
-  if (sesion.actual()) entrarAlPanel();
+  if (!sesion.esAdmin()) {
+    location.replace("cuenta.html");
+    return;
+  }
+  entrarAlPanel();
 });
 
-function intentarLogin(e) {
-  e.preventDefault();
-  const u = sesion.login($("#usuario").value.trim(), $("#password").value);
-  if (!u) { $("#loginError").textContent = "Usuario o contrasena incorrectos"; return; }
-  entrarAlPanel();
-}
-
 async function entrarAlPanel() {
-  $("#pantallaLogin").classList.add("oculto");
   $("#appAdmin").classList.remove("oculto");
-  $("#btnSalir").addEventListener("click", () => { sesion.logout(); location.reload(); });
+  $("#btnSalir").addEventListener("click", () => { sesion.logout(); location.href = "index.html"; });
   $$(".nav-item").forEach(b => b.addEventListener("click", () => ir(b.dataset.vista)));
 
   const cont = $("#vistaContenedor");

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comprar — Alba en los Andes</title>
+  <meta name="description" content="Tienda online de la bodega Alba en los Andes. Vinos de Tupungato, Valle de Uco, Mendoza.">
+  <link rel="stylesheet" href="css/estilos.css">
+  <link rel="stylesheet" href="css/sitio.css">
+</head>
+<body data-pagina="tienda">
+  <main id="contenido">
+    <section class="portada-chica">
+      <h1>Comprar</h1>
+      <p>Envíos a todo el país. Beber con moderación.</p>
+    </section>
+
+    <section class="seccion" id="catalogo">
+      <div class="seccion__interior">
+
+        <!-- Filtros y busqueda -->
+        <div class="filtros" role="search">
+          <div class="filtro filtros__buscar">
+            <label for="fBuscar">Buscar</label>
+            <input type="search" id="fBuscar" placeholder="Nombre, varietal, línea...">
+          </div>
+          <div class="filtro">
+            <label for="fVarietal">Varietal</label>
+            <select id="fVarietal"><option value="">Todos</option></select>
+          </div>
+          <div class="filtro">
+            <label for="fLinea">Línea</label>
+            <select id="fLinea"><option value="">Todas</option></select>
+          </div>
+          <div class="filtro">
+            <label for="fCosecha">Cosecha</label>
+            <select id="fCosecha"><option value="">Todas</option></select>
+          </div>
+          <div class="filtro">
+            <label for="fPrecio">Precio máximo</label>
+            <select id="fPrecio">
+              <option value="">Sin límite</option>
+              <option value="15000">hasta $15.000</option>
+              <option value="20000">hasta $20.000</option>
+              <option value="30000">hasta $30.000</option>
+              <option value="40000">hasta $40.000</option>
+            </select>
+          </div>
+          <div class="filtro">
+            <label for="fOrden">Ordenar por</label>
+            <select id="fOrden">
+              <option value="nombre">Nombre</option>
+              <option value="precio-asc">Precio: menor a mayor</option>
+              <option value="precio-desc">Precio: mayor a menor</option>
+              <option value="cosecha">Cosecha</option>
+            </select>
+          </div>
+          <button class="btn btn--fantasma btn--chico" id="btnLimpiar">Limpiar filtros</button>
+          <p class="filtros__resultado" id="resultadoFiltro" aria-live="polite"></p>
+        </div>
+
+        <!-- Aca se dibuja la grilla, el estado de carga o el vacio -->
+        <div id="contenedorCatalogo"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="raizModal"></div>
+  <script type="module" src="js/tienda.js"></script>
+</body>
+</html>
