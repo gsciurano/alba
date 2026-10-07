@@ -1,0 +1,68 @@
+{
+  // ============================================================
+  //  Como arrancar el proyecto desde VS Code.
+  //
+  //  Menu  Terminal > Ejecutar tarea...  (o Cmd+Shift+P -> "Run Task")
+  //
+  //  POR QUE EL BACKEND HACE 'source ~/.zshrc': la clave de MySQL vive en
+  //  ese archivo, pero zsh solo lo lee en terminales interactivas. Las
+  //  tareas de VS Code corren en una terminal que NO lo es, asi que hay
+  //  que leerlo a mano. Sin eso la aplicacion arranca igual, pero todos
+  //  los endpoints responden error 500 por "Access denied" de MySQL, que
+  //  es un sintoma confuso porque parece que el servidor anda bien.
+  //
+  //  La clave no esta escrita en ningun archivo del proyecto: se lee de
+  //  la variable DB_PASSWORD en el momento de arrancar.
+  // ============================================================
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "1 · Backend (Spring Boot, puerto 8080)",
+      "type": "shell",
+      "command": "source ~/.zshrc 2>/dev/null; ./mvnw spring-boot:run",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "group": "alba", "clear": true },
+      "detail": "Levanta la API REST. Tiene que decir 'Started GestorInventarioApplication'."
+    },
+    {
+      "label": "2 · Frontend (servidor web, puerto 8099)",
+      "type": "shell",
+      "command": "python3 -m http.server 8099",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "group": "alba", "clear": true },
+      "detail": "Sirve la tienda y el panel. Despues abrir http://localhost:8099/index.html"
+    },
+    {
+      "label": "▶︎ Arrancar todo (backend + frontend)",
+      "dependsOn": [
+        "1 · Backend (Spring Boot, puerto 8080)",
+        "2 · Frontend (servidor web, puerto 8099)"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true },
+      "detail": "Las dos cosas de una. Es la tarea por defecto: Cmd+Shift+B."
+    },
+    {
+      "label": "Compilar el backend (sin arrancarlo)",
+      "type": "shell",
+      "command": "./mvnw -q clean compile",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": ["$tsc"],
+      "presentation": { "panel": "dedicated", "group": "alba" },
+      "detail": "Para comprobar que el codigo Java compila sin errores."
+    },
+    {
+      "label": "Apagar los dos servidores",
+      "type": "shell",
+      "command": "pkill -f 'spring-boot:run' ; pkill -f 'http.server 8099' ; echo 'Servidores apagados.'",
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "group": "alba", "clear": true },
+      "detail": "Util cuando el puerto 8080 quedo ocupado por un arranque anterior."
+    }
+  ]
+}

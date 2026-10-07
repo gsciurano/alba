@@ -1,0 +1,33 @@
+{
+  // ============================================================
+  //  Arranque con DEPURADOR (para poner puntos de interrupcion).
+  //
+  //  Para el uso normal conviene la tarea "▶︎ Arrancar todo", porque
+  //  corre en la terminal integrada y toma DB_PASSWORD de tu ~/.zshrc
+  //  sin que la clave quede escrita en ningun archivo.
+  //
+  //  Esta configuracion arranca el proceso por fuera de la terminal, asi
+  //  que NO lee el ~/.zshrc. Para que encuentre la clave hay dos caminos:
+  //
+  //    a) abrir VS Code desde una terminal (escribiendo: code .), con lo
+  //       cual hereda las variables de tu perfil y funciona tal cual; o
+  //    b) copiar backend/.env.ejemplo a backend/.env y poner la clave ahi
+  //       (.env esta en el .gitignore, nunca se sube a GitHub).
+  //
+  //  Si la clave no llega, la aplicacion ARRANCA igual pero todos los
+  //  endpoints responden error 500 por "Access denied" de MySQL.
+  // ============================================================
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Backend con depurador",
+      "request": "launch",
+      "mainClass": "com.albaenlosandes.inventario.GestorInventarioApplication",
+      "projectName": "gestor-inventario",
+      "cwd": "${workspaceFolder}/backend",
+      "envFile": "${workspaceFolder}/backend/.env",
+      "env": { "DB_PASSWORD": "${env:DB_PASSWORD}" }
+    }
+  ]
+}

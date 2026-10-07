@@ -10,7 +10,12 @@ target/
 *.class
 
 # ---- Configuracion local de editores ----
-.vscode/
+# Se ignora .vscode/ salvo las dos cosas que sirven a cualquiera que clone
+# el repositorio: como arrancar el proyecto (tasks) y como depurarlo
+# (launch). settings.json queda afuera porque son preferencias personales.
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
 .idea/
 *.iml
 .settings/
@@ -19,6 +24,15 @@ target/
 
 # ---- Herramientas de modernizacion (las genera una extension de VS Code) ----
 .github/modernize/
+
+# ---- Secretos ----
+# La clave de MySQL NUNCA va al repositorio. application.properties la lee
+# de la variable de entorno DB_PASSWORD; si se prefiere un archivo, va en
+# backend/.env, que se ignora aca. El que SI se sube es .env.ejemplo, que
+# no tiene ninguna clave de verdad.
+.env
+*.env
+!*.env.ejemplo
 
 # ---- Archivos del sistema operativo ----
 .DS_Store
