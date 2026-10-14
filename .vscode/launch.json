@@ -27,6 +27,13 @@
   "configurations": [
     {
       "type": "java",
+      "name": "AppEscritorio",
+      "request": "launch",
+      "mainClass": "com.albaenlosandes.inventario.escritorio.AppEscritorio",
+      "projectName": "gestor-inventario"
+    },
+    {
+      "type": "java",
       "name": "Backend — Alba en los Andes",
       "request": "launch",
       "mainClass": "com.albaenlosandes.inventario.GestorInventarioApplication",
