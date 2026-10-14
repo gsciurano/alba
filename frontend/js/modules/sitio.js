@@ -31,20 +31,14 @@ const PAGINAS = [
   { id: "contacto", texto: "Contacto", href: "contacto.html" }
 ];
 
-/** El sello circular de la marca, dibujado en SVG. */
+/**
+ * El sello de la marca: es el logo real de la bodega, un PNG blanco sobre
+ * fondo transparente, asi que se apoya tal cual sobre la banda vino del
+ * encabezado y del pie sin necesidad de recortarlo de nuevo.
+ */
 function sello(tamano = 44) {
-  return `<svg class="sello" width="${tamano}" height="${tamano}" viewBox="0 0 48 48" aria-hidden="true">
-    <circle cx="24" cy="24" r="22.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
-    <circle cx="24" cy="24" r="16"   fill="none" stroke="currentColor" stroke-width="1"/>
-    <circle cx="24" cy="24" r="4.5"  fill="currentColor"/>
-    ${Array.from({ length: 12 }, (_, i) => {
-      const a = (i * 30) * Math.PI / 180;
-      const x1 = 24 + Math.cos(a) * 6,  y1 = 24 + Math.sin(a) * 6;
-      const x2 = 24 + Math.cos(a) * 15, y2 = 24 + Math.sin(a) * 15;
-      return `<path d="M${x1.toFixed(1)} ${y1.toFixed(1)} L${x2.toFixed(1)} ${y2.toFixed(1)}"
-               stroke="currentColor" stroke-width="1.2" opacity=".85"/>`;
-    }).join("")}
-  </svg>`;
+  return `<img class="sello" src="assets/img/sitio/logo-sello.png"
+           width="${tamano}" height="${tamano}" alt="" aria-hidden="true">`;
 }
 
 const ICONOS = {

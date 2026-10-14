@@ -360,3 +360,64 @@
   .seccion { padding: 50px 20px; }
   .sitio-pie__interior { grid-template-columns: 1fr; }
 }
+
+/* ============================================================
+   FOTOS DE LA PAGINA DE INICIO
+   ============================================================
+   Las fotos de la bodega se ponen como fondo y no como <img> porque los
+   tres huecos (la portada y las dos cajas .par__foto) ya tienen su alto
+   definido por el diseno: con background-size: cover la foto se recorta
+   sola al tamano del hueco en cualquier pantalla, sin deformarse.
+   ============================================================ */
+.portada--inicio { background-image: url("../assets/img/sitio/portada-camino.jpg"); }
+#fotoRegion     { background-image: url("../assets/img/sitio/region-valle.jpg"); }
+#fotoFinca      { background-image: url("../assets/img/sitio/finca-vinedo.jpg"); }
+
+/* ============================================================
+   PAGINA DE LA FINCA
+   ============================================================ */
+#fotoViñedo { background-image: url("../assets/img/sitio/finca-almendros.jpg"); }
+
+/*
+   "Del vinedo a la botella". Las cuatro etapas estaban escritas en el
+   HTML pero no tenian estilo: salian una debajo de la otra, el numero
+   pegado al titulo y sin separacion entre pasos. Aca pasan a ser cuatro
+   fichas en fila, que en pantalla angosta se acomodan solas.
+*/
+.pasos {
+  display: grid; gap: 24px; margin-top: 42px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.paso {
+  background: var(--superficie); border: 1px solid var(--borde);
+  border-radius: var(--radio); padding: 28px 24px;
+}
+.paso__numero {
+  display: block; font-family: var(--fuente-titulo);
+  font-size: 34px; line-height: 1; color: var(--oro);
+}
+.paso h3 {
+  margin: 14px 0 10px; font-size: 19px; color: var(--vino);
+  letter-spacing: 1.2px; text-transform: uppercase; font-weight: 400;
+}
+.paso p { color: var(--texto-tenue); font-size: 15px; line-height: 1.75; }
+
+/*
+   Galeria de la finca. Las fotos van en <img> y no de fondo como las de
+   la portada: aca son el contenido (tienen que poder describirse con alt
+   y leerse con un epigrafe), no la decoracion de un hueco con alto fijo.
+*/
+.galeria {
+  display: grid; gap: 24px; margin-top: 10px;
+  grid-template-columns: repeat(3, 1fr);
+}
+.galeria__item { margin: 0; }
+.galeria__item img {
+  width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
+  border-radius: var(--radio); background: var(--foto-fondo);
+}
+.galeria__item figcaption {
+  margin-top: 12px; color: var(--texto-tenue); font-size: 14.5px; line-height: 1.6;
+}
+@media (max-width: 860px) { .galeria { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .galeria { grid-template-columns: 1fr; } }
