@@ -232,11 +232,28 @@ function agregarAlCarrito(id, cantidad) {
  */
 function actualizarBadgeCarrito() { actualizarCarrito(); }
 
-function calcularTotales(items) {
+/**
+ * Las cuentas del pedido. El descuento del cupon se resta de los vinos y
+ * el 21% se calcula sobre lo que queda, que es el orden en que se cobra:
+ * primero se descuenta y despues se grava.
+ */
+function calcularTotales(items, cupon = null) {
   const subtotal = items.reduce((s, i) => s + i.precio * i.cantidad, 0);
+
+  let descuento = 0;
+  if (cupon) {
+    descuento = cupon.porcentaje ? Math.round(subtotal * cupon.porcentaje) : cupon.monto;
+    descuento = Math.min(descuento, subtotal);   // nunca puede dejar el subtotal negativo
+  }
+
+  const gravado = subtotal - descuento;
   const envio = items.length ? COSTO_ENVIO : 0;
-  const impuestos = Math.round(subtotal * TASA_IMPUESTO);
-  return { subtotal, envio, impuestos, total: subtotal + envio + impuestos };
+  const impuestos = Math.round(gravado * TASA_IMPUESTO);
+  return {
+    subtotal, descuento, envio, impuestos,
+    cupon: cupon?.codigo || null,
+    total: gravado + envio + impuestos
+  };
 }
 
 function abrirCarrito() {
@@ -304,57 +321,350 @@ function fila(etiqueta, valor) {
 }
 
 // ------------------------------------------------------------
-//  CHECKOUT con validacion en cliente
+//  CHECKOUT
 // ------------------------------------------------------------
+/**
+ * El checkout es la pantalla mas larga del sitio: datos del comprador,
+ * direccion, medio de pago y resumen. Antes era una sola columna de
+ * campos con el total al final, asi que para saber cuanto se estaba por
+ * pagar habia que llegar hasta abajo.
+ *
+ * Ahora son dos columnas: a la izquierda lo que hay que completar,
+ * numerado en tres pasos, y a la derecha el resumen del pedido, que
+ * queda a la vista todo el tiempo con el detalle, el cupon y el total.
+ * En pantalla angosta las dos columnas se apilan solas.
+ */
+
+/** Cupon aplicado en el checkout que esta abierto. Se limpia al abrirlo. */
+let cuponAplicado = null;
+
+/** Los medios de pago, como fichas elegibles en vez de una lista desplegable. */
+const MEDIOS = [
+  { valor: "TARJETA",       titulo: "Tarjeta",       detalle: "Crédito o débito" },
+  { valor: "TRANSFERENCIA", titulo: "Transferencia", detalle: "Te pasamos el CBU" },
+  { valor: "EFECTIVO",      titulo: "Efectivo",      detalle: "Al recibir el pedido" }
+];
+
 function abrirCheckout() {
   const items = carrito.getItems();
   if (items.length === 0) { toast("El carrito esta vacio", "error"); return; }
-  const t = calcularTotales(items);
 
-  // Si ya entro a su cuenta, sus datos vienen cargados: no tiene por que
-  // volver a escribir lo que la bodega ya sabe. Igual puede corregirlos.
+  cuponAplicado = null;
   const u = sesion.actual();
+  const nombreUsuario = u ? [u.nombre, u.apellido].filter(Boolean).join(" ") : "";
 
-  const form = crear("form", { class: "carrito-panel", novalidate: "true", id: "formCheckout" },
-    crear("h2", {}, "Finalizar compra"),
-    u
-      ? crear("p", { class: "nota-tenue", style: "margin-bottom:16px" },
-          "Comprando como " + [u.nombre, u.apellido].filter(Boolean).join(" ") + ".")
-      : crear("p", { class: "nota-tenue", style: "margin-bottom:16px" },
-          "¿Ya tenés cuenta? ",
-          crear("a", { href: "cuenta.html" }, "Ingresá"),
-          " y tus datos se completan solos."),
-    campo("nombre", "Nombre y apellido", "text",
-          u ? [u.nombre, u.apellido].filter(Boolean).join(" ") : ""),
-    campo("email", "Email", "email", u?.email || ""),
-    campo("telefono", "Teléfono", "tel", u?.telefono || ""),
-    campo("direccion", "Dirección de entrega", "text"),
-    crear("div", { class: "form-grupo" },
-      crear("label", { for: "medioPago" }, "Medio de pago"),
-      crear("select", { id: "medioPago" },
-        crear("option", { value: "TARJETA" }, "Tarjeta"),
-        crear("option", { value: "TRANSFERENCIA" }, "Transferencia"),
-        crear("option", { value: "EFECTIVO" }, "Efectivo"))
-    ),
-    crear("div", { class: "carrito-resumen" },
-      crear("div", { class: "carrito-resumen__total" },
-        crear("span", {}, "Total a pagar"), crear("span", {}, pesos(t.total)))),
-    crear("button", { type: "submit", class: "btn btn--primario btn--bloque", style: "margin-top:18px" },
-      "Confirmar pedido")
+  const tarjeta = bloqueTarjeta(() => form.nombre.value);
+
+  // Las fichas de pago muestran u ocultan los campos de la tarjeta: pedir
+  // un numero de tarjeta a quien paga en efectivo no tiene sentido.
+  const medios = crear("div", { class: "medios" },
+    ...MEDIOS.map((m, i) => crear("label", { class: "medio", for: "medio-" + m.valor },
+      crear("input", {
+        type: "radio", name: "medioPago", value: m.valor, id: "medio-" + m.valor,
+        checked: i === 0 ? "checked" : null,
+        onchange: () => tarjeta.nodo.hidden = m.valor !== "TARJETA"
+      }),
+      crear("span", { class: "medio__titulo" }, m.titulo),
+      crear("span", { class: "medio__detalle" }, m.detalle))));
+
+  const columnaDatos = crear("div", { class: "pago__columna" },
+    crear("header", { class: "pago__encabezado" },
+      crear("h2", {}, "Finalizar compra"),
+      u
+        ? crear("p", { class: "pago__nota" }, "Comprando como " + nombreUsuario + ".")
+        : crear("p", { class: "pago__nota" }, "¿Ya tenés cuenta? ",
+            crear("a", { href: "cuenta.html" }, "Ingresá"),
+            " y tus datos se completan solos.")),
+
+    paso("01", "Tus datos",
+      crear("div", { class: "form-fila" },
+        campo("nombre", "Nombre y apellido", "text", nombreUsuario),
+        campo("email", "Email", "email", u?.email || "")),
+      campo("telefono", "Teléfono", "tel", u?.telefono || "", "11 5555 5555")),
+
+    paso("02", "Entrega",
+      campo("direccion", "Dirección de entrega", "text", "", "Calle, número, piso y localidad"),
+      crear("p", { class: "pago__ayuda" }, "Enviamos a todo el país en 3 a 7 días hábiles.")),
+
+    paso("03", "Pago", medios, tarjeta.nodo)
   );
 
-  form.addEventListener("submit", (e) => { e.preventDefault(); procesarCheckout(form, items, t); });
-  montarModal(form);
+  const resumen = panelResumen(items);
+
+  const form = crear("form", { class: "pago", novalidate: "true", id: "formCheckout" },
+    columnaDatos, resumen.nodo);
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    procesarCheckout(form, items, calcularTotales(items, cuponAplicado));
+  });
+
+  montarModal(form, { ancho: true });
 }
 
-function campo(id, etiqueta, tipo, valor = "") {
+/** Un paso numerado de la columna izquierda. */
+function paso(numero, titulo, ...contenido) {
+  return crear("section", { class: "pago__bloque" },
+    crear("h3", { class: "pago__titulo" },
+      crear("span", { class: "pago__paso" }, numero), titulo),
+    ...contenido);
+}
+
+function campo(id, etiqueta, tipo, valor = "", pista = "") {
   return crear("div", { class: "form-grupo" },
     crear("label", { for: id }, etiqueta),
-    crear("input", { type: tipo, id, name: id, value: valor }),
+    crear("input", { type: tipo, id, name: id, value: valor, placeholder: pista || null }),
     crear("span", { class: "form-error", id: "err-" + id, "aria-live": "polite" })
   );
 }
 
+// ------------------------------------------------------------
+//  TARJETA
+// ------------------------------------------------------------
+/**
+ * Los datos de la tarjeta, con una vista previa que se va completando a
+ * medida que se escribe, y un boton que inventa un numero de prueba.
+ *
+ * POR QUE EL BOTON: esto es un trabajo practico, no hay pasarela de pago
+ * de verdad. Para probar la compra hace falta un numero que pase la
+ * validacion, y pedirle a quien prueba que se acuerde de uno (o que use
+ * el suyo real) seria peor. El boton genera uno valido al instante.
+ *
+ * El numero NO se manda al servidor: ver la nota en procesarCheckout().
+ */
+function bloqueTarjeta(nombreTitular) {
+  const numero = crear("input", {
+    type: "text", id: "tarjetaNumero", name: "tarjetaNumero", inputmode: "numeric",
+    autocomplete: "off", placeholder: "0000 0000 0000 0000", maxlength: "19" });
+  const vence = crear("input", {
+    type: "text", id: "tarjetaVence", name: "tarjetaVence", inputmode: "numeric",
+    autocomplete: "off", placeholder: "MM/AA", maxlength: "5" });
+  const cvv = crear("input", {
+    type: "text", id: "tarjetaCvv", name: "tarjetaCvv", inputmode: "numeric",
+    autocomplete: "off", placeholder: "123", maxlength: "4" });
+
+  // La vista previa: la tarjeta dibujada que se completa sola.
+  const vistaNumero = crear("div", { class: "plastico__numero" }, "•••• •••• •••• ••••");
+  const vistaTitular = crear("div", { class: "plastico__dato" }, "NOMBRE DEL TITULAR");
+  const vistaVence = crear("div", { class: "plastico__dato" }, "MM/AA");
+  const plastico = crear("div", { class: "plastico", "aria-hidden": "true" },
+    crear("div", { class: "plastico__chip" }),
+    vistaNumero,
+    crear("div", { class: "plastico__pie" },
+      crear("div", {}, crear("span", { class: "plastico__rotulo" }, "Titular"), vistaTitular),
+      crear("div", {}, crear("span", { class: "plastico__rotulo" }, "Vence"), vistaVence)));
+
+  function pintar() {
+    vistaNumero.textContent = numero.value || "•••• •••• •••• ••••";
+    vistaTitular.textContent = (nombreTitular() || "Nombre del titular").toUpperCase();
+    vistaVence.textContent = vence.value || "MM/AA";
+  }
+
+  // Formateo mientras se escribe: el numero en grupos de cuatro y el
+  // vencimiento con la barra puesta, para no tener que tipearla.
+  numero.addEventListener("input", () => {
+    numero.value = soloDigitos(numero.value, 16).replace(/(\d{4})(?=\d)/g, "$1 ");
+    pintar();
+  });
+  vence.addEventListener("input", () => {
+    const d = soloDigitos(vence.value, 4);
+    vence.value = d.length > 2 ? d.slice(0, 2) + "/" + d.slice(2) : d;
+    pintar();
+  });
+  cvv.addEventListener("input", () => { cvv.value = soloDigitos(cvv.value, 4); });
+
+  const botonGenerar = crear("button", {
+    type: "button", class: "btn btn--fantasma btn--chico generar",
+    onclick: () => {
+      numero.value = generarNumeroTarjeta();
+      vence.value = generarVencimiento();
+      cvv.value = String(Math.floor(Math.random() * 900) + 100);
+      [numero, vence, cvv].forEach(i => i.classList.remove("invalido"));
+      pintar();
+      toast("Tarjeta de prueba generada");
+    }
+  }, "Generar número de tarjeta");
+
+  const nodo = crear("div", { class: "tarjeta-pago", id: "bloqueTarjeta" },
+    plastico,
+    crear("div", { class: "tarjeta-pago__campos" },
+      crear("div", { class: "form-grupo" },
+        crear("label", { for: "tarjetaNumero" }, "Número de tarjeta"),
+        crear("div", { class: "campo-con-boton" }, numero, botonGenerar),
+        crear("span", { class: "form-error", id: "err-tarjetaNumero", "aria-live": "polite" })),
+      crear("p", { class: "pago__ayuda" },
+        "No hay cobro real: el botón arma un número de prueba válido junto con el vencimiento y el código."),
+      crear("div", { class: "form-fila" },
+        crear("div", { class: "form-grupo" },
+          crear("label", { for: "tarjetaVence" }, "Vencimiento"),
+          vence,
+          crear("span", { class: "form-error", id: "err-tarjetaVence", "aria-live": "polite" })),
+        crear("div", { class: "form-grupo" },
+          crear("label", { for: "tarjetaCvv" }, "Código de seguridad"),
+          cvv,
+          crear("span", { class: "form-error", id: "err-tarjetaCvv", "aria-live": "polite" })))));
+
+  // El nombre del titular sale del campo de arriba, asi que se repinta al
+  // abrir el bloque y cada vez que la tarjeta recibe el foco.
+  nodo.addEventListener("focusin", pintar);
+  return { nodo, pintar };
+}
+
+function soloDigitos(texto, maximo) {
+  return texto.replace(/\D/g, "").slice(0, maximo);
+}
+
+/**
+ * Arma un numero de 16 digitos que pasa el algoritmo de Luhn, igual que
+ * una tarjeta de verdad: 15 digitos al azar y el ultimo calculado para
+ * que la suma cierre. Empieza con 4, el prefijo de Visa.
+ */
+function generarNumeroTarjeta() {
+  const digitos = ["4"];
+  while (digitos.length < 15) digitos.push(String(Math.floor(Math.random() * 10)));
+
+  // Digito verificador: se doblan las posiciones impares contando desde
+  // la derecha del numero terminado, que son las pares de este arreglo.
+  let suma = 0;
+  [...digitos].reverse().forEach((c, i) => {
+    let n = Number(c);
+    if (i % 2 === 0) { n *= 2; if (n > 9) n -= 9; }
+    suma += n;
+  });
+  digitos.push(String((10 - suma % 10) % 10));
+  return digitos.join("").replace(/(\d{4})(?=\d)/g, "$1 ");
+}
+
+/** Un vencimiento entre uno y cuatro anios para adelante. */
+function generarVencimiento() {
+  const hoy = new Date();
+  const mes = Math.floor(Math.random() * 12) + 1;
+  const anio = hoy.getFullYear() + 1 + Math.floor(Math.random() * 4);
+  return String(mes).padStart(2, "0") + "/" + String(anio).slice(2);
+}
+
+/** Validacion de Luhn: la misma que hace el banco antes de cobrar. */
+function numeroDeTarjetaValido(valor) {
+  const d = valor.replace(/\D/g, "");
+  if (d.length !== 16) return false;
+  let suma = 0;
+  [...d].reverse().forEach((c, i) => {
+    let n = Number(c);
+    if (i % 2 === 1) { n *= 2; if (n > 9) n -= 9; }
+    suma += n;
+  });
+  return suma % 10 === 0;
+}
+
+/** El vencimiento tiene que ser MM/AA y no estar vencido. */
+function vencimientoValido(valor) {
+  const m = valor.match(/^(0[1-9]|1[0-2])\/(\d{2})$/);
+  if (!m) return false;
+  const hoy = new Date();
+  const vence = new Date(2000 + Number(m[2]), Number(m[1]), 0);  // ultimo dia del mes
+  return vence >= new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+}
+
+// ------------------------------------------------------------
+//  RESUMEN Y CUPONES
+// ------------------------------------------------------------
+/**
+ * Los codigos promocionales viven aca, en el navegador, y no en la base:
+ * el back-end de la Etapa 1 no tiene tabla de cupones ni columna de
+ * descuento en 'pedidos'. Se comportan como el envio y el 21%, que ya se
+ * calculan de este lado (ver README, "Diferencias conocidas").
+ */
+const CUPONES = {
+  ALBA10:     { etiqueta: "10% en los vinos",  porcentaje: 0.10 },
+  VALLEUCO15: { etiqueta: "15% en los vinos",  porcentaje: 0.15 },
+  BIENVENIDA: { etiqueta: "$5.000 en los vinos", monto: 5000 }
+};
+
+/** El panel derecho: detalle del pedido, cupon y totales. */
+function panelResumen(items) {
+  const cuentas = crear("div", { class: "resumen__cuentas" });
+  const estadoCupon = crear("p", { class: "cupon__estado", "aria-live": "polite" });
+  const botonPagar = crear("button", { type: "submit", class: "btn btn--primario btn--bloque" }, "Pagar");
+
+  const entradaCupon = crear("input", {
+    type: "text", id: "cupon", name: "cupon", autocomplete: "off",
+    placeholder: "Ingresá tu código", "aria-label": "Código promocional" });
+
+  // Enter dentro del cupon aplica el cupon; sin esto el navegador daria
+  // por enviado todo el formulario con los campos a medio completar.
+  entradaCupon.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); aplicarCupon(); }
+  });
+
+  function aplicarCupon() {
+    const codigo = entradaCupon.value.trim().toUpperCase();
+    if (!codigo) { estadoCupon.className = "cupon__estado"; estadoCupon.textContent = ""; return; }
+    const cupon = CUPONES[codigo];
+    if (!cupon) {
+      cuponAplicado = null;
+      estadoCupon.className = "cupon__estado cupon__estado--error";
+      estadoCupon.textContent = "El código " + codigo + " no existe o venció.";
+    } else {
+      cuponAplicado = { codigo, ...cupon };
+      estadoCupon.className = "cupon__estado cupon__estado--ok";
+      estadoCupon.textContent = "Listo: " + cupon.etiqueta + ".";
+    }
+    repintar();
+  }
+
+  function quitarCupon() {
+    cuponAplicado = null;
+    entradaCupon.value = "";
+    estadoCupon.className = "cupon__estado";
+    estadoCupon.textContent = "";
+    repintar();
+  }
+
+  function repintar() {
+    const t = calcularTotales(items, cuponAplicado);
+    cuentas.innerHTML = "";
+    cuentas.append(fila("Subtotal", pesos(t.subtotal)));
+    if (t.descuento > 0) {
+      cuentas.append(crear("div", { class: "carrito-resumen__fila resumen__descuento" },
+        crear("span", {}, "Descuento " + cuponAplicado.codigo,
+          crear("button", { type: "button", class: "cupon__quitar",
+            "aria-label": "Quitar el cupón", onclick: quitarCupon }, "quitar")),
+        crear("span", {}, "− " + pesos(t.descuento))));
+    }
+    cuentas.append(
+      fila("Envío", pesos(t.envio)),
+      fila("Impuestos (21%)", pesos(t.impuestos)),
+      crear("div", { class: "carrito-resumen__total" },
+        crear("span", {}, "Total"), crear("span", {}, pesos(t.total))));
+    botonPagar.textContent = "Pagar " + pesos(t.total);
+  }
+
+  const nodo = crear("aside", { class: "pago__resumen" },
+    crear("h3", { class: "resumen__titulo" }, "Tu pedido"),
+    crear("ul", { class: "resumen__items" },
+      ...items.map(i => crear("li", {},
+        crear("span", { class: "resumen__cantidad" }, i.cantidad + "×"),
+        crear("span", { class: "resumen__nombre" }, i.nombre),
+        crear("span", { class: "resumen__importe" }, pesos(i.precio * i.cantidad))))),
+    crear("div", { class: "cupon" },
+      crear("label", { for: "cupon" }, "¿Tenés un código promocional?"),
+      crear("div", { class: "campo-con-boton" },
+        entradaCupon,
+        crear("button", { type: "button", class: "btn btn--fantasma btn--chico", onclick: aplicarCupon },
+          "Aplicar")),
+      estadoCupon),
+    cuentas,
+    botonPagar,
+    crear("p", { class: "resumen__aviso" },
+      "Al confirmar, el pedido queda registrado y te escribimos para coordinar la entrega."));
+
+  repintar();
+  return { nodo, repintar };
+}
+
+// ------------------------------------------------------------
+//  CONFIRMACION DEL PEDIDO
+// ------------------------------------------------------------
 /**
  * Valida en el cliente y despues confirma contra el servidor.
  *
@@ -362,6 +672,11 @@ function campo(id, etiqueta, tipo, valor = "") {
  * sabe mal. No reemplaza a la del back-end: Bean Validation y PedidoService
  * vuelven a controlar todo del otro lado, porque cualquiera puede saltear
  * el JavaScript del navegador.
+ *
+ * LOS DATOS DE LA TARJETA NO SALEN DEL NAVEGADOR. Se validan y se usan
+ * para mostrar los ultimos cuatro digitos en la confirmacion, nada mas.
+ * La API no tiene donde guardarlos, y guardar numeros de tarjeta sin
+ * cifrar seria peor que no tenerlos.
  */
 async function procesarCheckout(form, items, totales) {
   const datos = {
@@ -381,6 +696,14 @@ async function procesarCheckout(form, items, totales) {
   marcar("email", !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(datos.email), "Email invalido");
   marcar("telefono", datos.telefono.length < 6, "Telefono invalido");
   marcar("direccion", datos.direccion.length < 5, "Ingresa una direccion valida");
+
+  if (datos.medioPago === "TARJETA") {
+    marcar("tarjetaNumero", !numeroDeTarjetaValido(form.tarjetaNumero.value),
+      "Numero invalido. Podes generar uno de prueba con el boton.");
+    marcar("tarjetaVence", !vencimientoValido(form.tarjetaVence.value),
+      "Vencimiento invalido o vencido (MM/AA)");
+    marcar("tarjetaCvv", !/^\d{3,4}$/.test(form.tarjetaCvv.value), "Son 3 o 4 digitos");
+  }
   if (!ok) { toast("Revisa los campos marcados", "error"); return; }
 
   // Aviso temprano si el stock de la copia local ya no alcanza. El control
@@ -395,6 +718,7 @@ async function procesarCheckout(form, items, totales) {
 
   // Se bloquea el boton: confirmar dos veces crearia dos pedidos.
   const boton = form.querySelector("button[type=submit]");
+  const textoBoton = boton.textContent;
   boton.disabled = true;
   boton.textContent = "Confirmando...";
 
@@ -404,43 +728,59 @@ async function procesarCheckout(form, items, totales) {
       medioPago: datos.medioPago,
       items: items.map(i => ({ id: i.id, cantidad: i.cantidad }))
     });
+    const ultimos4 = datos.medioPago === "TARJETA"
+      ? form.tarjetaNumero.value.replace(/\D/g, "").slice(-4) : "";
     carrito.vaciar();
     actualizarBadgeCarrito();
-    mostrarConfirmacion(pedido, datos.direccion);
+    mostrarConfirmacion(pedido, datos.direccion, totales, ultimos4);
     renderCatalogo();            // el stock bajo: se redibuja el catalogo
   } catch (e) {
     // Aca caen los rechazos del servidor: sin stock, producto dado de baja,
     // email ya registrado. El mensaje es el que escribio el back-end.
     toast(e.message, "error");
     boton.disabled = false;
-    boton.textContent = "Confirmar pedido";
+    boton.textContent = textoBoton;
   }
 }
 
 /**
- * El numero de pedido y el total que se muestran son los que DEVOLVIO el
- * servidor, no los que calculo el navegador: son los que quedaron guardados
- * en MySQL, con el precio de cada vino congelado al momento de la compra.
+ * El numero de pedido y el total de los vinos que se muestran son los que
+ * DEVOLVIO el servidor, no los que calculo el navegador: son los que
+ * quedaron guardados en MySQL, con el precio de cada vino congelado al
+ * momento de la compra.
  *
- * El total del servidor es la suma de los vinos. El envio y el 21% que
- * muestra el carrito se calculan en el navegador y no se guardan, porque la
- * tabla pedidos no tiene columnas para desglosarlos (ver README).
+ * El envio, el 21% y el descuento del cupon se calculan en el navegador y
+ * no se guardan, porque la tabla pedidos no tiene columnas para
+ * desglosarlos (ver README).
  */
-function mostrarConfirmacion(pedido, direccion) {
-  const panel = crear("div", { class: "carrito-panel", style: "text-align:center" },
-    crear("div", { class: "estado__icono", style: "font-size:56px;color:var(--ok)" }, "✓"),
-    crear("h2", { style: "margin:10px 0" }, "¡Pedido confirmado!"),
-    crear("p", { style: "color:var(--texto-tenue)" }, "Tu numero de pedido es:"),
-    crear("p", { style: "font-size:30px;font-family:var(--fuente-titulo);color:var(--oro);margin:8px 0 20px" },
-      "#" + pedido.id),
-    crear("p", { style: "color:var(--texto-tenue)" },
-      "Vinos: " + pesos(pedido.total) + " · " + pedido.items.reduce((s,i)=>s+i.cantidad,0) + " botellas"),
-    crear("p", { style: "color:var(--texto-tenue);margin-top:6px" },
-      "Envio a " + direccion),
-    crear("p", { style: "color:var(--texto-tenue);margin-top:6px" },
-      "Te contactaremos a " + pedido.comprador.email),
-    crear("button", { class: "btn btn--primario", style: "margin-top:24px", onclick: () => { cerrarModal(); renderCatalogo(); } },
-      "Seguir comprando")
+function mostrarConfirmacion(pedido, direccion, totales, ultimos4) {
+  const botellas = pedido.items.reduce((s, i) => s + i.cantidad, 0);
+
+  const detalle = crear("div", { class: "carrito-resumen" },
+    fila("Vinos (" + botellas + " botella" + (botellas === 1 ? "" : "s") + ")", pesos(pedido.total)));
+  if (totales.descuento > 0) {
+    detalle.append(crear("div", { class: "carrito-resumen__fila resumen__descuento" },
+      crear("span", {}, "Descuento " + totales.cupon),
+      crear("span", {}, "− " + pesos(totales.descuento))));
+  }
+  detalle.append(
+    fila("Envío", pesos(totales.envio)),
+    fila("Impuestos (21%)", pesos(totales.impuestos)),
+    crear("div", { class: "carrito-resumen__total" },
+      crear("span", {}, "Total"), crear("span", {}, pesos(totales.total))));
+
+  const panel = crear("div", { class: "carrito-panel confirmacion" },
+    crear("div", { class: "confirmacion__tilde" }, "✓"),
+    crear("h2", {}, "¡Pedido confirmado!"),
+    crear("p", { class: "confirmacion__numero" }, "#" + pedido.id),
+    crear("p", { class: "pago__nota" }, "Guardá este número para seguir tu pedido."),
+    detalle,
+    crear("div", { class: "confirmacion__datos" },
+      crear("p", {}, "Envío a " + direccion),
+      crear("p", {}, "Te escribimos a " + pedido.comprador.email),
+      ultimos4 ? crear("p", {}, "Pagado con tarjeta terminada en " + ultimos4) : ""),
+    crear("button", { class: "btn btn--primario", style: "margin-top:24px",
+      onclick: () => { cerrarModal(); renderCatalogo(); } }, "Seguir comprando")
   );
   montarModal(panel);
 }
@@ -448,10 +788,14 @@ function mostrarConfirmacion(pedido, direccion) {
 // ------------------------------------------------------------
 //  MODAL (infraestructura)
 // ------------------------------------------------------------
-function montarModal(contenido) {
+function montarModal(contenido, opciones = {}) {
   cerrarModal();
   const cerrar = crear("button", { class: "modal__cerrar", "aria-label": "Cerrar", onclick: cerrarModal }, "×");
-  const modal = crear("div", { class: "modal", role: "dialog", "aria-modal": "true" }, cerrar, contenido);
+  // El checkout necesita mas ancho que el resto: entran dos columnas.
+  const modal = crear("div", {
+    class: "modal" + (opciones.ancho ? " modal--ancho" : ""),
+    role: "dialog", "aria-modal": "true"
+  }, cerrar, contenido);
   const fondo = crear("div", { class: "modal-fondo", id: "modalFondo",
     onclick: (e) => { if (e.target.id === "modalFondo") cerrarModal(); } }, modal);
   $("#raizModal").append(fondo);

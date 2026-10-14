@@ -94,6 +94,8 @@ frontend/
 | Carrito (alta/baja/modificar cantidad) | Modal carrito | `store.js` → `carrito.*` |
 | Subtotal, envio e impuestos | Resumen del carrito | `tienda.js` → `calcularTotales()` |
 | Checkout con validacion en cliente | Modal checkout | `tienda.js` → `procesarCheckout()` |
+| Codigo promocional con descuento | Resumen del checkout | `tienda.js` → `CUPONES` y `panelResumen()` |
+| Numero de tarjeta de prueba (Luhn) | Paso 03 del checkout | `tienda.js` → `generarNumeroTarjeta()` |
 | Confirmacion con numero de pedido | Modal confirmacion | `tienda.js` → `mostrarConfirmacion()` |
 | Control de stock (no vender de mas) | Carrito y checkout | `store.js` → `carrito.agregar()` |
 | Estados vacio / carga / error | Catalogo y carrito | `tienda.js` (esqueletos, estado vacio) |
@@ -188,6 +190,16 @@ modela hoy. Ninguna rompe el funcionamiento, pero conviene tenerlas a la vista.
   21%, pero la tabla `pedidos` tiene una sola columna `total`, que es la suma de
   los vinos. Por eso la confirmacion dice "Vinos: $X": es el numero que quedo en
   la base. Para guardar el total final harian falta columnas nuevas.
+- **Los cupones viven en el navegador.** Los codigos (`ALBA10`, `VALLEUCO15`,
+  `BIENVENIDA`) estan en la constante `CUPONES` de `tienda.js`. No hay tabla de
+  cupones ni columna de descuento en `pedidos`, asi que el descuento se muestra
+  en el resumen y en la confirmacion pero no viaja al servidor: en la base queda
+  el total de los vinos sin descontar. Igual que el envio y el 21%.
+- **La tarjeta no sale del navegador.** El numero se valida con el algoritmo de
+  Luhn y se usa para mostrar los ultimos cuatro digitos en la confirmacion, nada
+  mas. No hay pasarela de pago ni columna donde guardarlo, y guardar numeros de
+  tarjeta sin cifrar seria peor que no tenerlos. El boton "Generar numero de
+  tarjeta" existe para poder probar la compra sin usar una tarjeta real.
 - **La direccion de entrega no se guarda.** Se pide en el checkout y se muestra
   en la confirmacion, pero no hay columna donde ponerla.
 - **Compra sin cuenta.** `UsuarioService.registrar()` exige una contrasena, asi
