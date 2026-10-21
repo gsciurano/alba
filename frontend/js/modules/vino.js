@@ -22,8 +22,20 @@ import { pesos, placeholderVino, crear } from "./util.js";
  *   comprable  true agrega el boton "Agregar"
  *   alAgregar  funcion que recibe el id, al tocar "Agregar"
  *   alAbrir    funcion que recibe el id, al tocar la tarjeta
+ *   alEditar   funcion que recibe el vino; si viene, suma "Editar"
+ *   alBorrar   funcion que recibe el vino; si viene, suma "Dar de baja"
+ *
+ * SOBRE EDITAR Y BORRAR: solo se pasan cuando quien mira es un
+ * administrador. Un visitante o un cliente nunca reciben esas funciones,
+ * asi que los botones ni siquiera se dibujan.
+ *
+ * Es un control de PANTALLA, no de seguridad: evita que esas acciones
+ * esten a mano de cualquiera, pero los endpoints del back-end siguen
+ * abiertos a quien llame a la API directamente. Cerrarlos es trabajo de
+ * Spring Security, fuera del alcance de esta entrega.
  */
-export function tarjetaVino(p, { comprable = false, alAgregar, alAbrir } = {}) {
+export function tarjetaVino(p, { comprable = false, alAgregar, alAbrir,
+                                 alEditar, alBorrar } = {}) {
   const agotado = p.stock <= 0;
   const ultimas = !agotado && p.stock <= p.stockMinimo;
 
@@ -50,6 +62,20 @@ export function tarjetaVino(p, { comprable = false, alAgregar, alAbrir } = {}) {
       onclick: (e) => { e.stopPropagation(); alAgregar?.(p.id); }
     }, agotado ? "Sin stock" : "Agregar");
     cuerpo.append(btn);
+  }
+
+  // Acciones de gestion, solo si quien mira es administrador.
+  if (alEditar || alBorrar) {
+    const barra = crear("div", { class: "tarjeta__gestion" });
+    if (alEditar) barra.append(crear("button", {
+      class: "btn btn--fantasma btn--chico",
+      onclick: (e) => { e.stopPropagation(); alEditar(p); }
+    }, "Editar"));
+    if (alBorrar) barra.append(crear("button", {
+      class: "btn btn--peligro btn--chico",
+      onclick: (e) => { e.stopPropagation(); alBorrar(p); }
+    }, "Dar de baja"));
+    cuerpo.append(barra);
   }
 
   const tarjeta = crear("article", {

@@ -421,3 +421,13 @@
 }
 @media (max-width: 860px) { .galeria { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 560px) { .galeria { grid-template-columns: 1fr; } }
+
+/*
+   Acciones de gestion dentro de una tarjeta del listado. Solo las ve un
+   administrador: a los demas ni siquiera se les dibujan los botones.
+*/
+.tarjeta__gestion {
+  display: flex; gap: 8px; margin-top: 10px;
+  padding-top: 10px; border-top: 1px dashed var(--borde);
+}
+.tarjeta__gestion .btn { flex: 1; }

@@ -164,11 +164,96 @@ function renderCatalogo() {
  * comprar y que pasa al tocarla.
  */
 function tarjetaProducto(p) {
+  // Editar y dar de baja solo se ofrecen a un administrador. A un
+  // visitante o a un cliente ni siquiera se le pasan las funciones, asi
+  // que los botones no se dibujan.
+  const admin = sesion.esAdmin();
   return tarjetaVino(p, {
     comprable: true,
     alAgregar: (id) => agregarAlCarrito(id, 1),
-    alAbrir:   (id) => abrirDetalle(id)
+    alAbrir:   (id) => abrirDetalle(id),
+    alEditar:  admin ? abrirEdicion : undefined,
+    alBorrar:  admin ? confirmarBaja : undefined
   });
+}
+
+// ------------------------------------------------------------
+//  GESTION RAPIDA DESDE EL LISTADO (solo administradores)
+// ------------------------------------------------------------
+
+/**
+ * Edicion de los datos que se ven en el listado, sin salir de la tienda.
+ * El formulario completo, con notas de cata y foto, esta en el panel.
+ *
+ * Se manda el vino COMPLETO y no solo lo que cambio: el controlador
+ * valida el cuerpo con @Valid y rechaza un PUT al que le falten los
+ * campos obligatorios. store.productos.update() se encarga de fusionar.
+ */
+function abrirEdicion(p) {
+  const error = crear("p", { class: "form-error", "aria-live": "polite" });
+
+  const form = crear("form", { class: "carrito-panel", novalidate: "true" },
+    crear("h2", {}, "Editar " + p.nombre),
+    crear("p", { class: "nota-tenue", style: "margin-bottom:18px" },
+      "Para las notas de cata y la foto, está el panel de gestión."),
+    campo("eNombre", "Nombre", "text", p.nombre),
+    crear("div", { class: "form-fila-2" },
+      campo("ePrecio", "Precio", "number", p.precio),
+      campo("eStock", "Stock", "number", p.stock)),
+    crear("div", { class: "form-fila-2" },
+      campo("eCosecha", "Añada", "number", p.cosecha),
+      campo("eMinimo", "Stock mínimo", "number", p.stockMinimo)),
+    error,
+    crear("div", { style: "display:flex;gap:12px;flex-wrap:wrap;margin-top:8px" },
+      crear("button", { type: "submit", class: "btn btn--primario" }, "Guardar"),
+      crear("button", { type: "button", class: "btn btn--fantasma",
+                        onclick: cerrarModal }, "Cancelar")));
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    error.textContent = "";
+    const datos = {
+      nombre:      $("#eNombre", form).value.trim(),
+      precio:      Number($("#ePrecio", form).value),
+      stock:       Number($("#eStock", form).value),
+      cosecha:     Number($("#eCosecha", form).value),
+      stockMinimo: Number($("#eMinimo", form).value)
+    };
+    if (datos.nombre.length < 3) { error.textContent = "El nombre es obligatorio."; return; }
+    if (!(datos.precio >= 0) || !(datos.stock >= 0)) {
+      error.textContent = "El precio y el stock no pueden ser negativos."; return;
+    }
+
+    const boton = form.querySelector("button[type=submit]");
+    boton.disabled = true; boton.textContent = "Guardando...";
+    try {
+      await productos.update(p.id, datos);
+      cerrarModal();
+      toast("Vino actualizado");
+      renderCatalogo();
+    } catch (err) {
+      error.textContent = err.message;
+      boton.disabled = false; boton.textContent = "Guardar";
+    }
+  });
+
+  montarModal(form);
+}
+
+/**
+ * Baja LOGICA: el back-end pone activo = false. El vino deja de verse en
+ * la tienda pero conserva su historial de ventas y movimientos, que es lo
+ * que haria imposible un borrado fisico sin romper los pedidos viejos.
+ */
+async function confirmarBaja(p) {
+  if (!confirm(`Dar de baja "${p.nombre}"?\n\n` +
+               `Deja de verse en la tienda, pero se conserva su historial ` +
+               `de ventas. Se puede reactivar desde el panel.`)) return;
+  try {
+    await productos.remove(p.id);
+    toast("Vino dado de baja");
+    renderCatalogo();
+  } catch (e) { toast(e.message, "error"); }
 }
 
 // ------------------------------------------------------------

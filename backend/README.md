@@ -273,3 +273,33 @@ Y los diez vinos, repartidos en las cuatro líneas de la bodega: Finca
 Sobre las tecnologías: Spring Boot 3.5.16, Spring Data JPA con Hibernate de ORM,
 MySQL 8, Bean Validation para las validaciones de entrada y JSON como formato de
 intercambio.
+
+
+## "Port 8080 was already in use"
+
+Al darle Run en VS Code, a veces el arranque se corta con esto:
+
+    Web server failed to start. Port 8080 was already in use.
+
+No es otro programa: es **este mismo back-end, de una corrida anterior**. Spring
+Boot levanta un Tomcat embebido que toma el 8080 en exclusiva, y un puerto TCP
+lo puede tener un solo proceso. El botón Run lanza un proceso Java nuevo pero
+**no mata el viejo**: si cerrás la pestaña del terminal o la ventana del editor,
+el proceso sigue vivo en segundo plano, suelto de la interfaz, hasta que
+reinicies la Mac o lo mates a mano. Así es como queda uno colgado días enteros.
+
+Para que no pase: parar el servidor con el **cuadrado rojo de Stop** de la barra
+de Debug antes de volver a darle Run.
+
+Cuando ya pasó, ver quién tiene el puerto y matarlo:
+
+```bash
+lsof -nP -iTCP:8080 -sTCP:LISTEN   # ver qué proceso lo tiene
+lsof -ti:8080 | xargs kill         # matarlo
+```
+
+Si quedó trabado y no muere, `lsof -ti:8080 | xargs kill -9`.
+
+La otra salida, si querés dos instancias en paralelo en vez de matar nada, es
+arrancar en otro puerto: `server.port=8081` en `application.properties`, o
+`--server.port=8081` como argumento del Run.
