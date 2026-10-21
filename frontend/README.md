@@ -61,24 +61,61 @@ no tiene endpoint de autenticacion.
 
 ## Estructura del proyecto
 
+Cada pagina publica tiene su archivo `.js` con el mismo nombre. El
+encabezado y el pie no estan escritos en ningun HTML: los arma
+`js/modules/sitio.js`, que es el unico lugar donde vive la barra de
+navegacion.
+
 ```
 frontend/
-├── index.html              Tienda publica
+├── index.html              Inicio
+├── vinos.html              Catalogo informativo, agrupado por linea
+├── vino.html               FICHA DE UN VINO (se abre con ?id=N)
+├── tienda.html             Compra: filtros, carrito y checkout
+├── finca.html              La finca (contenido fijo)
+├── nosotros.html           La bodega y el equipo (contenido fijo)
+├── contacto.html           Formulario de contacto
+├── cuenta.html             Ingreso, registro y mis pedidos
 ├── admin.html              Panel de administracion
 ├── css/
-│   ├── estilos.css         Sistema de diseno (variables, grilla, componentes)
+│   ├── estilos.css         Sistema de diseno (variables, botones, tarjetas)
+│   ├── sitio.css           Estilos del sitio publico (cabecera, portadas, fichas)
 │   └── admin.css           Estilos propios del panel
 ├── js/
-│   ├── tienda.js           Logica de la tienda (catalogo, carrito, checkout)
-│   ├── admin.js            Logica del panel (login, CRUD, pedidos, auditoria)
+│   ├── inicio.js           Destacados del inicio
+│   ├── vinos.js            Catalogo por linea
+│   ├── vino.js             Ficha de un vino
+│   ├── tienda.js           Catalogo, carrito y checkout
+│   ├── cuenta.js           Ingreso, registro y pedidos del cliente
+│   ├── contacto.js         Validacion del formulario
+│   ├── pagina.js           Paginas de solo texto (finca, nosotros)
+│   ├── admin.js            Panel (login, CRUD, pedidos, auditoria)
 │   └── modules/
 │       ├── api.js          CLIENTE HTTP + traduccion entre los dos modelos
 │       ├── store.js        CAPA DE PERSISTENCIA (cache + escrituras a la API)
+│       ├── sitio.js        Encabezado y pie compartidos + barra de navegacion
+│       ├── vino.js         La tarjeta de vino, usada por tres pantallas
 │       └── util.js         Utilidades compartidas (formato, placeholder, DOM)
 ├── data/
-│   └── productos.js        Listas fijas de filtros + usuarios del panel
-└── assets/img/vinos/       Imagenes reales descargadas de albaenlosandes.com
+│   ├── productos.js        Listas fijas de filtros + usuarios del panel
+│   └── fichas-vinos.js     Ficha de cata de cada vino (texto editorial fijo)
+└── assets/img/
+    ├── vinos/              Fotos de las botellas, de albaenlosandes.com
+    ├── sitio/              Logo y fotos de la finca
+    └── equipo/             Fotos de los integrantes (pagina Nosotros)
 ```
+
+### Por que la ficha de cata no esta en MySQL
+
+La tabla `productos` guarda lo que cambia y lo que el panel edita: precio,
+stock, anada, estado y una descripcion corta. La ficha de cata
+(`data/fichas-vinos.js`) es texto editorial fijo de la bodega: el suelo del
+vinedo, los meses de barrica, la analitica del laboratorio. No cambia entre
+dos consultas al stock y ningun formulario la llena, asi que guardarla en la
+base obligaria a sumar diez columnas de texto que nadie escribe.
+
+Un vino cargado desde el panel que no tenga ficha igual funciona: la pagina
+de detalle muestra lo que da la base y saltea las secciones que le faltan.
 
 ---
 
