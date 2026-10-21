@@ -329,7 +329,9 @@ export const carrito = {
     const existente = items.find(i => i.id === prod.id);
     const yaEnCarrito = existente ? existente.cantidad : 0;
     if (yaEnCarrito + cantidad > prod.stock) {
-      return { ok: false, mensaje: "Solo quedan " + prod.stock + " unidades de " + prod.nombre };
+      // Se avisa que no alcanza, sin publicar el numero exacto de botellas
+      // que tiene la bodega. Ver el comentario de vino.js.
+      return { ok: false, mensaje: "No quedan tantas botellas de " + prod.nombre };
     }
     if (existente) existente.cantidad += cantidad;
     else items.push({ id: prod.id, nombre: prod.nombre, precio: prod.precio,
@@ -341,7 +343,7 @@ export const carrito = {
   cambiarCantidad(idProducto, cantidad) {
     const prod = productos.getById(idProducto);
     if (!prod) return { ok: false, mensaje: "Producto inexistente" };
-    if (cantidad > prod.stock) return { ok: false, mensaje: "Solo quedan " + prod.stock + " unidades" };
+    if (cantidad > prod.stock) return { ok: false, mensaje: "No quedan tantas botellas de " + prod.nombre };
     const items = this.getItems();
     const item = items.find(i => i.id === Number(idProducto));
     if (!item) return { ok: false, mensaje: "No esta en el carrito" };

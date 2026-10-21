@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nosotros — Alba en los Andes</title>
+  <meta name="description" content="Quienes somos: la bodega Alba en los Andes y el equipo que desarrolla su sitio y su gestor de inventario.">
+  <link rel="stylesheet" href="css/estilos.css">
+  <link rel="stylesheet" href="css/sitio.css">
+</head>
+<!--
+  PAGINA NOSOTROS.
+
+  Es contenido fijo, asi que no necesita un archivo JavaScript propio:
+  usa js/pagina.js, que es el que monta el encabezado y el pie en las
+  paginas de solo texto. El atributo data-pagina le dice cual item de la
+  barra de navegacion tiene que quedar marcado.
+-->
+<body data-pagina="nosotros">
+  <main id="contenido">
+
+    <section class="portada-chica">
+      <h1>Nosotros</h1>
+      <p>La bodega, y el equipo que construye su sitio</p>
+    </section>
+
+    <!-- ===================== LA COMPANIA ===================== -->
+    <section class="seccion">
+      <div class="seccion__interior">
+        <div class="par">
+          <div class="par__texto">
+            <p class="antetitulo">La compañía</p>
+            <h2 class="seccion__titulo">Alba en los Andes</h2>
+            <p>
+              Alba en los Andes es una bodega de familia en Tupungato, en el corazón
+              del Valle de Uco, Mendoza. Trabaja un viñedo de más de 25 años plantado
+              a 1.100 metros sobre el nivel del mar, sobre suelos calcáreos y
+              pedregosos al pie de la Cordillera de los Andes.
+            </p>
+            <p>
+              De ese cuadro salen diez etiquetas repartidas en cuatro líneas, de los
+              vinos jóvenes y frutados de la línea Finca a las ediciones especiales de
+              partida limitada. Todas se cosechan a mano, en cajas de 12 kilos, y las
+              de guarda pasan por barrica de roble francés.
+            </p>
+            <p>
+              El compromiso de la bodega con el cuidado de la tierra, la seguridad de
+              quienes trabajan en ella y el respeto por la comunidad que la rodea está
+              en el centro de cada decisión, desde el manejo del viñedo hasta la
+              certificación vegana de sus vinos.
+            </p>
+          </div>
+          <div class="par__foto" style="background-image:url('assets/img/sitio/finca-vinedo.jpg')"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== EL PROYECTO ===================== -->
+    <section class="seccion seccion--gris">
+      <div class="seccion__interior seccion--centrada">
+        <p class="antetitulo">El proyecto</p>
+        <h2 class="seccion__titulo">Un sitio y un gestor, en una sola pieza</h2>
+        <p class="seccion__bajada">
+          Este sitio es la cara pública de un sistema más grande. Detrás del catálogo
+          que se ve acá hay un gestor de inventario que lleva el stock real de la
+          bodega, registra cada movimiento con su responsable y su motivo, y procesa
+          los pedidos de la tienda contra esa misma base. Lo desarrollamos como
+          Trabajo Integrador de Aplicaciones Interactivas en la UADE.
+        </p>
+      </div>
+    </section>
+
+    <!-- ===================== EL EQUIPO ===================== -->
+    <section class="seccion">
+      <div class="seccion__interior">
+        <div class="seccion--centrada">
+          <p class="antetitulo">Quiénes lo hacemos</p>
+          <h2 class="seccion__titulo">El equipo</h2>
+          <p class="seccion__bajada">
+            Tres integrantes, un mismo proyecto de punta a punta: el sitio público,
+            la tienda, el panel de gestión y la API que los conecta.
+          </p>
+        </div>
+
+        <!--
+          Las fotos son cuadradas y se recortan en circulo con object-fit,
+          asi que las tres tarjetas quedan parejas aunque las fotos
+          originales no tengan el mismo encuadre.
+
+          A quien todavia no mando su foto se le dibuja un circulo con las
+          iniciales, en los colores de la bodega. Es un marcador de lugar
+          prolijo: cuando llegue la foto se reemplaza el <span> por un
+          <img> y la tarjeta no cambia.
+        -->
+        <div class="equipo">
+          <article class="integrante">
+            <img class="integrante__foto" src="assets/img/equipo/theo-lambert.jpg"
+                 alt="Retrato de Theo Lambert" loading="lazy" width="200" height="200">
+            <h3 class="integrante__nombre">Theo Lambert</h3>
+            <p class="integrante__rol">Equipo de desarrollo</p>
+          </article>
+
+          <article class="integrante">
+            <img class="integrante__foto" src="assets/img/equipo/geronimo-sciurano.jpg"
+                 alt="Retrato de Gerónimo Sciurano" loading="lazy" width="200" height="200">
+            <h3 class="integrante__nombre">Gerónimo Sciurano</h3>
+            <p class="integrante__rol">Equipo de desarrollo</p>
+          </article>
+
+          <article class="integrante">
+            <span class="integrante__foto integrante__iniciales" aria-hidden="true">MJ</span>
+            <h3 class="integrante__nombre">Martín Jara</h3>
+            <p class="integrante__rol">Equipo de desarrollo</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="raizModal"></div>
+  <script type="module" src="js/pagina.js"></script>
+</body>
+</html>

@@ -61,19 +61,41 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 });
 
-/** Ficha ancha: foto a la izquierda, notas de cata a la derecha. */
+/**
+ * Ficha ancha: foto a la izquierda, notas de cata a la derecha.
+ *
+ * Toda la ficha es clickeable y lleva a vino.html?id=N, que es la pagina
+ * con la cata completa, la elaboracion, el vinedo y la analitica. Lo que
+ * se ve aca es el resumen; el detalle largo no entra en un listado de
+ * diez vinos sin volverlo ilegible.
+ *
+ * SOBRE EL CLICK EN TODA LA FICHA: el enlace de verdad esta en el titulo,
+ * asi que quien navega con teclado o lector de pantalla llega igual. El
+ * click sobre el resto es una comodidad para el mouse, no el unico camino.
+ * El boton de comprar corta la propagacion para que no se lo lleve puesto.
+ */
 function fichaVino(p) {
   const img = crear("img", { src: p.imagen, alt: "Botella de " + p.nombre, loading: "lazy" });
   img.addEventListener("error", () => { img.src = placeholderVino(p.nombre); });
 
-  return crear("article", { class: "ficha" },
+  const destino = "vino.html?id=" + p.id;
+
+  return crear("article", {
+      class: "ficha ficha--enlace",
+      onclick: () => { location.href = destino; }
+    },
     crear("div", { class: "ficha__foto" }, img),
     crear("div", { class: "ficha__texto" },
-      crear("h3", {}, p.nombre),
+      crear("h3", {}, crear("a", { class: "ficha__titulo", href: destino }, p.nombre)),
       crear("p", { class: "ficha__meta" },
         p.varietal + " · Cosecha " + p.cosecha + " · " + pesos(p.precio)),
       crear("p", { class: "ficha__notas" },
         p.notasCata || "Notas de cata en preparación."),
-      crear("a", { class: "btn btn--fantasma btn--chico", href: "tienda.html#vino-" + p.id },
-        p.stock > 0 ? "Comprar" : "Ver en la tienda")));
+      crear("div", { class: "ficha__acciones" },
+        crear("span", { class: "ficha__ver" }, "Ver la ficha completa →"),
+        crear("a", {
+          class: "btn btn--fantasma btn--chico",
+          href: "tienda.html#vino-" + p.id,
+          onclick: (e) => e.stopPropagation()
+        }, p.stock > 0 ? "Comprar" : "Ver en la tienda"))));
 }

@@ -69,12 +69,21 @@ h1, h2, h3 { font-family: var(--fuente-titulo); font-weight: 600; line-height: 1
 .btn {
   display: inline-flex; align-items: center; gap: 8px; justify-content: center;
   padding: 11px 20px; border: none; border-radius: var(--radio-s);
-  font-size: 15px; font-weight: 600; transition: all .2s ease;
+  font-size: 15px; font-weight: 600;
+  transition: background .2s ease, border-color .2s ease, color .2s ease,
+              transform .2s ease, box-shadow .2s ease;
   background: var(--superficie-2); color: var(--texto);
 }
-.btn:hover { background: #3f332b; }
-.btn--primario { background: var(--oro); color: #ffffff; }
-.btn--primario:hover { background: var(--oro-claro); }
+.btn:hover { background: #dfe8ea; }
+.btn--primario {
+  background: var(--oro); color: #ffffff;
+  box-shadow: 0 2px 10px rgba(56, 132, 151, .28);
+}
+.btn--primario:hover {
+  background: var(--oro-claro);
+  transform: translateY(-1px); box-shadow: 0 6px 18px rgba(56, 132, 151, .34);
+}
+.btn:active { transform: translateY(0); }
 .btn--fantasma { background: transparent; border: 1px solid var(--borde); }
 .btn--fantasma:hover { border-color: var(--oro); color: var(--oro-claro); }
 .btn--peligro { background: transparent; border: 1px solid var(--error); color: var(--error); }
@@ -163,15 +172,22 @@ h1, h2, h3 { font-family: var(--fuente-titulo); font-weight: 600; line-height: 1
 }
 .tarjeta {
   background: var(--superficie); border: 1px solid var(--borde);
-  border-radius: var(--radio); overflow: hidden; transition: transform .25s, border-color .25s;
+  border-radius: var(--radio); overflow: hidden;
+  transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
   display: flex; flex-direction: column;
 }
-.tarjeta:hover { transform: translateY(-4px); border-color: var(--oro); }
+.tarjeta:hover {
+  transform: translateY(-5px); border-color: var(--oro); box-shadow: var(--sombra);
+}
 .tarjeta__foto {
   aspect-ratio: 3 / 4; background: var(--foto-fondo); display: flex; align-items: center; justify-content: center;
   overflow: hidden;
 }
-.tarjeta__foto img { height: 100%; width: 100%; object-fit: contain; padding: 14px; }
+.tarjeta__foto img {
+  height: 100%; width: 100%; object-fit: contain; padding: 14px;
+  transition: transform .35s ease;
+}
+.tarjeta:hover .tarjeta__foto img { transform: scale(1.04); }
 .tarjeta__cuerpo { padding: 18px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .tarjeta__linea { font-size: 11px; color: var(--oro); letter-spacing: 2px; text-transform: uppercase; }
 .tarjeta__nombre { font-family: var(--fuente-titulo); font-size: 19px; color: var(--texto); }

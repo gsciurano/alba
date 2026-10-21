@@ -42,6 +42,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   caja.append(grillaVinos(destacados, {
     comprable: false,
-    alAbrir: (id) => { location.href = "tienda.html#vino-" + id; }
+    // Tocar un destacado lleva a su ficha completa, no a la tienda.
+    alAbrir: (id) => { location.href = "vino.html?id=" + id; }
   }));
 });

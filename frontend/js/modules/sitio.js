@@ -4,9 +4,9 @@
  * ENCABEZADO Y PIE compartidos por todas las paginas publicas.
  *
  * POR QUE SE ARMAN DESDE JAVASCRIPT Y NO SE ESCRIBEN EN CADA HTML:
- * el sitio tiene cinco paginas publicas. Si la barra de navegacion
+ * el sitio tiene seis paginas publicas. Si la barra de navegacion
  * estuviera copiada en cada archivo, agregar un enlace obligaria a tocar
- * cinco lugares y cualquier olvido dejaria una pagina distinta de las
+ * seis lugares y cualquier olvido dejaria una pagina distinta de las
  * otras. Aca se escribe una vez.
  *
  * Ademas el encabezado cambia segun quien este mirando: un visitante ve
@@ -15,7 +15,8 @@
  * lugar, no repetida en cinco archivos.
  *
  * La estructura del menu sigue la del sitio real de la bodega
- * (albaenlosandes.com): Inicio · Vinos · Comprar · Finca · Contacto.
+ * (albaenlosandes.com), con "Nosotros" sumado para el equipo del
+ * proyecto: Inicio · Vinos · Comprar · Finca · Nosotros · Contacto.
  * ============================================================
  */
 
@@ -28,6 +29,7 @@ const PAGINAS = [
   { id: "vinos",    texto: "Vinos",    href: "vinos.html"    },
   { id: "tienda",   texto: "Comprar",  href: "tienda.html"   },
   { id: "finca",    texto: "Finca",    href: "finca.html"    },
+  { id: "nosotros", texto: "Nosotros", href: "nosotros.html" },
   { id: "contacto", texto: "Contacto", href: "contacto.html" }
 ];
 
@@ -60,7 +62,11 @@ export function montarSitio(actual) {
   // ---------- barra fina de arriba ----------
   const cuenta = u
     ? crear("div", { class: "cinta__cuenta" },
-        crear("a", { href: "cuenta.html", class: "cinta__enlace", html: icono("persona") + "<span>" + u.nombre + "</span>" }),
+        // El nombre va en mayusculas, pero con CSS (text-transform) y no
+        // cambiando el texto: asi lo que se guarda y lo que lee un lector
+        // de pantalla sigue siendo el nombre como lo escribio la persona.
+        crear("a", { href: "cuenta.html", class: "cinta__enlace",
+          html: icono("persona") + '<span class="cinta__usuario">' + u.nombre + "</span>" }),
         u.rol === "ADMIN"
           ? crear("a", { href: "admin.html", class: "cinta__enlace", html: icono("panel") + "<span>Panel</span>" })
           : "",
@@ -127,6 +133,38 @@ export function montarSitio(actual) {
   document.body.prepend(cabecera);
   document.body.append(pie);
   actualizarCarrito();
+  activarRevelado();
+}
+
+/**
+ * Hace que cada seccion aparezca al llegar a ella con el scroll.
+ *
+ * POR QUE LA CLASE LA PONE EL JAVASCRIPT Y NO EL HTML: si estuviera
+ * escrita en el HTML, con el JavaScript apagado o fallado las secciones
+ * quedarian invisibles para siempre, porque nadie les sacaria la clase.
+ * Poniendola desde aca, el peor caso es que no haya animacion.
+ *
+ * No se aplica a quien pidio menos movimiento en su sistema operativo,
+ * ni en navegadores sin IntersectionObserver: en los dos casos se sale
+ * sin tocar nada y el contenido se ve de entrada.
+ */
+function activarRevelado() {
+  const prefiereQuieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (prefiereQuieto || !("IntersectionObserver" in window)) return;
+
+  // Solo las secciones de primer nivel: anidar el efecto lo duplica.
+  const secciones = $$("#contenido .seccion");
+  if (!secciones.length) return;
+
+  const observador = new IntersectionObserver((entradas) => {
+    entradas.forEach(e => {
+      if (!e.isIntersecting) return;
+      e.target.classList.add("revelar--visible");
+      observador.unobserve(e.target);   // una sola vez por seccion
+    });
+  }, { rootMargin: "0px 0px -80px 0px" });
+
+  secciones.forEach(sec => { sec.classList.add("revelar"); observador.observe(sec); });
 }
 
 /** Pone el numero de botellas en la burbuja del carrito. */

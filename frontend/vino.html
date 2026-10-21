@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ficha del vino — Alba en los Andes</title>
+  <meta name="description" content="Ficha completa de cada etiqueta de Alba en los Andes: notas de cata, vinificacion, crianza, vinedo y analitica.">
+  <link rel="stylesheet" href="css/estilos.css">
+  <link rel="stylesheet" href="css/sitio.css">
+</head>
+<body>
+  <!--
+    PAGINA DE DETALLE DE UN VINO.
+
+    Que vino se muestra lo dice la direccion: vino.html?id=3. Se eligio el
+    id y no el nombre porque el id es la clave de la tabla productos, no
+    cambia si manana se corrige una tilde del nombre, y es lo que ya usan
+    los enlaces del resto del sitio.
+
+    La pagina mezcla dos fuentes:
+      - de la API salen precio, stock, cosecha y si esta a la venta;
+      - de data/fichas-vinos.js sale la ficha de cata, que es texto fijo.
+    El titulo de la pestana lo completa js/vino.js cuando sabe que vino es.
+  -->
+  <main id="contenido">
+    <article id="detalleVino"></article>
+  </main>
+
+  <div id="raizModal"></div>
+  <script type="module" src="js/vino.js"></script>
+</body>
+</html>

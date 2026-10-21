@@ -263,6 +263,7 @@ function abrirDetalle(id) {
   const p = productos.getById(id);
   if (!p) return;
   const agotado = p.stock <= 0;
+  const ultimas = !agotado && p.stock <= p.stockMinimo;
 
   const img = crear("img", { src: p.imagen, alt: "Botella de " + p.nombre });
   img.addEventListener("error", () => { img.src = placeholderVino(p.nombre); });
@@ -278,8 +279,13 @@ function abrirDetalle(id) {
       crear("p", { class: "detalle__meta" }, p.varietal + " · Cosecha " + p.cosecha + " · " + p.bodega),
       crear("p", { class: "detalle__notas" }, p.notasCata),
       crear("p", { class: "detalle__precio" }, pesos(p.precio)),
+      // Igual que en la ficha: no se publica el inventario. Si queda poco
+      // se avisa para apurar la compra; si hay de sobra, no hace falta
+      // decir nada.
       crear("p", { class: "detalle__meta" },
-        agotado ? "Sin stock disponible" : "Stock disponible: " + p.stock + " botellas"),
+        agotado  ? "Sin stock disponible"
+        : ultimas ? "¡Quedan pocas botellas! Compralo antes de que se agote."
+                  : ""),
       agotado ? "" : crear("div", { class: "selector-cantidad" },
         crear("button", { "aria-label": "Restar", onclick: () => ajustar(inputCant, -1, p.stock) }, "−"),
         inputCant,
@@ -289,7 +295,12 @@ function abrirDetalle(id) {
         class: "btn btn--primario btn--bloque",
         disabled: agotado ? "true" : null,
         onclick: () => { agregarAlCarrito(p.id, Number(inputCant.value)); cerrarModal(); }
-      }, agotado ? "Sin stock" : "Agregar al carrito")
+      }, agotado ? "Sin stock" : "Agregar al carrito"),
+      // El modal esta pensado para comprar rapido, asi que muestra solo lo
+      // justo. Quien quiera la cata, la crianza y la analitica sigue el
+      // enlace a vino.html, que es la ficha completa.
+      crear("a", { class: "detalle__ficha", href: "vino.html?id=" + p.id },
+        "Ver la ficha completa del vino")
     )
   );
   montarModal(cuerpo);
