@@ -65,7 +65,9 @@ Todo cuelga de `http://localhost:8080` y todo va y viene en JSON.
 | GET | `/api/usuarios` | Todos |
 | GET | `/api/usuarios/{id}` | Uno |
 | POST | `/api/usuarios` | Registro. Si el email ya existe, lo rechaza |
-| PUT | `/api/usuarios/{id}` | Modificación |
+| PUT | `/api/usuarios/{id}` | Modificación. La usa el panel: puede cambiar rol y estado |
+| PUT | `/api/usuarios/{id}/perfil` | El cliente edita **sus propios** datos y preferencias. Ignora `rol` y `activo`, así que no se puede autoascender a ADMIN desde la pantalla de Mi cuenta |
+| POST | `/api/usuarios/{id}/password` | Cambio de contraseña. Cuerpo `{"actual": "...", "nueva": "..."}`. Compara la actual antes de guardar: 204 si salió bien, 400 con el motivo si no |
 | DELETE | `/api/usuarios/{id}` | Baja lógica, para no perder su historial de compras |
 
 # Pedidos

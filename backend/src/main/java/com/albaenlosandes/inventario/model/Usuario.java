@@ -52,6 +52,26 @@ public class Usuario {
     @Size(max = 30, message = "El telefono no puede superar los 30 caracteres")
     private String telefono;
 
+    /**
+     * PREFERENCIAS DE VINO: los varietales y las lineas que el cliente
+     * marco como favoritos, separados por coma ("Malbec,Chardonnay").
+     *
+     * Las elige el propio cliente desde "Mi cuenta" y sirven para
+     * recomendarle vinos del catalogo. No son obligatorias: en null
+     * significa que todavia no eligio ninguna.
+     *
+     * POR QUE TEXTO SEPARADO POR COMA Y NO UNA TABLA HIJA: se leen y se
+     * guardan siempre completas, y nunca se consultan por separado. El
+     * razonamiento largo esta en db/agregar_preferencias_vino.sql.
+     */
+    @Size(max = 255, message = "Son demasiados varietales favoritos")
+    @Column(name = "varietales_favoritos")
+    private String varietalesFavoritos;
+
+    @Size(max = 255, message = "Son demasiadas lineas favoritas")
+    @Column(name = "lineas_favoritas")
+    private String lineasFavoritas;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Rol rol = Rol.CLIENTE;
@@ -77,6 +97,10 @@ public class Usuario {
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public String getTelefono() { return telefono; }
     public void setTelefono(String telefono) { this.telefono = telefono; }
+    public String getVarietalesFavoritos() { return varietalesFavoritos; }
+    public void setVarietalesFavoritos(String varietalesFavoritos) { this.varietalesFavoritos = varietalesFavoritos; }
+    public String getLineasFavoritas() { return lineasFavoritas; }
+    public void setLineasFavoritas(String lineasFavoritas) { this.lineasFavoritas = lineasFavoritas; }
     public Rol getRol() { return rol; }
     public void setRol(Rol rol) { this.rol = rol; }
     public LocalDateTime getFechaAlta() { return fechaAlta; }

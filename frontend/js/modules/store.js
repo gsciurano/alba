@@ -291,6 +291,28 @@ export const sesion = {
     catch { return null; }
   },
 
+  /**
+   * Pisa los datos guardados de quien esta ingresado, conservando el resto.
+   *
+   * PARA QUE: la sesion guarda una COPIA del nombre, el email y el telefono,
+   * porque el encabezado los necesita en cada pagina sin tener que pedirlos
+   * al servidor. Cuando el cliente edita su perfil, esa copia queda vieja y
+   * el encabezado sigue saludando con el nombre anterior hasta volver a
+   * ingresar. Esto la pone al dia.
+   *
+   * NO cambia el rol aunque venga en los datos: el rol lo decide el servidor
+   * al ingresar y nada de lo que pase despues en el navegador deberia poder
+   * tocarlo.
+   */
+  actualizar(datos) {
+    const previo = this.actual();
+    if (!previo) return null;
+    const { rol, idUsuario, ...editables } = datos || {};
+    const nuevo = { ...previo, ...editables };
+    localStorage.setItem(CLAVE_SESION, JSON.stringify(nuevo));
+    return nuevo;
+  },
+
   esAdmin()   { return this.actual()?.rol === "ADMIN"; },
   nombreCompleto() {
     const u = this.actual();

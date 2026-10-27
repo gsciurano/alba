@@ -26,7 +26,7 @@ primero lo que desbloquea a los demás, al final lo que depende de cosas externa
 | 2 | Seguridad real (Spring Security) | Alta | No |
 | 3 | Validación de email y contraseña | Baja | No |
 | 4 | Ir a Inicio al iniciar sesión | Muy baja | No |
-| 5 | Perfil del usuario | Media | No |
+| ~~5~~ | ~~Perfil del usuario~~ **HECHO** | Media | No |
 | 6 | Acceso al perfil desde el pie | Muy baja | No |
 | 7 | Detalle y edición de pedidos en el panel | Media | No |
 | 8 | Sección Usuarios del panel | Media | No |
@@ -142,34 +142,43 @@ Está en frontend/js/cuenta.js, en el submit del formulario de ingreso.
 
 ---
 
-# 5 · Perfil del usuario
+# 5 · Perfil del usuario — **HECHO**
 
-**Qué pasa hoy:** `cuenta.html` muestra solo los pedidos y las solicitudes de
-cancelación. No hay forma de ver ni editar los datos propios.
+`cuenta.html` ya no es solo la lista de pedidos: es un perfil con menú
+lateral y cinco secciones, que se eligen por el `#hash` de la dirección
+(`cuenta.html#pedidos`), así que cada una tiene su propio enlace.
 
-**Referencia:** la captura de "Perfil y preferencias" con menú lateral (Datos
-principales, Contacto, Mensajería, Trabajo, Personal, Otros).
+| Sección | Qué hace |
+|---|---|
+| Datos principales | Nombre, apellido, email y teléfono, editables |
+| Mis pedidos | Lo que ya existía |
+| Mis solicitudes de cancelación | Lo que ya existía, ahora como sección propia |
+| Preferencias de vino | Varietales y líneas favoritas, **con las recomendaciones** del catálogo que coinciden |
+| Seguridad | Cambiar la contraseña, pidiendo la actual |
 
-```
-En Alba en los Andes, "Mi cuenta" (frontend/cuenta.html) solo muestra los
-pedidos. Quiero convertirla en un perfil completo con menú lateral, al estilo de
-un panel de preferencias.
+**Lo que se sumó al back-end:**
 
-Secciones que quiero, adaptadas a una bodega (no copies secciones de oficina que
-acá no aplican, como "Trabajo"):
-- Datos principales: nombre, apellido, email, teléfono
-- Mis pedidos: lo que ya existe hoy
-- Mis solicitudes de cancelación: lo que ya existe hoy
-- Preferencias de vino: varietales y líneas favoritas, para recomendar
-- Seguridad: cambiar contraseña
+- `db/agregar_preferencias_vino.sql` — dos columnas en `usuarios`
+  (`varietales_favoritos`, `lineas_favoritas`). **Hay que correrlo en cada
+  máquina**, igual que los otros scripts de `db/`.
+- `PUT /api/usuarios/{id}/perfil` — el cliente edita sus propios datos.
+  Existe aparte del `PUT /api/usuarios/{id}` porque ese aplica `rol` y
+  `activo` si vienen en el JSON: puesto detrás de la pantalla del cliente,
+  alcanzaba con mandar `rol: "ADMIN"` para autoascenderse.
+- `POST /api/usuarios/{id}/password` — exige la contraseña actual. El PUT
+  general la guardaba sin preguntar, que no sirve para un formulario de
+  cambio de contraseña.
 
-Antes de programar, proponeme qué secciones tienen sentido en una tienda de
-vinos y cuáles serían de relleno. Prefiero cuatro secciones útiles que ocho
-vacías.
+**Lo que NO se hizo, y por qué:** no hay secciones de notificaciones (el
+sitio todavía no manda ningún correo: es el tema 16), medios de pago
+guardados (la tarjeta del checkout es de prueba) ni datos personales
+sueltos. Serían formularios que no hacen nada.
 
-Para editar los datos ya existe PUT /api/usuarios/{id}. Fijate qué falta en el
-back-end para lo demás.
-```
+**Lo que quedó afuera y conviene decidir:** una sección de *dirección de
+envío*. Hoy el checkout pide la dirección en cada compra
+(`tienda.js`) y **no se guarda en ningún lado**: la tabla `pedidos` no
+tiene columna para eso, se usa solo para la pantalla de confirmación.
+Guardarla en el perfil ahorraría retipearla, pero necesita otra migración.
 
 ---
 

@@ -315,6 +315,8 @@ export const api = {
     },
 
     listar: () => get("/usuarios"),
+    /** Un usuario puntual, recien traido del servidor. */
+    porId: (id) => get("/usuarios/" + id),
     /** Incluye los dados de baja. Para el panel de gestion. */
     listarTodos: () => get("/usuarios/auditoria"),
     crear:  (datos) => post("/usuarios", datos),
@@ -323,6 +325,26 @@ export const api = {
      * asi que el formulario del panel nunca necesita pedirla para editar.
      */
     actualizar: (id, datos) => put("/usuarios/" + id, datos),
+    /**
+     * Edicion del PROPIO perfil, desde "Mi cuenta". Endpoint distinto del
+     * de arriba a proposito: este ignora 'rol' y 'activo', asi que la
+     * pantalla del cliente no puede autoascenderse a administrador.
+     *
+     * Pide el perfil COMPLETO (nombre, apellido y email siempre), porque el
+     * back-end valida el cuerpo con @Valid contra la entidad Usuario y esos
+     * tres son obligatorios. Es el mismo criterio que usa
+     * store.productos.update() con los vinos.
+     */
+    actualizarPerfil: (id, datos) => put("/usuarios/" + id + "/perfil", datos),
+    /**
+     * Cambio de contrasena. Exige la actual: el back-end la compara antes
+     * de guardar la nueva y contesta 400 si no coincide.
+     *
+     * No pasa por actualizarPerfil() porque ese endpoint no toca la
+     * contrasena, ni por actualizar(), que la guardaria sin preguntar.
+     */
+    cambiarPassword: (id, actual, nueva) =>
+      post("/usuarios/" + id + "/password", { actual, nueva }),
     /** Baja logica. El back-end rechaza dar de baja al ultimo ADMIN. */
     eliminar: (id) => borrar("/usuarios/" + id),
     /**

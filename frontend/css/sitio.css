@@ -359,6 +359,120 @@
 }
 
 /* ============================================================
+   MI CUENTA — EL PERFIL CON MENU LATERAL
+
+   Dos columnas: el menu de secciones a la izquierda y el panel de la
+   seccion abierta a la derecha. En pantallas chicas se apilan y el menu
+   pasa a ser una fila de solapas que se desliza, en vez de una lista
+   alta que empuje el contenido fuera de la vista.
+   ============================================================ */
+.perfil {
+  display: grid; grid-template-columns: 250px 1fr; gap: 32px;
+  align-items: start;
+}
+
+/* ---- el menu ---- */
+.perfil__menu {
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--superficie); border: 1px solid var(--borde);
+  border-radius: var(--radio); padding: 10px; overflow: hidden;
+  /* Acompania el scroll: el panel de la derecha puede ser mucho mas alto. */
+  position: sticky; top: 16px;
+}
+.perfil__item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 14px; border-radius: var(--radio-s);
+  color: var(--texto); font-size: 15px; text-decoration: none;
+  border-left: 3px solid transparent;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.perfil__item:hover { background: var(--superficie-2); color: var(--oro-claro); }
+.perfil__item.activo {
+  background: var(--superficie-2); color: var(--oro-claro);
+  border-left-color: var(--oro); font-weight: 600;
+}
+
+/* ---- el panel de la seccion abierta ---- */
+.perfil__panel {
+  background: var(--superficie); border: 1px solid var(--borde);
+  border-radius: var(--radio); padding: 30px 32px 34px; min-height: 320px;
+}
+.perfil__cabeza { margin-bottom: 24px; }
+.perfil__cabeza h2 {
+  font-family: var(--fuente-titulo); font-weight: 400; font-size: 25px;
+  color: var(--vino); margin-bottom: 6px;
+}
+.perfil__subtitulo {
+  font-family: var(--fuente-titulo); font-weight: 400; font-size: 19px;
+  color: var(--vino); margin: 30px 0 4px;
+}
+.perfil__form { max-width: 520px; }
+.perfil__form .form-fila-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.perfil__acciones {
+  display: flex; gap: 12px; flex-wrap: wrap;
+  margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--borde);
+}
+
+/* Las tarjetas de pedido dentro del panel ya tienen su propio marco: el
+   del panel alcanza, asi que no se encajonan dos veces. */
+.perfil__panel .pedido { border-left: 3px solid var(--oro); }
+.perfil__panel .vacio-cuenta { padding: 30px 0; }
+
+/* ---- preferencias de vino ---- */
+.perfil__grupo { border: none; padding: 0; margin: 0 0 24px; }
+.perfil__grupo legend {
+  font-size: 12px; letter-spacing: 1.6px; text-transform: uppercase;
+  color: var(--texto-tenue); margin-bottom: 12px; padding: 0;
+}
+/*
+   Las tildes van en pastillas, igual que los medios de pago del checkout:
+   la casilla real queda oculta pero sigue siendo la que recibe el click,
+   el foco y el teclado. Lo que se ve es la pastilla.
+*/
+.tildes { display: flex; flex-wrap: wrap; gap: 9px; }
+.tilde {
+  position: relative; cursor: pointer;
+  padding: 9px 16px; border: 1px solid var(--borde); border-radius: 999px;
+  font-size: 14.5px; transition: border-color .15s, background .15s, color .15s;
+}
+.tilde:hover { border-color: var(--oro); }
+.tilde input { position: absolute; opacity: 0; pointer-events: none; }
+.tilde:has(input:checked) {
+  border-color: var(--oro); background: var(--superficie-2); color: var(--oro-claro);
+  font-weight: 600;
+}
+.tilde:has(input:focus-visible) { outline: 2px solid var(--oro); outline-offset: 2px; }
+
+.perfil__sugeridos { margin-top: 10px; }
+.perfil__sugeridos .vino-hermanos { grid-template-columns: repeat(2, 1fr); margin-top: 16px; }
+
+/* ---- solicitudes de cancelacion ---- */
+.solicitud-motivo { font-size: 15px; margin-bottom: 8px; }
+
+@media (max-width: 900px) {
+  .perfil { grid-template-columns: 1fr; gap: 20px; }
+  /*
+     Apilado, el menu deja de seguir el scroll y se vuelve una fila: una
+     lista vertical de cinco renglones dejaria el contenido abajo del
+     pliegue en cualquier telefono.
+  */
+  .perfil__menu {
+    position: static; flex-direction: row; gap: 6px;
+    overflow-x: auto; padding: 8px;
+  }
+  .perfil__item {
+    border-left: none; border-bottom: 3px solid transparent;
+    white-space: nowrap; padding: 10px 12px; font-size: 14px;
+  }
+  .perfil__item.activo { border-left-color: transparent; border-bottom-color: var(--oro); }
+  .perfil__panel { padding: 24px 20px 28px; }
+  .perfil__sugeridos .vino-hermanos { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .perfil__form .form-fila-2 { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
    AVISOS
    ============================================================ */
 .aviso-grande {

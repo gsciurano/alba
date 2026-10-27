@@ -103,6 +103,8 @@ public class UsuarioService {
         if (datos.getApellido() != null) actual.setApellido(datos.getApellido());
         if (datos.getEmail() != null)    actual.setEmail(datos.getEmail());
         if (datos.getTelefono() != null) actual.setTelefono(datos.getTelefono().isBlank() ? null : datos.getTelefono());
+        if (datos.getVarietalesFavoritos() != null) actual.setVarietalesFavoritos(limpiar(datos.getVarietalesFavoritos()));
+        if (datos.getLineasFavoritas() != null)     actual.setLineasFavoritas(limpiar(datos.getLineasFavoritas()));
         if (datos.getRol() != null)      actual.setRol(datos.getRol());
         if (datos.getActivo() != null)   actual.setActivo(datos.getActivo());
         // La contrasena solo se toca si vino una nueva y no esta vacia.
@@ -110,6 +112,94 @@ public class UsuarioService {
             actual.setPasswordHash(datos.getPasswordHash());
         }
         return repository.save(actual);
+    }
+
+    /**
+     * ==================================================================
+     *  EDICION DEL PROPIO PERFIL — la hace el cliente desde "Mi cuenta"
+     * ==================================================================
+     *
+     * Toca solo lo que una persona puede cambiarse a si misma: nombre,
+     * apellido, email, telefono y las preferencias de vino.
+     *
+     * POR QUE NO REUSA actualizar(): ese metodo aplica tambien 'rol' y
+     * 'activo' si vienen en el JSON, porque lo usa el panel de gestion y
+     * ahi hace falta. Puesto detras de una pantalla de cliente seria un
+     * agujero: alcanzaria con mandar rol: "ADMIN" para autoascenderse, o
+     * activo: false para darse de baja sin querer. Aca esos dos campos se
+     * ignoran, vengan o no en el cuerpo. La contrasena tampoco se toca:
+     * tiene su propio metodo, que exige la actual.
+     *
+     * LO QUE ESTO NO ARREGLA: el servidor no verifica QUIEN pide el
+     * cambio, porque todavia no hay sesiones (ver autenticar()). Cualquiera
+     * que llame a la API directamente puede editar el perfil de otro
+     * usuario. Lo que se evita aca es que la pantalla del cliente sea el
+     * camino para hacerlo. Cerrarlo de verdad es trabajo de Spring Security.
+     */
+    @Transactional
+    public Usuario actualizarPerfil(Integer id, Usuario datos) {
+        Usuario actual = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("No existe el usuario con id " + id));
+
+        if (datos.getEmail() != null && !datos.getEmail().equalsIgnoreCase(actual.getEmail())
+                && repository.existsByEmail(datos.getEmail())) {
+            throw new IllegalArgumentException("Ya existe un usuario con el email " + datos.getEmail());
+        }
+
+        if (datos.getNombre() != null)   actual.setNombre(datos.getNombre());
+        if (datos.getApellido() != null) actual.setApellido(datos.getApellido());
+        if (datos.getEmail() != null)    actual.setEmail(datos.getEmail());
+        if (datos.getTelefono() != null) actual.setTelefono(limpiar(datos.getTelefono()));
+        if (datos.getVarietalesFavoritos() != null) actual.setVarietalesFavoritos(limpiar(datos.getVarietalesFavoritos()));
+        if (datos.getLineasFavoritas() != null)     actual.setLineasFavoritas(limpiar(datos.getLineasFavoritas()));
+        return repository.save(actual);
+    }
+
+    /**
+     * ==================================================================
+     *  CAMBIO DE CONTRASENA — exige la actual
+     * ==================================================================
+     *
+     * POR QUE NO ALCANZA CON actualizar(): ese metodo guarda la contrasena
+     * nueva sin preguntar por la anterior, porque esta pensado para un
+     * admin que da de alta o repone una cuenta. Para un formulario de
+     * "cambiar contrasena" eso no sirve: cualquiera que quede frente a una
+     * sesion abierta podria cambiarla y quedarse con la cuenta.
+     *
+     * El minimo de 6 caracteres es el mismo que pide el registro, para no
+     * tener dos reglas distintas segun por donde se entre.
+     *
+     * Sigue valiendo la limitacion de autenticar(): la comparacion es en
+     * TEXTO PLANO porque asi esta guardada la contrasena. Cuando se sume
+     * BCrypt, este metodo es uno de los tres lugares a cambiar (los otros
+     * son autenticar y registrar).
+     */
+    @Transactional
+    public void cambiarPassword(Integer id, String actual, String nueva) {
+        Usuario usuario = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("No existe el usuario con id " + id));
+
+        if (actual == null || !actual.equals(usuario.getPasswordHash())) {
+            throw new IllegalArgumentException("La contrasena actual no es correcta.");
+        }
+        if (nueva == null || nueva.length() < 6) {
+            throw new IllegalArgumentException("La contrasena nueva tiene que tener al menos 6 caracteres.");
+        }
+        if (nueva.equals(actual)) {
+            throw new IllegalArgumentException("La contrasena nueva tiene que ser distinta de la actual.");
+        }
+
+        usuario.setPasswordHash(nueva);
+        repository.save(usuario);
+    }
+
+    /**
+     * Un campo de texto opcional que llego vacio se guarda como null y no
+     * como "". Son la misma cosa para quien lo lee, y tener las dos formas
+     * obligaria a preguntar por las dos en cada consulta.
+     */
+    private String limpiar(String valor) {
+        return valor.isBlank() ? null : valor.trim();
     }
 
     /** Baja logica: conserva el historial de pedidos del cliente */

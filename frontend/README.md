@@ -75,7 +75,7 @@ frontend/
 ├── finca.html              La finca (contenido fijo)
 ├── nosotros.html           La bodega y el equipo (contenido fijo)
 ├── contacto.html           Formulario de contacto
-├── cuenta.html             Ingreso, registro y mis pedidos
+├── cuenta.html             Ingreso, registro y el perfil del cliente
 ├── admin.html              Panel de administracion
 ├── css/
 │   ├── estilos.css         Sistema de diseno (variables, botones, tarjetas)
@@ -86,7 +86,7 @@ frontend/
 │   ├── vinos.js            Catalogo por linea
 │   ├── vino.js             Ficha de un vino
 │   ├── tienda.js           Catalogo, carrito y checkout
-│   ├── cuenta.js           Ingreso, registro y pedidos del cliente
+│   ├── cuenta.js           Ingreso, registro y perfil (menu lateral de 5 secciones)
 │   ├── contacto.js         Validacion del formulario
 │   ├── pagina.js           Paginas de solo texto (finca, nosotros)
 │   ├── admin.js            Panel (login, CRUD, pedidos, auditoria)

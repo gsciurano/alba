@@ -128,6 +128,53 @@ public class UsuarioController {
     }
 
     /**
+     * PUT /api/usuarios/2/perfil -> el cliente edita SUS PROPIOS datos.
+     *
+     * Es el endpoint que usa "Mi cuenta". Hace lo mismo que el PUT de
+     * arriba pero solo con nombre, apellido, email, telefono y las
+     * preferencias de vino: el servicio ignora 'rol' y 'activo' vengan o
+     * no en el cuerpo. Si la pantalla del cliente usara el PUT general,
+     * alcanzaria con agregarle rol: "ADMIN" al JSON para autoascenderse.
+     *
+     * Igual que el PUT general, pide nombre, apellido y email en el cuerpo,
+     * porque @Valid comprueba las anotaciones de la entidad antes de
+     * entrar al metodo. El formulario los tiene siempre a mano, asi que
+     * manda el perfil completo.
+     */
+    @PutMapping("/{id}/perfil")
+    public ResponseEntity<Usuario> actualizarPerfil(@PathVariable Integer id,
+                                                    @Valid @RequestBody Usuario usuario) {
+        if (service.obtenerPorId(id).isEmpty()) {
+            throw new RecursoNoEncontradoException("No existe el usuario con id " + id);
+        }
+        return ResponseEntity.ok(service.actualizarPerfil(id, usuario));
+    }
+
+    /**
+     * POST /api/usuarios/2/password
+     * Cuerpo: { "actual": "cliente123", "nueva": "otraClave" }
+     *
+     * POR QUE ES UN ENDPOINT APARTE Y NO UN CAMPO DEL PUT: el PUT guarda
+     * la contrasena que le manden sin preguntar por la anterior. Un cambio
+     * de contrasena tiene que exigir la actual, y esa comprobacion vive en
+     * UsuarioService.cambiarPassword.
+     *
+     * 204 NO CONTENT: se hizo y no hay nada que devolver. Si la contrasena
+     * actual no coincide, el servicio lanza IllegalArgumentException y el
+     * GlobalExceptionHandler la convierte en un 400 con el mensaje.
+     *
+     * No se devuelve el usuario a proposito: no hace falta nada de la
+     * respuesta para seguir, y asi no se arrastra el objeto entero por una
+     * operacion que no lo cambia.
+     */
+    @PostMapping("/{id}/password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cambiarPassword(@PathVariable Integer id,
+                                @RequestBody Map<String, String> cuerpo) {
+        service.cambiarPassword(id, cuerpo.get("actual"), cuerpo.get("nueva"));
+    }
+
+    /**
      * DELETE /api/usuarios/2 -> BAJA LOGICA (activo = false).
      *
      * No se borra la fila: si se borrara, los pedidos historicos de ese
