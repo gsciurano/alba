@@ -24,13 +24,13 @@ primero lo que desbloquea a los demás, al final lo que depende de cosas externa
 |---|---|---|---|
 | 1 | Base de datos compartida | Media | Sí — servidor o cuenta en la nube |
 | 2 | Seguridad real (Spring Security) | Alta | No |
-| 3 | Validación de email y contraseña | Baja | No |
-| 4 | Ir a Inicio al iniciar sesión | Muy baja | No |
+| ~~3~~ | ~~Validación de email y contraseña~~ **HECHO** | Baja | No |
+| ~~4~~ | ~~Ir a Inicio al iniciar sesión~~ **HECHO** | Muy baja | No |
 | ~~5~~ | ~~Perfil del usuario~~ **HECHO** | Media | No |
-| 6 | Acceso al perfil desde el pie | Muy baja | No |
-| 7 | Detalle y edición de pedidos en el panel | Media | No |
+| ~~6~~ | ~~Acceso al perfil desde el pie~~ **HECHO** | Muy baja | No |
+| ~~7~~ | ~~Detalle y edición de pedidos en el panel~~ **HECHO** | Media | No |
 | 8 | Sección Usuarios del panel | Media | No |
-| 9 | Estadísticas del tablero | Media | No |
+| ~~9~~ | ~~Estadísticas del tablero~~ **HECHO** | Media | No |
 | 10 | Interfaz y distribución de pedidos | Media | No |
 | 11 | Derechos de venta en el pie | Baja | No |
 | 12 | Más preguntas frecuentes | Baja | No |
@@ -101,44 +101,50 @@ que con credenciales de ADMIN funciona.
 
 ---
 
-# 3 · Validación de email y contraseña
+# 3 · Validación de email y contraseña — **HECHO**
 
-**Qué pasa hoy:** en `js/cuenta.js` el registro valida el email con una
-expresión mínima (`algo@algo.algo`) y solo exige 6 caracteres de contraseña. No
-se verifica que el correo exista de verdad.
+Las reglas viven en `frontend/js/modules/validacion.js` (un solo lugar, usado
+por el registro, por Mi cuenta → Seguridad y por el alta de usuarios del panel)
+y en `UsuarioService`, que es el que de verdad protege la base: lo del
+navegador se saltea con cualquier cliente HTTP.
 
-```
-En el registro de Alba en los Andes (frontend/js/cuenta.js) quiero endurecer la
-validación:
+**Contraseña:** mínimo 8 caracteres, una mayúscula, una minúscula y un número.
+Los cuatro requisitos se ven debajo del campo *antes* de escribir y se van
+marcando en verde al tipear. El error al mandar nombra lo que falta
+(«A la contraseña le falta: una mayúscula y un número.»), no la regla entera.
 
-- El email tiene que tener una estructura válida de verdad, no la comprobación
-  mínima de hoy. Explicame hasta dónde se puede validar en el navegador y qué
-  requiere mandar un correo de confirmación.
-- La contraseña tiene que exigir: mínimo 8 caracteres, al menos una mayúscula,
-  una minúscula y un número. Mostrá los requisitos en pantalla ANTES de que la
-  persona escriba, y marcá cuáles va cumpliendo mientras tipea.
-- La misma validación tiene que estar también en el back-end (UsuarioService),
-  porque la del navegador se puede saltear.
+**Email:** se valida la forma, con un mensaje distinto según el error
+(falta el @, al dominio le falta el final, tiene espacios, punto de más).
 
-Mostrame los mensajes de error que va a ver el usuario antes de implementarlos.
-```
+**Hasta dónde llega la validación de email, y qué faltaría:** sólo la forma.
+Que el dominio exista necesita una consulta DNS; que la casilla exista sólo lo
+sabe el servidor de correo destino, y casi todos se niegan a contestarlo a
+propósito; y que la persona sea dueña de esa casilla no lo prueba nada salvo
+un correo de confirmación. Eso último necesita una cuenta de envío con la clave
+en variable de entorno, dos columnas nuevas en `usuarios` (verificado y un token
+con vencimiento), un endpoint de verificación y decidir si se puede comprar sin
+verificar. Es la misma infraestructura del tema 16, conviene hacerlos juntos.
+
+**Las claves de demostración pasaron a `Admin123` y `Cliente123`**, para que no
+queden anunciadas en la pantalla de ingreso dos claves que el propio formulario
+rechazaría. Están actualizadas en la base, en el cartel del ingreso, en
+`db/gestor_inventario_alba.sql` y en el README.
 
 ---
 
-# 4 · Ir a Inicio al iniciar sesión
+# 4 · Ir a Inicio al iniciar sesión — **HECHO**
 
-**Qué pasa hoy:** en `js/cuenta.js:118`, un ADMIN va a `admin.html` y un CLIENTE
-a `cuenta.html`.
+Un CLIENTE que ingresa cae en `index.html` con su nombre ya visible en la
+barra de arriba; un ADMIN sigue yendo derecho a `admin.html`. Está en el
+submit del formulario de ingreso de `frontend/js/cuenta.js`:
 
+```js
+location.href = u.rol === "ADMIN" ? "admin.html" : "index.html";
 ```
-En Alba en los Andes, cuando un CLIENTE inicia sesión queda en cuenta.html
-(Mis pedidos). Quiero que vaya a la página de inicio (index.html), con su nombre
-ya visible arriba.
 
-El ADMIN tiene que seguir yendo directo al panel (admin.html), eso no cambia.
-
-Está en frontend/js/cuenta.js, en el submit del formulario de ingreso.
-```
+El registro de una cuenta nueva también termina en `index.html`, por el
+mismo motivo: quien acaba de crearse la cuenta todavía no tiene ningún
+pedido que mirar.
 
 ---
 
@@ -182,45 +188,54 @@ Guardarla en el perfil ahorraría retipearla, pero necesita otra migración.
 
 ---
 
-# 6 · Acceso al perfil desde el pie
+# 6 · Acceso al perfil desde el pie — **HECHO**
 
-**Qué pasa hoy:** en `js/modules/sitio.js:126` el pie tiene una columna "Tu
-cuenta" con un solo enlace: "Mis pedidos" (o "Ingresar o crear cuenta").
+La columna "Tu cuenta" del pie (`frontend/js/modules/sitio.js`) lista
+**Mi perfil**, **Mis pedidos** y **Mis solicitudes**, cada uno apuntando
+directo a su sección (`cuenta.html#datos`, `#pedidos`, `#solicitudes`), más
+**Panel de gestión** si es ADMIN.
 
-```
-En el pie de página de Alba en los Andes (frontend/js/modules/sitio.js, la
-columna "Tu cuenta") hay un solo enlace. Quiero que para alguien con la sesión
-iniciada muestre enlaces separados a: Mi perfil, Mis pedidos y Mis solicitudes,
-cada uno llevando directo a su sección.
+Las secciones se muestran **con o sin sesión**: el pie es donde se busca qué
+ofrece un sitio, y esconderlas hasta después de entrar hace que no se sepa que
+existen. A un visitante se le suma arriba **Ingresar o crear cuenta**, y si
+toca cualquiera de las secciones cae en el formulario de ingreso — el mismo
+camino, pero sabiendo a qué iba.
 
-Para un visitante sin sesión, que siga mostrando "Ingresar o crear cuenta".
-
-Depende de que exista el perfil (tema 5), así que hacelo después de ese.
-```
+Funciona porque "Mi cuenta" elige la sección por el `#hash`: estando ya en
+`cuenta.html`, tocar un enlace del pie cambia de sección sin recargar.
 
 ---
 
-# 7 · Detalle y edición de pedidos en el panel
+# 7 · Detalle y edición de pedidos en el panel — **HECHO**
 
-**Qué pasa hoy:** el detalle de un pedido se abre en un modal armado en
-`js/admin.js` (`abrirDetallePedido`). Según la observación, la información
-queda amontonada.
+Los cuatro modales del panel (detalle de pedido, vino, usuario y pregunta
+frecuente) se arman ahora con una sola función, `panelModal()` en
+`frontend/js/admin.js`: **cabecera** con el título, **cuerpo** con el contenido
+agrupado y **pie** con las acciones separadas por una línea.
 
-```
-En el panel de Alba en los Andes (frontend/js/admin.js), cuando abro el detalle
-de un pedido o edito algo, la información queda toda pegada y mal organizada.
+**Qué estaba mal, medido en el navegador:**
 
-Quiero que lo revises y lo rediseñes: que haya jerarquía visual clara entre los
-datos del cliente, los renglones del pedido, los totales y las acciones.
-Respetá el sistema visual que ya tiene el panel (css/admin.css): barra oscura,
-tarjetas blancas, azul petróleo de la marca.
+- el modal no tenía relleno (`padding: 0`), así que el título arrancaba pegado
+  al borde y la tabla tocaba los laterales;
+- el `<h2>` ocupaba el ancho completo y la **X de cerrar le caía encima**, en
+  los cuatro modales;
+- los tres datos del cliente ocupaban **188 px** contra **163 px** de la tabla
+  de vinos: el bloque más grande era el menos importante;
+- el total era una fila más de la tabla, sin fondo ni borde;
+- el estado del pedido sólo existía dentro del `<select>`: al abrir el detalle
+  se perdía la marca de color que sí tiene la tabla.
 
-Antes de cambiar nada, abrí el panel en el navegador, sacá una captura del
-detalle de un pedido y mostrame qué está mal puntualmente. Después proponé el
-diseño nuevo.
+**Qué quedó:** el cliente en una fila de tres (188 px → **51 px**), el total en
+su propia franja con fondo, el estado como insignia en la cabecera, y los
+campos agrupados por tema (Identidad / Venta y stock / Cómo se muestra, y
+Datos de contacto / Acceso al sistema).
 
-Lo mismo para los otros formularios de edición del panel.
-```
+La X sigue acompañando el scroll (`position: sticky`) porque estos modales
+pueden ser más altos que la pantalla; anclada con `absolute` se iba de vista.
+
+**La bandeja de Solicitudes no se tocó:** no es un modal sino una vista de dos
+columnas, y ya usaba el patrón correcto (`.panel-titulo` con título e insignia).
+De hecho fue de ahí que salió el diseño del resto.
 
 ---
 
@@ -245,31 +260,52 @@ después.
 
 ---
 
-# 9 · Estadísticas del tablero
+# 9 · Estadísticas del tablero — **HECHO**
 
-**Qué pasa hoy:** el tablero tiene 6 indicadores: Vinos en catálogo, Botellas en
-stock, Valorización, A reponer, Pedidos del mes, Solicitudes sin responder.
-Todos son números sueltos: no hay ningún gráfico ni comparación contra el mes
-anterior.
+Cinco métricas nuevas, elegidas por la decisión que permiten tomar:
 
-```
-El tablero del panel de Alba en los Andes (vistaTablero en
-frontend/js/admin.js) tiene seis números sueltos. Quiero sumarle los
-indicadores que cualquier e-commerce necesita de verdad.
+| Métrica | Para qué sirve |
+|---|---|
+| **Ventas por mes**, contra el mes anterior | si el mes viene abajo, salir a mover stock |
+| **Vinos más vendidos** | qué reponer primero y qué promocionar |
+| **Pedidos cancelados** (%) + el motivo más repetido | el motivo dice cómo arreglarlo: demora, precio o stock |
+| **Ticket promedio**, contra el mes anterior | si baja, se compra de a una botella y conviene empujar el combo |
+| **Cuánto dura el stock**, en meses de venta | reemplaza con ventaja al "A reponer": el mínimo es un número a mano que no sabe cuánto se vende |
 
-Proponeme primero una lista de métricas y gráficos ordenada por utilidad real
-para una bodega, explicando qué decisión permite tomar cada uno. Por ejemplo:
-ventas por mes, vinos más vendidos, ticket promedio, comparación contra el
-período anterior. Descartá lo que sea decorativo.
+**Los gráficos están dibujados a mano** en `frontend/js/modules/graficos.js`, sin
+librerías: el de meses es un SVG con `viewBox` (se achica solo con la tarjeta) y
+el ranking son barras de ancho porcentual con elementos normales, para que el
+nombre del vino se pueda seleccionar y lo lea bien un lector de pantalla.
 
-Después implementá los que acordemos. Condición importante: el proyecto es
-HTML + CSS + JavaScript puro, sin npm ni frameworks, así que los gráficos hay
-que dibujarlos con SVG o canvas a mano. Si alguno no se justifica con esa
-restricción, decímelo.
+**El tablero está organizado en dos mitades** — *Cómo vendo* y *Qué tengo* —
+cada una con su título, sus indicadores y una fila de dos paneles de la misma
+altura. Lo único que pide una acción (solicitudes sin responder, vinos bajo el
+mínimo) va arriba de todo en una franja que sólo aparece cuando hay algo que
+hacer.
 
-Los datos salen de la API: /api/pedidos, /api/productos y /api/movimientos.
-Fijate si hace falta algún endpoint nuevo en el back-end.
-```
+**Dos métricas se sacaron por redundantes:** "Pedidos del mes" repetía el número
+que ya dice la tarjeta de cancelados ("3 de 7 pedidos este mes"), y el panel
+"Por qué piden cancelar" ocupaba media fila para mostrar tres motivos — el más
+repetido pasó a la misma tarjeta de la tasa, con enlace a la bandeja. Entre eso
+y pasar el gráfico de ancho completo a media pantalla, el tablero bajó de
+2289px a 1835px de alto sin perder información.
+
+**No hay tortas a propósito:** para tres o cuatro categorías los números con su
+porcentaje se comparan mejor que los ángulos, y dibujar arcos a mano cuesta
+bastante más. Es el único gráfico que no se justifica con la restricción de SVG
+a mano.
+
+**No hizo falta ningún endpoint nuevo.** `/api/pedidos` ya devuelve los
+renglones anidados con su producto, y son pocos pedidos: todo se calcula en el
+navegador. Haría falta un `GET /api/estadisticas/ventas?desde=&hasta=` recién
+cuando traer todos los pedidos enteros para sumar doce números sea un
+desperdicio, digamos a partir de unos cientos.
+
+**Lo que se descartó, y por qué:** ventas por línea (se solapa con más
+vendidos), clientes nuevos y recurrencia (con 10 usuarios no dice nada),
+valorización en el tiempo (linda línea, ninguna decisión), ventas por día u
+hora (decorativo a esta escala) y embudo de conversión (**no se puede**: no hay
+analítica de visitas, sólo se sabe quién compró).
 
 ---
 
