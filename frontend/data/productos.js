@@ -24,6 +24,6 @@ export const VARIETALES = [
 export const LINEAS = ["Finca", "Estate Reserve", "Gran Reserva", "Ediciones Especiales"];
 
 export const USUARIOS_SEED = [
-  { usuario: "admin",     password: "admin123",  nombre: "Admin Bodega",    rol: "administrador" },
+  { usuario: "admin",     password: "Admin123",  nombre: "Admin Bodega",    rol: "administrador" },
   { usuario: "ejecutivo", password: "ventas123", nombre: "Ana Ejecutiva",   rol: "ejecutivo" }
 ];

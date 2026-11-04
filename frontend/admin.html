@@ -26,13 +26,14 @@
     -->
     <header class="barra">
       <a class="marca" href="admin.html">
-        <svg class="marca__sello" viewBox="0 0 32 32" aria-hidden="true">
-          <circle cx="16" cy="16" r="15" fill="none" stroke="currentColor" stroke-width="1.5"/>
-          <circle cx="16" cy="16" r="9"  fill="none" stroke="currentColor" stroke-width="1"/>
-          <circle cx="16" cy="16" r="3"  fill="currentColor"/>
-          <path d="M16 1v30M1 16h30M5.5 5.5l21 21M26.5 5.5l-21 21"
-                stroke="currentColor" stroke-width=".6" opacity=".55"/>
-        </svg>
+        <!--
+          El sello real de la bodega. Es un PNG de tinta blanca sobre fondo
+          transparente, asi que se apoya directo sobre la barra oscura sin
+          recortarlo. Ojo si alguna vez la barra se aclara: sobre un fondo
+          claro este logo no se ve, hay que pedir una version en oscuro.
+        -->
+        <img class="marca__sello" src="assets/img/sitio/logo-sello.png"
+             width="300" height="300" alt="" aria-hidden="true">
         <span class="marca__texto">
           <strong>Alba en los Andes</strong>
           <small>Panel de gestion</small>

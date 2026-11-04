@@ -66,6 +66,12 @@
   </main>
 
   <div id="raizModal"></div>
+  <!--
+    Generador de QR (libreria de terceros, MIT). Va con un <script> normal
+    y ANTES del modulo porque define la global 'qrcode' y no es un modulo
+    ES. Ver js/vendor/LEEME.md.
+  -->
+  <script src="js/vendor/qrcode.js"></script>
   <script type="module" src="js/tienda.js"></script>
 </body>
 </html>

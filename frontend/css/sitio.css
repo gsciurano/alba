@@ -39,6 +39,12 @@
 .cinta__enlace--boton { background: none; border: none; font-family: inherit; cursor: pointer; }
 /* El nombre de quien esta adentro, en mayusculas, como el resto de la barra. */
 .cinta__usuario { text-transform: uppercase; letter-spacing: .8px; }
+/*
+   "/ Crear cuenta" desaparece en pantallas chicas. Ahi la cinta compite
+   por el ancho con la ubicacion de la bodega, y "Ingresar" solo se
+   entiende igual: la pagina a la que lleva tiene las dos solapas.
+*/
+@media (max-width: 560px) { .cinta__opcional { display: none; } }
 
 /* ---- marca y menu ---- */
 .sitio-cabecera__fila {
@@ -228,12 +234,16 @@
 .sitio-pie { background: var(--vino); color: #c3d6dc; margin-top: 70px; }
 .sitio-pie__interior {
   max-width: var(--ancho-max); margin: 0 auto; padding: 56px 24px 36px;
-  display: grid; grid-template-columns: 2fr 1fr 1.4fr 1.2fr; gap: 42px;
+  display: grid; grid-template-columns: 1.8fr 1fr 1.3fr 1.1fr 1.1fr; gap: 36px;
 }
-.sitio-pie__marca { color: #fff; margin-bottom: 14px; }
-.sitio-pie__nombre {
-  font-family: var(--fuente-titulo); color: #fff; font-size: 17px;
-  letter-spacing: 2.2px; text-transform: uppercase; margin-bottom: 12px;
+/*
+   El logo completo del pie. Se le da el ancho y la altura va sola
+   (height:auto) para que no se deforme; width/height en el HTML guardan
+   la proporcion mientras la imagen carga y evitan que el pie salte.
+*/
+.sitio-pie__logo {
+  display: block; width: 190px; height: auto; max-width: 100%;
+  margin-bottom: 16px;
 }
 .sitio-pie p { font-size: 14.5px; line-height: 1.75; }
 .sitio-pie h3 {
@@ -248,18 +258,90 @@
 .sitio-pie__legal {
   border-top: 1px solid rgba(255, 255, 255, .13);
   max-width: var(--ancho-max); margin: 0 auto; padding: 20px 24px 28px;
-  display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 16px; flex-wrap: wrap;
   font-size: 13px; color: #8fadb7;
 }
+/* El numero de ley se ve como enlace, no como texto muerto. */
+.sitio-pie__legal a { display: inline; color: #a9c2cb; text-decoration: underline; }
+.sitio-pie__legal a:hover { color: #fff; }
 
 /* ============================================================
    MI CUENTA — ingreso, registro y pedidos del cliente
    ============================================================ */
+/* ---- ingreso con Google (debajo del formulario) ---- */
+.otro-ingreso { margin-top: 26px; }
+
+/*
+   El separador: una "o" chiquita en un circulo, con la linea pasando por
+   detras. Un solo caracter centrado se lee mejor que una frase larga, y
+   deja claro que lo de abajo es una alternativa a lo de arriba, no un
+   paso siguiente.
+*/
+.separador-o {
+  position: relative; text-align: center;
+  margin-bottom: 20px; line-height: 1;
+}
+.separador-o::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 50%;
+  height: 1px; background: var(--borde);
+}
+.separador-o span {
+  position: relative;            /* por encima de la linea */
+  display: inline-block;
+  background: var(--superficie);  /* tapa la linea justo detras del texto */
+  padding: 0 12px;
+  color: var(--texto-tenue); font-size: 12.5px;
+  text-transform: uppercase; letter-spacing: 1.6px;
+}
+
+.ingreso-google {
+  display: flex; justify-content: center;
+  /* Reserva el alto del boton para que la pagina no pegue un salto
+     cuando termina de cargar el script de Google. */
+  min-height: 44px;
+}
+/*
+   El boton lo dibuja Google adentro de un iframe y no se le puede tocar
+   el interior. Lo que si se puede es la caja: se estira al ancho del
+   formulario para que quede alineado con el boton "Ingresar" de arriba,
+   en vez de flotar mas angosto y descolgado.
+*/
+.ingreso-google > div { width: 100% !important; }
+.ingreso-google iframe { width: 100% !important; }
+
 .caja-cuenta {
-  max-width: 520px; margin: 0 auto;
+  max-width: 460px; margin: 0 auto;
   background: var(--superficie); border: 1px solid var(--borde);
   border-radius: var(--radio); overflow: hidden; box-shadow: var(--sombra-s);
 }
+/*
+   USUARIOS DE PRUEBA.
+   Caja aparte y con fondo propio para que se lea como lo que es: una
+   ayuda para la demostracion, no parte del formulario. Cuando el sitio
+   salga de la facultad, se borra este bloque entero y no queda nada
+   suelto dando vueltas.
+*/
+.usuarios-demo {
+  margin-top: 22px; padding: 14px 16px;
+  background: var(--superficie-2); border-radius: var(--radio-s);
+  border: 1px dashed var(--borde);
+}
+.usuarios-demo__titulo {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1.4px;
+  color: var(--texto-tenue); margin: 0 0 10px; font-weight: 600;
+}
+/* Rotulo de ancho fijo: los dos mails arrancan en la misma vertical. */
+.usuarios-demo__fila {
+  display: grid; grid-template-columns: 58px 1fr;
+  align-items: baseline; gap: 10px; padding: 3px 0;
+}
+.usuarios-demo__rol { font-size: 12px; color: var(--texto-tenue); }
+.usuarios-demo code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12.5px; color: var(--texto); word-break: break-all;
+}
+
 .solapas { display: flex; border-bottom: 1px solid var(--borde); }
 .solapa {
   flex: 1; background: var(--fondo-alt); border: none; cursor: pointer;
@@ -489,7 +571,7 @@
 @media (max-width: 1000px) {
   .par, .par--invertido { grid-template-columns: 1fr; gap: 30px; }
   .par--invertido .par__foto { order: 0; }
-  .sitio-pie__interior { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .sitio-pie__interior { grid-template-columns: 1fr 1fr; gap: 32px 28px; }
 }
 @media (max-width: 760px) {
   .sitio-cabecera__fila { flex-wrap: wrap; gap: 14px; justify-content: space-between; }
@@ -639,9 +721,19 @@
 .cata--compacta { grid-template-columns: 1fr 1fr; gap: 18px 32px; margin-top: 22px; }
 .cata--compacta dd { font-size: 15px; }
 
+/*
+   La ficha tecnica baja con la pagina como una caja mas.
+
+   Antes era position: sticky y quedaba clavada arriba a la derecha
+   mientras el texto seguia de largo: al llegar a las notas de cata se
+   veia la ficha flotando sola al lado de un espacio vacio, y en los
+   vinos con mucho texto acompaniaba media pantalla de scroll sin
+   aportar nada. Como es una tabla de datos que se lee una vez, no una
+   barra de herramientas, no hay motivo para que siga al lector.
+*/
 .vino-tecnica {
   background: var(--fondo-alt); border: 1px solid var(--borde);
-  border-radius: var(--radio); padding: 26px; position: sticky; top: 24px;
+  border-radius: var(--radio); padding: 26px;
 }
 .vino-tecnica__titulo {
   font-family: var(--fuente-titulo); font-weight: 400; font-size: 21px;
@@ -687,8 +779,6 @@
 @media (max-width: 980px) {
   .vino-hero__interior { grid-template-columns: 240px 1fr; gap: 34px; }
   .vino-cuerpo { grid-template-columns: 1fr; gap: 40px; }
-  /* Apiladas, la ficha tecnica deja de seguir el scroll: ya no hay costado. */
-  .vino-tecnica { position: static; }
   .vino-hermanos { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 680px) {

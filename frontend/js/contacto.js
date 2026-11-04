@@ -56,7 +56,6 @@ document.addEventListener("DOMContentLoaded", () => {
       crear("p", { style: "text-align:center;color:var(--texto-tenue);line-height:1.7" },
         "Registramos tu consulta a nombre de " + datos.nombre + "."),
       crear("p", { style: "text-align:center;color:var(--texto-tenue);font-size:14px;margin-top:14px" },
-        "Recordá que este formulario todavía no envía correos: es parte del " +
-        "trabajo práctico."));
+        "Recordá que este formulario todavía no envía correos."));
   });
 });

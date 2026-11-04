@@ -31,6 +31,9 @@ import {
 import { api } from "./modules/api.js";
 import { LINEAS, VARIETALES } from "../data/productos.js";
 import { pesos, fecha, fechaCorta, hora, placeholderVino, $, $$, crear, toast } from "./modules/util.js";
+import { errorEmail, errorPassword, requisitosPassword, vigilarPassword }
+  from "./modules/validacion.js";
+import { barrasMensuales, barrasRanking, variacion } from "./modules/graficos.js";
 
 // ============================================================
 //  ESTADO DE LA PANTALLA
@@ -299,6 +302,118 @@ const conIcono = (nombre, texto, clase) =>
 //  1) TABLERO
 // ============================================================
 
+/**
+ * ============================================================
+ *  LAS CUENTAS DEL TABLERO
+ * ============================================================
+ *
+ * Todo se calcula ACA, en el navegador, a partir de lo que ya devuelven
+ * /api/pedidos (que trae los renglones anidados con su producto) y
+ * /api/productos. No hace falta ningun endpoint nuevo.
+ *
+ * CUANDO SI HARIA FALTA: cuando traer todos los pedidos enteros para
+ * sumar doce numeros sea un desperdicio, digamos a partir de unos
+ * cientos. Ahi convendria un GET /api/estadisticas/ventas?desde=&hasta=
+ * que agregue del lado del servidor. Con los pedidos que hay hoy seria
+ * trabajo sin beneficio.
+ *
+ * QUE CUENTA COMO VENTA: todo pedido que no este cancelado. Un pedido
+ * cancelado devolvio las botellas al stock y no cobro nada, asi que
+ * sumarlo a las ventas seria contar plata que no entro.
+ */
+const esVenta = (p) => p.estado !== "cancelado";
+
+/** La clave "2026-10" de una fecha, para agrupar por mes. */
+const claveMes = (iso) => String(iso).slice(0, 7);
+
+/** "oct" / "oct 25" cuando cambia el anio, para el eje del grafico. */
+function rotuloMes(clave, mostrarAnio) {
+  const [anio, mes] = clave.split("-");
+  const nombre = new Date(Number(anio), Number(mes) - 1, 1)
+    .toLocaleDateString("es-AR", { month: "short" }).replace(".", "");
+  return mostrarAnio ? nombre + " " + anio.slice(2) : nombre;
+}
+
+/**
+ * Las ventas de los ultimos N meses, incluidos los meses SIN ventas.
+ *
+ * Los meses vacios se incluyen a proposito: si se saltearan, un mes sin
+ * una sola venta desapareceria del grafico y la caida no se veria.
+ */
+function ventasPorMes(listaPedidos, meses = 6) {
+  const hoy = new Date();
+  const serie = [];
+  for (let i = meses - 1; i >= 0; i--) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    const clave = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+    const delMes = listaPedidos.filter(p => claveMes(p.fecha) === clave);
+    const vendidos = delMes.filter(esVenta);
+    serie.push({
+      clave,
+      etiqueta: rotuloMes(clave, d.getMonth() === 0 || i === meses - 1),
+      total:      vendidos.reduce((a, p) => a + p.total, 0),
+      pedidos:    vendidos.length,
+      cancelados: delMes.length - vendidos.length,
+      todos:      delMes.length
+    });
+  }
+  return serie;
+}
+
+/** Botellas y plata por vino, de los pedidos que no se cancelaron. */
+function masVendidos(listaPedidos, cuantos = 6) {
+  const porVino = new Map();
+  listaPedidos.filter(esVenta).forEach(p => p.items.forEach(i => {
+    const actual = porVino.get(i.nombre) || { botellas: 0, plata: 0 };
+    actual.botellas += i.cantidad;
+    actual.plata    += i.cantidad * i.precio;
+    porVino.set(i.nombre, actual);
+  }));
+  return [...porVino.entries()]
+    .map(([nombre, v]) => ({ nombre, ...v }))
+    .sort((a, b) => b.botellas - a.botellas)
+    .slice(0, cuantos);
+}
+
+/**
+ * Cuantos MESES de venta cubre el stock de cada vino.
+ *
+ * POR QUE ESTO Y NO SOLO EL STOCK MINIMO: el minimo es un numero escrito
+ * a mano que no sabe cuanto se vende. Marca como urgente un vino con 20
+ * botellas que no vende ninguna, y no dice nada de uno con 60 que vende
+ * 50 por mes. Dividir el stock por lo que sale al mes contesta la
+ * pregunta que de verdad importa: cuanto me dura.
+ *
+ * El promedio se saca sobre los ultimos 90 dias. Un vino sin ventas en
+ * ese periodo queda con cobertura nula: no es que dure para siempre, es
+ * que no hay con que calcularlo, y se muestra distinto.
+ */
+function coberturaDeStock(vinos, listaPedidos) {
+  const desde = new Date();
+  desde.setDate(desde.getDate() - 90);
+
+  const vendidas = new Map();
+  listaPedidos
+    .filter(p => esVenta(p) && new Date(p.fecha) >= desde)
+    .forEach(p => p.items.forEach(i => {
+      vendidas.set(i.id, (vendidas.get(i.id) || 0) + i.cantidad);
+    }));
+
+  return vinos.map(v => {
+    const porMes = (vendidas.get(v.id) || 0) / 3;      // 90 dias = 3 meses
+    return {
+      nombre: v.nombre,
+      stock: v.stock,
+      porMes,
+      meses: porMes > 0 ? v.stock / porMes : null      // null = sin ventas
+    };
+  }).sort((a, b) => {
+    if (a.meses === null) return 1;                     // los sin ventas, al final
+    if (b.meses === null) return -1;
+    return a.meses - b.meses;                           // primero el que se acaba antes
+  });
+}
+
 async function vistaTablero(cont) {
   const vinos = productos.getAll().filter(p => p.activo);
   const listaPedidos = pedidos.getAll();
@@ -311,11 +426,9 @@ async function vistaTablero(cont) {
   const aReponer   = vinos.filter(p => p.stock <= p.stockMinimo);
   const abiertas   = solicitudes.filter(s => s.estado === "PENDIENTE" || s.estado === "EN_REVISION");
 
+  // Los pedidos del mes ya salen de la serie de abajo (esteMes.pedidos),
+  // que ademas distingue los cancelados de los que si se vendieron.
   const hoy = new Date();
-  const delMes = listaPedidos.filter(p => {
-    const f = new Date(p.fecha);
-    return f.getMonth() === hoy.getMonth() && f.getFullYear() === hoy.getFullYear();
-  });
   const nombreMes = hoy.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
 
   const btnActualizar = conIcono("refrescar", "Actualizar", "b-suave");
@@ -328,29 +441,165 @@ async function vistaTablero(cont) {
   cont.append(encabezado("Tablero",
     "Actualizado " + hora(new Date().toISOString()), btnActualizar));
 
+  // ---------- las cuentas de venta ----------
+  const serie   = ventasPorMes(listaPedidos, 6);
+  const esteMes = serie[serie.length - 1];
+  const mesPrev = serie[serie.length - 2];
+
+  const ticket     = esteMes.pedidos ? esteMes.total / esteMes.pedidos : 0;
+  const ticketPrev = mesPrev && mesPrev.pedidos ? mesPrev.total / mesPrev.pedidos : 0;
+  const tasa     = esteMes.todos ? (esteMes.cancelados / esteMes.todos) * 100 : 0;
+  const tasaPrev = mesPrev && mesPrev.todos ? (mesPrev.cancelados / mesPrev.todos) * 100 : null;
+
+  const indVentas = indicador("Ventas del mes", pesos(esteMes.total), nombreMes, null, true);
+  indVentas.append(crear("div", { class: "indicador__pie" },
+    variacion(esteMes.total, mesPrev?.total)));
+
+  const indTicket = indicador("Ticket promedio", pesos(Math.round(ticket)), nombreMes, null, true);
+  indTicket.append(crear("div", { class: "indicador__pie" },
+    variacion(ticket, ticketPrev)));
+
+  // Subir la cancelacion es MALO: por eso bueno:false, o el color diria
+  // lo contrario que en los dos indicadores de al lado.
+  const indCancel = indicador("Pedidos cancelados",
+    tasa.toFixed(0) + "%", esteMes.cancelados + " de " + esteMes.todos + " pedidos este mes",
+    null, false, tasa >= 20);
+  indCancel.append(crear("div", { class: "indicador__pie" },
+    variacion(tasa, tasaPrev, { bueno: false, enPuntos: true })));
+
+  /*
+   * El motivo principal entra en la MISMA tarjeta que la tasa.
+   *
+   * Antes era un panel aparte ("Por que piden cancelar") que con tres
+   * motivos ocupaba media fila y dejaba 318px de hueco al lado. Lo que
+   * sirve de un vistazo es cual se repite mas; el detalle completo esta
+   * a un clic, en la bandeja.
+   */
+  const porMotivo = new Map();
+  solicitudes.forEach(s_ => {
+    const m = MOTIVOS[s_.motivo] || s_.motivo;
+    porMotivo.set(m, (porMotivo.get(m) || 0) + 1);
+  });
+  const principal = [...porMotivo.entries()].sort((a, b) => b[1] - a[1])[0];
+  if (principal) {
+    indCancel.append(crear("div", { class: "indicador__pie" },
+      "Sobre todo: " + principal[0].toLowerCase() + " ",
+      crear("a", { href: "#",
+        onclick: (e) => { e.preventDefault(); ir("solicitudes"); } }, "ver todas →")));
+  }
+
+  /*
+   * El tablero contesta DOS preguntas distintas, y antes estaban
+   * mezcladas: nueve indicadores sueltos repartidos en dos filas con
+   * los graficos en el medio, asi que el hilo se cortaba.
+   *
+   *   COMO VENDO  — ventas, ticket, cancelaciones, que sale mas
+   *   QUE TENGO   — catalogo, stock, cuanto dura, movimientos
+   *
+   * Arriba de todo va lo unico que pide una accion hoy. Antes eso eran
+   * dos indicadores perdidos entre los otros siete, con el mismo peso
+   * que "Vinos en catalogo", que no se mira nunca.
+   */
+
+  // ---------- lo que requiere una accion ----------
+  const pendientes = [];
+  if (abiertas.length) pendientes.push({
+    texto: abiertas.length === 1 ? "1 solicitud sin responder"
+                                 : abiertas.length + " solicitudes sin responder",
+    vista: "solicitudes", accion: "Ir a la bandeja" });
+  if (aReponer.length) pendientes.push({
+    texto: aReponer.length === 1 ? "1 vino bajo su stock mínimo"
+                                 : aReponer.length + " vinos bajo su stock mínimo",
+    vista: "inventario", accion: "Ver inventario" });
+
+  if (pendientes.length) {
+    cont.append(crear("div", { class: "atencion" },
+      crear("span", { class: "atencion__rotulo" }, "Requiere tu atención"),
+      ...pendientes.map(p_ => crear("span", { class: "atencion__item" },
+        crear("strong", {}, p_.texto),
+        crear("a", { href: "#", onclick: (e) => { e.preventDefault(); ir(p_.vista); } },
+              p_.accion + " →")))));
+  }
+
+  // ============ COMO VENDO ============
+  cont.append(tituloSeccionTablero("Cómo vendo", nombreMes));
+
+  // Tres indicadores, los tres con su variacion. "Pedidos del mes" era
+  // un cuarto que repetia el numero que ya dice la tarjeta de cancelados
+  // ("3 de 7 pedidos este mes"), asi que se fue.
+  cont.append(crear("div", { class: "indicadores" }, indVentas, indTicket, indCancel));
+
+  /*
+   * El grafico va a MEDIA pantalla, no a ancho completo.
+   *
+   * A ancho completo la tarjeta medía 1360px para mostrar seis barras,
+   * de las cuales hoy solo dos tienen datos: cuatro sextos del ancho
+   * eran blanco. A la mitad se lee igual y la fila queda pareja.
+   */
+  const panelVentas = tarjeta(
+    crear("div", { class: "panel-titulo" },
+      crear("h2", {}, "Ventas por mes"),
+      crear("span", { class: "panel-titulo__nota" }, "sin cancelados")),
+    barrasMensuales(
+      serie.map((m, i) => ({
+        etiqueta: m.etiqueta, valor: m.total,
+        // El importe entero no entra arriba de una barra angosta: se
+        // muestra en miles, que es lo que se compara de un vistazo.
+        corto: m.total ? "$" + Math.round(m.total / 1000) + "k" : "",
+        destacado: i === serie.length - 1
+      })),
+      { formato: pesos, titulo: "Ventas de los últimos seis meses",
+        ancho: 620, alto: 300 }));
+
+  const panelVendidos = tarjeta(
+    crear("div", { class: "panel-titulo" },
+      crear("h2", {}, "Vinos más vendidos"),
+      crear("a", { href: "#", onclick: (e) => { e.preventDefault(); ir("inventario"); } },
+            "Ver inventario →")),
+    barrasRanking(
+      masVendidos(listaPedidos, 5).map(v => ({
+        etiqueta: v.nombre, valor: v.botellas,
+        detalle: pesos(v.plata) + " facturados"
+      })),
+      { formato: (n) => n + (n === 1 ? " botella" : " botellas"),
+        vacio: "Todavía no se vendió ninguna botella." }));
+
+  cont.append(crear("div", { class: "doble-columna" }, panelVentas, panelVendidos));
+
+  // ============ QUE TENGO ============
+  cont.append(tituloSeccionTablero("Qué tengo", "inventario de hoy"));
+
   cont.append(crear("div", { class: "indicadores" },
     indicador("Vinos en catálogo", vinos.length),
     indicador("Botellas en stock", botellas.toLocaleString("es-AR")),
-    indicador("Valorización", pesos(valorizado), "stock × precio de lista", null, true),
-    indicador("A reponer", aReponer.length, null,
-              { texto: "Ver inventario", vista: "inventario" }, false, aReponer.length > 0),
-    indicador("Pedidos del mes", delMes.length, nombreMes),
-    indicador("Solicitudes sin responder", abiertas.length, null,
-              { texto: "Ir a la bandeja", vista: "solicitudes" }, false, abiertas.length > 0)
+    indicador("Valorización", pesos(valorizado), "stock × precio de lista", null, true)
   ));
 
-  // ---- los dos paneles de abajo ----
-  const panelAlertas = tarjeta(
+  /*
+   * "Cuanto dura el stock" reemplaza al panel de alertas de stock minimo
+   * que habia antes: listaba los mismos vinos pero comparando contra un
+   * numero escrito a mano, sin saber cuanto se vende. Los que estan bajo
+   * el minimo siguen avisando arriba, en la franja de atencion.
+   */
+  // Todos los vinos activos, no los primeros siete: con siete la tarjeta
+  // quedaba 161px mas corta que la de movimientos de al lado.
+  const cobertura = coberturaDeStock(vinos, listaPedidos);
+  const panelCobertura = tarjeta(
     crear("div", { class: "panel-titulo" },
-      crear("h2", {}, "Alertas de stock mínimo"),
-      crear("a", { href: "#", onclick: (e) => { e.preventDefault(); ir("ingreso"); } },
-            "Ingresar mercadería →")),
-    tabla(
-      [{ clave: "nombre", rotulo: "Vino" },
-       { clave: "stock",  rotulo: "Stock",  clase: "num" },
-       { clave: "stockMinimo", rotulo: "Mínimo", clase: "num" }],
-      aReponer, null, null,
-      "Ningún vino está bajo su stock mínimo."));
+      crear("h2", {}, "Cuánto dura el stock"),
+      crear("span", { class: "panel-titulo__nota" }, "al ritmo de los últimos 90 días")),
+    cobertura.length
+      ? crear("ul", { class: "cobertura" },
+          ...cobertura.map(c => crear("li", { class: "cobertura__fila" },
+            crear("span", { class: "cobertura__vino" }, c.nombre),
+            crear("span", { class: "cobertura__stock" }, c.stock + " bot."),
+            c.meses === null
+              ? crear("span", { class: "cobertura__meses cobertura__meses--sin" }, "sin ventas")
+              : crear("span", { class: "cobertura__meses" +
+                  (c.meses < 1.5 ? " cobertura__meses--alerta" : "") },
+                  c.meses < 1 ? "menos de 1 mes"
+                              : c.meses.toFixed(1).replace(".", ",") + " meses"))))
+      : crear("p", { class: "grafico__vacio" }, "No hay vinos activos."));
 
   const panelMovs = tarjeta(
     crear("div", { class: "panel-titulo" },
@@ -367,8 +616,13 @@ async function vistaTablero(cont) {
       movimientos.slice(0, 8), null, null,
       "Todavía no hay movimientos."));
 
-  cont.append(crear("div", { class: "doble-columna" }, panelAlertas, panelMovs));
+  cont.append(crear("div", { class: "doble-columna" }, panelCobertura, panelMovs));
 }
+
+/** Separador de las dos mitades del tablero. */
+const tituloSeccionTablero = (titulo, nota) => crear("div", { class: "seccion-tablero" },
+  crear("h2", { class: "seccion-tablero__titulo" }, titulo),
+  nota ? crear("span", { class: "seccion-tablero__nota" }, nota) : "");
 
 function indicador(rotulo, valor, pie, enlace, chico, alerta) {
   const caja = crear("div", { class: "indicador" + (alerta ? " indicador--alerta" : "") },
@@ -477,28 +731,41 @@ function abrirFormVino(id = null) {
     notasCata: "", imagenUrlOrigen: "", activo: true
   };
 
-  const form = crear("form", { class: "form-panel", novalidate: "true" },
-    crear("h2", { style: "font-size:22px;margin-bottom:20px;color:var(--vino)" },
-          id ? "Editar vino" : "Nuevo vino"),
-    campo("nombre", "Nombre", "text", p.nombre),
-    crear("div", { class: "form-fila-2" },
-      campoSelect("linea", "Línea", LINEAS, p.linea),
-      campoSelect("varietal", "Varietal", VARIETALES, p.varietal)),
-    crear("div", { class: "form-fila-2" },
-      campo("cosecha", "Añada", "number", p.cosecha),
-      campo("precio", "Precio", "number", p.precio)),
-    crear("div", { class: "form-fila-2" },
-      campo("stock", "Stock actual", "number", p.stock),
-      campo("stockMinimo", "Stock mínimo", "number", p.stockMinimo)),
-    crear("div", { class: "campo campo--ancho", style: "margin-bottom:16px" },
-      crear("label", { for: "notasCata" }, "Notas de cata"),
-      crear("textarea", { id: "notasCata", rows: "4" }, p.notasCata)),
-    campo("imagenUrlOrigen", "URL de la foto", "url", p.imagenUrlOrigen),
-    crear("div", { class: "form-acciones" },
+  /*
+   * Los nueve campos van agrupados por lo que son: que vino es, a cuanto
+   * se vende, cuantas botellas hay y como se describe. Antes iban los
+   * nueve seguidos, asi que cambiar el precio y cambiar el stock se veian
+   * como la misma operacion.
+   */
+  const form = panelModal({
+    etiqueta: "form",
+    titulo: id ? "Editar vino" : "Nuevo vino",
+    bajada: id ? p.nombre : "Se suma al catálogo de la tienda.",
+    cuerpo: [
+      grupo("Identidad",
+        campo("nombre", "Nombre", "text", p.nombre),
+        fila2(campoSelect("linea", "Línea", LINEAS, p.linea),
+              campoSelect("varietal", "Varietal", VARIETALES, p.varietal)),
+        fila2(campo("cosecha", "Añada", "number", p.cosecha),
+              crear("div", {}))),
+      grupo("Venta y stock",
+        // Tres numeros cortos en un renglon: uno por fila estiraba el
+        // formulario mas alto que la pantalla sin ganar nada.
+        fila3(campo("precio", "Precio", "number", p.precio),
+              campo("stock", "Stock actual", "number", p.stock),
+              campo("stockMinimo", "Stock mínimo", "number", p.stockMinimo))),
+      grupo("Cómo se muestra en la tienda",
+        crear("div", { class: "campo campo--ancho" },
+          crear("label", { for: "notasCata" }, "Notas de cata"),
+          crear("textarea", { id: "notasCata", rows: "4" }, p.notasCata)),
+        campo("imagenUrlOrigen", "URL de la foto", "url", p.imagenUrlOrigen))
+    ],
+    acciones: [
       crear("button", { type: "submit", class: "b-primario" },
             id ? "Guardar cambios" : "Crear vino"),
-      crear("button", { type: "button", class: "b-suave", onclick: cerrarModal }, "Cancelar"))
-  );
+      crear("button", { type: "button", class: "b-suave", onclick: cerrarModal }, "Cancelar")
+    ]
+  });
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -716,7 +983,15 @@ function vistaPedidos(cont) {
         render: p => crear("span", { class: "fuerte" }, "#" + p.id) },
       { clave: "fecha",   rotulo: "Fecha",   orden: true, render: p => fecha(p.fecha) },
       { clave: "cliente", rotulo: "Cliente", orden: true, render: p => p.comprador.nombre || "—" },
-      { clave: "medioPago", rotulo: "Pago", render: p => capitalizar(p.medioPago || "") },
+      /*
+       * La columna "Pago" avisa cuales transferencias siguen sin
+       * acreditar. Es lo primero que hay que poder ver de un vistazo:
+       * son pedidos que todavia no cobraste.
+       */
+      { clave: "medioPago", rotulo: "Pago",
+        render: p => p.esperaComprobante
+          ? crear("span", { class: "marca-estado marca-estado--pendiente" }, "Esperando comprobante")
+          : capitalizar(p.medioPago || "") },
       { clave: "total",  rotulo: "Total", orden: true, clase: "num",
         render: p => crear("span", { class: "fuerte" }, pesos(p.total)) },
       { clave: "estado", rotulo: "Estado", orden: true,
@@ -731,6 +1006,94 @@ function vistaPedidos(cont) {
   pintar();
 }
 
+/**
+ * Vuelve a mandarle el comprobante al comprador.
+ *
+ * POR QUE HACE FALTA UN BOTON: el envio del comprobante sale en otro
+ * hilo y se traga sus errores, para que una falla del correo no tire
+ * abajo una venta. El precio de esa decision es que a veces el mail no
+ * llega y no hay forma de reintentarlo. Esto es esa forma.
+ *
+ * El boton dice a QUE direccion va a mandar. Es el dato que importa:
+ * muchas veces el mail no llego porque la direccion estaba mal escrita,
+ * y verla antes de reenviar evita repetir el error.
+ */
+function reenviarBtn(p) {
+  const destino = p.comprador.email;
+  const boton = crear("button", { class: "b-suave" },
+    destino ? "Reenviar comprobante" : "Sin email para reenviar");
+  if (!destino) { boton.disabled = true; return boton; }
+
+  boton.title = "Se envía a " + destino;
+  boton.addEventListener("click", async () => {
+    boton.disabled = true;
+    const original = boton.textContent;
+    boton.textContent = "Enviando...";
+    try {
+      await api.pedidos.reenviarComprobante(p.id);
+      // "Se envio" y no "llego": el servidor lo acepta y lo manda en otro
+      // hilo, asi que desde aca no se puede saber si entro al buzon.
+      toast("Comprobante enviado a " + destino);
+    } catch (e) {
+      toast(e.message, "error");
+    } finally {
+      boton.textContent = original;
+      boton.disabled = false;
+    }
+  });
+  return boton;
+}
+
+/**
+ * La casilla con la que el administrador acredita una transferencia.
+ *
+ * POR QUE GUARDA SOLA Y NO CON EL BOTON DE ABAJO: decir "entro la plata"
+ * es una sola decision. Si hubiera que apretar ademas "Guardar cambios",
+ * el mismo boton estaria mandando tambien el estado del pedido, y mas de
+ * uno terminaria cambiando el estado sin querer.
+ *
+ * Si el servidor rechaza el cambio, la casilla VUELVE a como estaba. Una
+ * casilla tildada que el back-end no acepto es una mentira en pantalla:
+ * mostraria como cobrado algo que no lo esta.
+ */
+function bloquePago(p) {
+  const admin = sesion.actual();
+  const casilla = crear("input", { type: "checkbox", id: "pagoConfirmado" });
+  casilla.checked = p.pagoConfirmado;
+
+  const pie = crear("p", { class: "encabezado__bajada", style: "margin-top:10px;font-size:14px" });
+  const pintarPie = (pedido) => {
+    pie.textContent = pedido.pagoConfirmado
+      ? "Acreditado el " + fecha(pedido.pagoConfirmadoEn)
+        + (pedido.pagoConfirmadoPor ? " por " + pedido.pagoConfirmadoPor : "")
+      : "El cliente tiene que enviar el comprobante. Tildá la casilla cuando veas la transferencia en la cuenta.";
+  };
+  pintarPie(p);
+
+  casilla.addEventListener("change", async () => {
+    const queria = casilla.checked;
+    casilla.disabled = true;
+    try {
+      const actualizado = await pedidos.confirmarPago(p.id, queria, admin.idUsuario);
+      Object.assign(p, actualizado);
+      pintarPie(actualizado);
+      toast(queria ? "Pago acreditado" : "Pago marcado como pendiente");
+      redibujar();
+    } catch (e) {
+      casilla.checked = !queria;   // el servidor manda: se vuelve atras
+      toast(e.message, "error");
+    } finally {
+      casilla.disabled = false;
+    }
+  });
+
+  return crear("div", {},
+    crear("label", { class: "casilla", for: "pagoConfirmado" },
+      casilla,
+      crear("span", {}, "La transferencia está acreditada en la cuenta")),
+    pie);
+}
+
 function abrirDetallePedido(p) {
   const filas = p.items.map(i => crear("tr", {},
     crear("td", {}, i.nombre),
@@ -742,38 +1105,67 @@ function abrirDetallePedido(p) {
     ...ESTADOS_REALES.map(e => crear("option",
       { value: e, selected: e === p.estado ? "true" : null }, capitalizar(e))));
 
-  const panel = crear("div", { class: "form-panel" },
-    crear("h2", { style: "font-size:22px;color:var(--vino)" }, "Pedido #" + p.id),
-    crear("p", { class: "encabezado__bajada", style: "margin-bottom:20px" },
-          fecha(p.fecha) + " · " + capitalizar(p.medioPago || "")),
+  const guardarBtn = crear("button", { class: "b-primario" }, "Guardar estado");
+  guardarBtn.addEventListener("click", async () => {
+    if (selEstado.value === p.estado) { cerrarModal(); return; }
+    const ok = await guardar(() => pedidos.cambiarEstado(p.id, selEstado.value),
+                             "Estado actualizado", false);
+    if (ok) { cerrarModal(); redibujar(); }
+  });
 
-    dato("Cliente", p.comprador.nombre),
-    dato("Email", p.comprador.email || "—"),
-    dato("Teléfono", p.comprador.telefono || "—"),
+  const panel = panelModal({
+    titulo: "Pedido #" + p.id,
+    bajada: fecha(p.fecha) + " · " + capitalizar(p.medioPago || ""),
+    // El estado se ve ACA, no solo adentro del desplegable: en la tabla de
+    // atras tiene su marca de color y al abrir el detalle se perdia. Ademas
+    // separa lo que el pedido ES de lo que se va a cambiar.
+    insignia: marcaEstado(capitalizar(p.estado), p.estado),
+    cuerpo: [
+      // Tres valores de un renglon cada uno: en fila ocupan un tercio de lo
+      // que ocupaban apilados, que era mas que la lista de vinos.
+      grupo("Cliente",
+        crear("div", { class: "datos-fila" },
+          dato("Nombre", p.comprador.nombre),
+          dato("Email", p.comprador.email || "—"),
+          dato("Teléfono", p.comprador.telefono || "—"))),
 
-    crear("div", { class: "tabla-caja", style: "margin:18px 0" },
-      crear("table", { class: "tabla" },
-        crear("thead", {}, crear("tr", {},
-          crear("th", {}, "Vino"), crear("th", { class: "num" }, "Cant."),
-          crear("th", { class: "num" }, "Precio"), crear("th", { class: "num" }, "Subtotal"))),
-        crear("tbody", {}, ...filas,
-          crear("tr", {}, crear("td", { colspan: "3", class: "num fuerte" }, "Total"),
-                          crear("td", { class: "num fuerte" }, pesos(p.total)))))),
+      grupo("Lo que pidió",
+        crear("div", { class: "tabla-caja" },
+          crear("table", { class: "tabla" },
+            crear("thead", {}, crear("tr", {},
+              crear("th", {}, "Vino"), crear("th", { class: "num" }, "Cant."),
+              crear("th", { class: "num" }, "Precio"), crear("th", { class: "num" }, "Subtotal"))),
+            crear("tbody", {}, ...filas),
+            // El total sale del cuerpo de la tabla y pasa a su propia franja:
+            // antes era una fila mas, con el mismo peso que cualquier renglon.
+            crear("tfoot", {}, crear("tr", {},
+              crear("td", { colspan: "3", class: "num total-rotulo" }, "Total del pedido"),
+              crear("td", { class: "num total-valor" }, pesos(p.total))))))),
 
-    crear("div", { class: "campo campo--ancho" },
-      crear("label", { for: "nuevoEstado" }, "Estado del pedido"), selEstado),
-    crear("p", { class: "encabezado__bajada", style: "margin-top:10px;font-size:14px" },
-      "Pasarlo a Cancelado devuelve las botellas al stock y queda registrado como un ajuste."),
+      /*
+       * BLOQUE DE PAGO. Solo para transferencias: tarjeta y efectivo se
+       * cobran en el acto y no hay nada que acreditar.
+       *
+       * La casilla guarda SOLA, sin pasar por "Guardar cambios": tildar
+       * que entro la plata es una accion de un solo golpe y mezclarla
+       * con el cambio de estado haria que quien quiere marcar el pago
+       * cambie el estado sin querer.
+       */
+      p.medioPago === "TRANSFERENCIA" ? grupo("Pago por transferencia", bloquePago(p)) : "",
 
-    crear("div", { class: "form-acciones" },
-      crear("button", { class: "b-primario", onclick: async () => {
-        if (selEstado.value === p.estado) { cerrarModal(); return; }
-        const ok = await guardar(() => pedidos.cambiarEstado(p.id, selEstado.value),
-                                 "Estado actualizado", false);
-        if (ok) { cerrarModal(); redibujar(); }
-      } }, "Guardar estado"),
-      crear("button", { class: "b-suave", onclick: cerrarModal }, "Cerrar"))
-  );
+      grupo("Cambiar estado",
+        crear("div", { class: "campo campo--ancho" },
+          crear("label", { for: "nuevoEstado" }, "Estado del pedido"), selEstado),
+        crear("p", { class: "encabezado__bajada", style: "margin-top:10px;font-size:14px" },
+          "Pasarlo a Cancelado devuelve las botellas al stock y queda registrado como un ajuste."))
+    ],
+    acciones: [
+      guardarBtn,
+      reenviarBtn(p),
+      crear("button", { class: "b-suave", onclick: cerrarModal }, "Cerrar")
+    ]
+  });
+
   abrirModal(panel);
 }
 
@@ -865,26 +1257,42 @@ function bajaUsuario(u) {
  */
 function abrirFormUsuario(u = null) {
   const esNuevo = !u;
-  const form = crear("form", { class: "form-panel", novalidate: "true" },
-    crear("h2", { style: "font-size:22px;margin-bottom:20px;color:var(--vino)" },
-          esNuevo ? "Nuevo usuario" : "Editar usuario"),
-    crear("div", { class: "form-fila-2" },
-      campo("nombre", "Nombre", "text", u?.nombre || ""),
-      campo("apellido", "Apellido", "text", u?.apellido || "")),
-    campo("email", "Email", "email", u?.email || ""),
-    crear("div", { class: "form-fila-2" },
-      campo("telefono", "Teléfono", "text", u?.telefono || ""),
-      campoSelect("rol", "Rol", ["CLIENTE", "ADMIN"], u?.rol || "CLIENTE",
-                  v => capitalizar(v))),
-    esNuevo
-      ? campo("passwordHash", "Contraseña", "password", "")
-      : crear("p", { class: "encabezado__bajada", style: "font-size:14px" },
-              "La contraseña no se modifica desde acá: se conserva la que ya tenía."),
-    crear("div", { class: "form-acciones" },
+  // Solo se usa en el alta: en la edicion no se pide contrasena.
+  const requisitos = requisitosPassword();
+  // Quien es la persona, aparte de como entra al sistema: son dos cosas
+  // distintas y el rol es la mas delicada de las dos.
+  const form = panelModal({
+    etiqueta: "form",
+    titulo: esNuevo ? "Nuevo usuario" : "Editar usuario",
+    bajada: esNuevo ? "Alta de un cliente o de un administrador."
+                    : [u.nombre, u.apellido].filter(Boolean).join(" ") + " · #" + u.idUsuario,
+    insignia: esNuevo ? null
+                      : marcaEstado(capitalizar(u.rol), u.rol.toLowerCase()),
+    cuerpo: [
+      grupo("Datos de contacto",
+        fila2(campo("nombre", "Nombre", "text", u?.nombre || ""),
+              campo("apellido", "Apellido", "text", u?.apellido || "")),
+        fila2(campo("email", "Email", "email", u?.email || ""),
+              campo("telefono", "Teléfono", "text", u?.telefono || ""))),
+      grupo("Acceso al sistema",
+        fila2(campoSelect("rol", "Rol", ["CLIENTE", "ADMIN"], u?.rol || "CLIENTE",
+                          v => capitalizar(v)),
+              crear("div", {})),
+        esNuevo
+          ? crear("div", {},
+              campo("passwordHash", "Contraseña", "password", ""),
+              requisitos.nodo)
+          : crear("p", { class: "encabezado__bajada", style: "font-size:14px;margin:0" },
+                  "La contraseña no se modifica desde acá: se conserva la que ya tenía."))
+    ],
+    acciones: [
       crear("button", { type: "submit", class: "b-primario" },
             esNuevo ? "Crear usuario" : "Guardar cambios"),
-      crear("button", { type: "button", class: "b-suave", onclick: cerrarModal }, "Cancelar"))
-  );
+      crear("button", { type: "button", class: "b-suave", onclick: cerrarModal }, "Cancelar")
+    ]
+  });
+
+  if (esNuevo) vigilarPassword($("#passwordHash", form), requisitos);
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -896,6 +1304,18 @@ function abrirFormUsuario(u = null) {
       rol:      $("#rol", form).value
     };
     if (esNuevo) datos.passwordHash = $("#passwordHash", form).value;
+
+    /*
+     * Se comprueba aca antes de mandar para que el rechazo diga QUE
+     * falta. El back-end valida lo mismo, pero su mensaje llega despues
+     * de ir y volver y nombra la regla entera.
+     */
+    const malEmail = errorEmail(datos.email);
+    if (malEmail) { toast(malEmail, "error"); return; }
+    if (esNuevo) {
+      const malPassword = errorPassword(datos.passwordHash);
+      if (malPassword) { toast(malPassword, "error"); return; }
+    }
 
     const boton = form.querySelector("button[type=submit]");
     boton.disabled = true; boton.textContent = "Guardando...";
@@ -1136,22 +1556,29 @@ function abrirFormPregunta(p = null) {
     ...Object.entries(MOTIVOS).map(([k, v]) =>
       crear("option", { value: k, selected: p?.motivo === k ? "true" : null }, v)));
 
-  const form = crear("form", { class: "form-panel", novalidate: "true" },
-    crear("h2", { style: "font-size:22px;margin-bottom:20px;color:var(--vino)" },
-          esNueva ? "Nueva pregunta" : "Editar pregunta"),
-    crear("div", { class: "form-fila-2" },
-      crear("div", { class: "campo campo--ancho" },
-        crear("label", { for: "motivo" }, "Motivo"), selMotivo),
-      campo("orden", "Orden", "number", p?.orden ?? 1)),
-    campo("pregunta", "Pregunta", "text", p?.pregunta || ""),
-    crear("div", { class: "campo campo--ancho", style: "margin-bottom:16px" },
-      crear("label", { for: "respuesta" }, "Respuesta"),
-      crear("textarea", { id: "respuesta", rows: "6" }, p?.respuesta || "")),
-    crear("div", { class: "form-acciones" },
+  // Donde aparece la pregunta, aparte de que dice: el motivo y el orden
+  // deciden a quien se le muestra, el texto es otra cosa.
+  const form = panelModal({
+    etiqueta: "form",
+    titulo: esNueva ? "Nueva pregunta" : "Editar pregunta",
+    bajada: "Se le muestra al cliente cuando pide cancelar un pedido.",
+    cuerpo: [
+      grupo("Dónde aparece",
+        fila2(crear("div", { class: "campo campo--ancho" },
+                crear("label", { for: "motivo" }, "Motivo"), selMotivo),
+              campo("orden", "Orden", "number", p?.orden ?? 1))),
+      grupo("Qué dice",
+        campo("pregunta", "Pregunta", "text", p?.pregunta || ""),
+        crear("div", { class: "campo campo--ancho" },
+          crear("label", { for: "respuesta" }, "Respuesta"),
+          crear("textarea", { id: "respuesta", rows: "6" }, p?.respuesta || "")))
+    ],
+    acciones: [
       crear("button", { type: "submit", class: "b-primario" },
             esNueva ? "Crear pregunta" : "Guardar cambios"),
-      crear("button", { type: "button", class: "b-suave", onclick: cerrarModal }, "Cancelar"))
-  );
+      crear("button", { type: "button", class: "b-suave", onclick: cerrarModal }, "Cancelar")
+    ]
+  });
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -1183,6 +1610,50 @@ function abrirFormPregunta(p = null) {
 // ============================================================
 //  CAMPOS DE FORMULARIO Y MODAL
 // ============================================================
+
+/**
+ * ============================================================
+ *  EL ESQUELETO DE LOS MODALES
+ * ============================================================
+ *
+ * Los cuatro modales del panel (detalle de pedido, vino, usuario y
+ * pregunta frecuente) se arman con esta misma funcion: CABECERA con el
+ * titulo, CUERPO con el contenido y PIE con las acciones.
+ *
+ * POR QUE: antes cada uno se armaba a mano y el resultado era una sola
+ * columna sin relleno ni separaciones, con el titulo debajo del boton de
+ * cerrar. Al pasar por un solo lugar, arreglar el espaciado o el choque
+ * con la X se hace una vez y vale para los cuatro.
+ *
+ * 'insignia' es opcional y va a la derecha del titulo: la usa el detalle
+ * de pedido para mostrar el estado, que antes solo se veia adentro del
+ * desplegable.
+ */
+function panelModal({ titulo, bajada, insignia, cuerpo, acciones, etiqueta = "div" }) {
+  const nodo = crear(etiqueta, { class: "form-panel" },
+    crear("header", { class: "modal-cab" },
+      crear("div", {},
+        crear("h2", {}, titulo),
+        bajada ? crear("p", { class: "modal-cab__bajada" }, bajada) : ""),
+      insignia || ""),
+    crear("div", { class: "modal-cuerpo" }, ...cuerpo),
+    crear("div", { class: "modal-pie" }, ...acciones));
+  if (etiqueta === "form") nodo.setAttribute("novalidate", "true");
+  return nodo;
+}
+
+/**
+ * Un bloque del cuerpo, con su rotulo. Dos grupos seguidos quedan
+ * separados por una linea: es lo que da la jerarquia que antes no habia.
+ */
+const grupo = (rotulo, ...hijos) => crear("section", { class: "grupo" },
+  rotulo ? crear("h3", { class: "grupo__rotulo" }, rotulo) : "",
+  ...hijos);
+
+/** Dos campos lado a lado. En pantallas chicas se apilan solos (CSS). */
+const fila2 = (a, b) => crear("div", { class: "form-fila-2" }, a, b);
+/** Tres campos cortos en un renglon, para no gastar una fila por numero. */
+const fila3 = (a, b, c) => crear("div", { class: "form-fila-3" }, a, b, c);
 
 function campo(id, rotulo, tipo, valor) {
   return crear("div", { class: "campo campo--ancho", style: "margin-bottom:16px" },

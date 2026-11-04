@@ -51,7 +51,7 @@ de VS Code, etc.)
 
 | Usuario     | Contrasena  | Rol           |
 |-------------|-------------|---------------|
-| `admin`     | `admin123`  | administrador |
+| `admin`     | `Admin123`  | administrador |
 | `ejecutivo` | `ventas123` | ejecutivo     |
 
 Este login se valida en el navegador, no contra la base: el back-end todavia
@@ -90,12 +90,18 @@ frontend/
 │   ├── contacto.js         Validacion del formulario
 │   ├── pagina.js           Paginas de solo texto (finca, nosotros)
 │   ├── admin.js            Panel (login, CRUD, pedidos, auditoria)
-│   └── modules/
-│       ├── api.js          CLIENTE HTTP + traduccion entre los dos modelos
-│       ├── store.js        CAPA DE PERSISTENCIA (cache + escrituras a la API)
-│       ├── sitio.js        Encabezado y pie compartidos + barra de navegacion
-│       ├── vino.js         La tarjeta de vino, usada por tres pantallas
-│       └── util.js         Utilidades compartidas (formato, placeholder, DOM)
+│   ├── modules/
+│   │   ├── api.js          CLIENTE HTTP + traduccion entre los dos modelos
+│   │   ├── store.js        CAPA DE PERSISTENCIA (cache + escrituras a la API)
+│   │   ├── sitio.js        Encabezado y pie compartidos + barra de navegacion
+│   │   ├── vino.js         La tarjeta de vino, usada por tres pantallas
+│   │   ├── transferencia.js Datos de la cuenta, botones de copiar y el QR
+│   │   ├── validacion.js   Reglas de email y contrasena (registro y perfil)
+│   │   ├── graficos.js     Graficos del tablero, dibujados en SVG a mano
+│   │   └── util.js         Utilidades compartidas (formato, placeholder, DOM)
+│   └── vendor/
+│       ├── qrcode.js       Generador de QR (Kazuhiko Arase, MIT) - de terceros
+│       └── LEEME.md        De donde salio, version, SHA-256 y que se reviso
 ├── data/
 │   ├── productos.js        Listas fijas de filtros + usuarios del panel
 │   └── fichas-vinos.js     Ficha de cata de cada vino (texto editorial fijo)
@@ -104,6 +110,33 @@ frontend/
     ├── sitio/              Logo y fotos de la finca
     └── equipo/             Fotos de los integrantes (pagina Nosotros)
 ```
+
+### Por que hay una carpeta `js/vendor/`
+
+El proyecto no usa npm, pero eso no significa que no use nada de afuera:
+significa **sin gestor de paquetes y sin compilacion**. Dibujar un QR
+necesita correccion de errores Reed-Solomon, unas 400 lineas de matematica
+donde un error no se ve (el QR se dibuja igual) pero el telefono no lo lee.
+No es codigo para escribir a mano.
+
+Entonces la libreria se bajo una vez, quedo versionada a mano en
+`js/vendor/` y se carga con un `<script>` como cualquier archivo nuestro.
+Esta separada del resto a proposito: si algo de esa carpeta falla, no se
+arregla editandolo, se cambia de version o se reemplaza. `LEEME.md` deja
+anotado de donde salio, con que licencia, el SHA-256 para comprobar que
+nadie lo toco, y que APIs peligrosas se buscaron antes de incorporarlo.
+
+### Por que los datos bancarios estan en el codigo y repetidos
+
+`modules/transferencia.js` tiene el alias y el CVU de la bodega, y
+`application.properties` del back-end los tiene otra vez. No es un
+descuido:
+
+- **No son un secreto.** Son el dato que se le entrega a quien tiene que
+  pagarte: estan hechos para ser publicos.
+- **Estan repetidos porque son dos lugares que no pueden leerse entre si.**
+  El checkout los muestra sin pedirselos al servidor, y el mail lo arma el
+  servidor sin pasar por el navegador. Si cambian, hay que tocar los dos.
 
 ### Por que la ficha de cata no esta en MySQL
 

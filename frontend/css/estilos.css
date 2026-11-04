@@ -104,9 +104,6 @@ h1, h2, h3 { font-family: var(--fuente-titulo); font-weight: 600; line-height: 1
   display: flex; align-items: center; justify-content: space-between;
   gap: 20px; padding: 16px 20px; max-width: var(--ancho-max); margin: 0 auto;
 }
-.marca { display: flex; flex-direction: column; line-height: 1.1; }
-.marca__nombre { font-family: var(--fuente-titulo); font-size: 22px; color: var(--vino); letter-spacing: .5px; }
-.marca__sub { font-size: 11px; color: var(--oro); letter-spacing: 3px; text-transform: uppercase; }
 .nav { display: flex; gap: 22px; align-items: center; }
 .nav a { color: var(--texto-tenue); font-size: 15px; transition: color .2s; }
 .nav a:hover, .nav a.activo { color: var(--oro-claro); }
@@ -279,6 +276,37 @@ h1, h2, h3 { font-family: var(--fuente-titulo); font-weight: 600; line-height: 1
 .form-grupo input:focus, .form-grupo select:focus, .form-grupo textarea:focus { border-color: var(--oro); outline: none; }
 .form-grupo input.invalido, .form-grupo select.invalido { border-color: var(--error); }
 .form-error { color: var(--error); font-size: 12px; min-height: 14px; }
+
+/* ------------------------------------------------------------
+   REQUISITOS DE LA CONTRASENA
+
+   La lista se ve desde antes de escribir, con las cuatro condiciones
+   sin cumplir, y cada renglon se pone en verde a medida que se cumple.
+   Se usa en el registro, en Mi cuenta > Seguridad y en el alta de
+   usuarios del panel, por eso vive aca y no en una hoja de una sola
+   pantalla.
+
+   El estado NO se distingue solo por el color: cambia tambien la marca
+   (circulo o tilde), asi que se entiende sin ver colores.
+   ------------------------------------------------------------ */
+.requisitos { margin: -6px 0 16px; }
+.requisitos__titulo { font-size: 13px; color: var(--texto-tenue); margin-bottom: 7px; }
+.requisitos__lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.requisito {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13.5px; color: var(--texto-tenue);
+  transition: color .15s;
+}
+.requisito__marca {
+  width: 15px; text-align: center; font-size: 13px; line-height: 1;
+  color: var(--borde); transition: color .15s;
+}
+.requisito--cumple { color: var(--ok); }
+.requisito--cumple .requisito__marca { color: var(--ok); font-weight: 700; }
+
+@media (prefers-reduced-motion: reduce) {
+  .requisito, .requisito__marca { transition: none; }
+}
 .form-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
 /* ============================================================
@@ -364,6 +392,80 @@ h1, h2, h3 { font-family: var(--fuente-titulo); font-weight: 600; line-height: 1
 .medio:has(input:checked) { border-color: var(--oro); background: var(--superficie-2); }
 .medio:has(input:checked) .medio__titulo { color: var(--oro-claro); }
 .medio:has(input:focus-visible) { outline: 2px solid var(--oro); outline-offset: 2px; }
+
+/* ---- transferencia: los datos bancarios de la bodega ---- */
+.banco[hidden] { display: none; }
+.banco {
+  margin-top: 20px; padding: 18px 20px;
+  background: var(--superficie-2); border: 1px solid var(--borde);
+  border-radius: var(--radio);
+}
+.banco__aviso {
+  margin: -4px 0 14px; padding: 9px 12px;
+  background: #fbf0db; color: #8a5e0a; border-radius: var(--radio-s);
+  font-size: 13px; font-weight: 600; line-height: 1.45;
+}
+.banco__titulo {
+  font-size: 13px; letter-spacing: 1.6px; text-transform: uppercase;
+  color: var(--oro-claro); margin: 0 0 14px; font-weight: 600;
+}
+/*
+   Tres columnas: rotulo, valor y boton. El valor se lleva el espacio
+   que sobra y el boton queda siempre pegado a la derecha, en la misma
+   vertical en todos los renglones.
+*/
+.banco__fila {
+  display: grid; grid-template-columns: 86px 1fr auto;
+  align-items: center; gap: 12px;
+  padding: 8px 0;
+}
+.banco__fila + .banco__fila { border-top: 1px solid var(--borde); }
+.banco__rotulo { font-size: 12.5px; color: var(--texto-tenue); }
+/*
+   El CBU son 22 digitos: en monoespaciada se leen de a bloques y se
+   compara con el del homebanking sin perder la cuenta. word-break
+   evita que desborde en pantallas chicas.
+*/
+.banco__valor {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13.5px; word-break: break-all; line-height: 1.5;
+}
+.banco__copiar {
+  background: none; border: 1px solid var(--borde); border-radius: var(--radio-s);
+  color: var(--texto-tenue); font-family: inherit; font-size: 12.5px;
+  padding: 6px 12px; cursor: pointer; white-space: nowrap;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.banco__copiar:hover { border-color: var(--oro); color: var(--oro-claro); }
+.banco__copiar.copiado { border-color: #1e7a54; color: #1e7a54; background: #e1f1e8; }
+/*
+   EL QR DEL ALIAS.
+
+   La libreria devuelve un <table> de celdas: cada modulo del QR es un
+   <td>. Para que se lea hay que matar separaciones y bordes, si no
+   quedan lineas blancas entre modulos y el telefono no lo reconoce.
+   El fondo blanco y el margen (la "zona silenciosa") tambien son
+   requisito del formato, no decoracion.
+*/
+.banco__qr-caja {
+  margin-top: 18px; padding-top: 16px;
+  border-top: 1px solid var(--borde);
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.banco__qr {
+  background: #fff; padding: 10px; border-radius: var(--radio-s);
+  line-height: 0; flex-shrink: 0;
+}
+.banco__qr table { border-collapse: collapse; border-spacing: 0; }
+.banco__qr td { padding: 0; border: 0; }
+.banco__qr-pie {
+  font-size: 12.5px; color: var(--texto-tenue); line-height: 1.55;
+  flex: 1; min-width: 180px;
+}
+.banco__qr-pie strong { color: var(--texto); }
+
+.banco__paso { font-size: 13.5px; line-height: 1.6; margin-top: 16px; }
+.banco__demora { font-size: 12.5px; color: var(--texto-tenue); margin-top: 8px; line-height: 1.55; }
 
 /* ---- tarjeta ---- */
 .tarjeta-pago[hidden] { display: none; }

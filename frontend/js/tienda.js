@@ -19,6 +19,7 @@ import { montarSitio, actualizarCarrito, avisoSinServidor } from "./modules/siti
 import { tarjetaVino } from "./modules/vino.js";
 import { VARIETALES, LINEAS } from "../data/productos.js";
 import { pesos, placeholderVino, $, $$, crear, toast } from "./modules/util.js";
+import { bloqueTransferencia, DATOS_BANCARIOS } from "./modules/transferencia.js";
 
 // Parametros de negocio del checkout.
 const COSTO_ENVIO = 2500;
@@ -435,10 +436,15 @@ function fila(etiqueta, valor) {
 let cuponAplicado = null;
 
 /** Los medios de pago, como fichas elegibles en vez de una lista desplegable. */
+/*
+ * EFECTIVO salio de la lista: la bodega dejo de cobrar contra entrega.
+ * El valor sigue existiendo en el backend y en la base porque hay
+ * pedidos viejos pagados asi, y esos tienen que poder seguir leyendose
+ * en el panel; lo que no se puede es elegirlo en una compra nueva.
+ */
 const MEDIOS = [
   { valor: "TARJETA",       titulo: "Tarjeta",       detalle: "Crédito o débito" },
-  { valor: "TRANSFERENCIA", titulo: "Transferencia", detalle: "Te pasamos el CBU" },
-  { valor: "EFECTIVO",      titulo: "Efectivo",      detalle: "Al recibir el pedido" }
+  { valor: "TRANSFERENCIA", titulo: "Transferencia", detalle: "Te pasamos el CBU" }
 ];
 
 function abrirCheckout() {
@@ -450,15 +456,19 @@ function abrirCheckout() {
   const nombreUsuario = u ? [u.nombre, u.apellido].filter(Boolean).join(" ") : "";
 
   const tarjeta = bloqueTarjeta(() => form.nombre.value);
+  const transferencia = bloqueTransferencia();
 
   // Las fichas de pago muestran u ocultan los campos de la tarjeta: pedir
-  // un numero de tarjeta a quien paga en efectivo no tiene sentido.
+  // un numero de tarjeta a quien paga por transferencia no tiene sentido.
   const medios = crear("div", { class: "medios" },
     ...MEDIOS.map((m, i) => crear("label", { class: "medio", for: "medio-" + m.valor },
       crear("input", {
         type: "radio", name: "medioPago", value: m.valor, id: "medio-" + m.valor,
         checked: i === 0 ? "checked" : null,
-        onchange: () => tarjeta.nodo.hidden = m.valor !== "TARJETA"
+        onchange: () => {
+          tarjeta.nodo.hidden      = m.valor !== "TARJETA";
+          transferencia.hidden     = m.valor !== "TRANSFERENCIA";
+        }
       }),
       crear("span", { class: "medio__titulo" }, m.titulo),
       crear("span", { class: "medio__detalle" }, m.detalle))));
@@ -482,7 +492,7 @@ function abrirCheckout() {
       campo("direccion", "Dirección de entrega", "text", "", "Calle, número, piso y localidad"),
       crear("p", { class: "pago__ayuda" }, "Enviamos a todo el país en 3 a 7 días hábiles.")),
 
-    paso("03", "Pago", medios, tarjeta.nodo)
+    paso("03", "Pago", medios, tarjeta.nodo, transferencia)
   );
 
   const resumen = panelResumen(items);

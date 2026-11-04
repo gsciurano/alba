@@ -64,8 +64,7 @@
           Este sitio es la cara pública de un sistema más grande. Detrás del catálogo
           que se ve acá hay un gestor de inventario que lleva el stock real de la
           bodega, registra cada movimiento con su responsable y su motivo, y procesa
-          los pedidos de la tienda contra esa misma base. Lo desarrollamos como
-          Trabajo Integrador de Aplicaciones Interactivas en la UADE.
+          los pedidos de la tienda contra esa misma base.
         </p>
       </div>
     </section>
@@ -87,10 +86,9 @@
           asi que las tres tarjetas quedan parejas aunque las fotos
           originales no tengan el mismo encuadre.
 
-          A quien todavia no mando su foto se le dibuja un circulo con las
-          iniciales, en los colores de la bodega. Es un marcador de lugar
-          prolijo: cuando llegue la foto se reemplaza el <span> por un
-          <img> y la tarjeta no cambia.
+          Para quien no tenga foto queda la clase integrante__iniciales:
+          un circulo con las iniciales en los colores de la bodega, que se
+          usa en un <span> en lugar del <img>. La tarjeta no cambia.
         -->
         <div class="equipo">
           <article class="integrante">
@@ -108,7 +106,8 @@
           </article>
 
           <article class="integrante">
-            <span class="integrante__foto integrante__iniciales" aria-hidden="true">MJ</span>
+            <img class="integrante__foto" src="assets/img/equipo/martin-jara.jpg"
+                 alt="Retrato de Martín Jara" loading="lazy" width="200" height="200">
             <h3 class="integrante__nombre">Martín Jara</h3>
             <p class="integrante__rol">Equipo de desarrollo</p>
           </article>

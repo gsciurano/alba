@@ -30,6 +30,8 @@ import { montarSitio, avisoSinServidor } from "./modules/sitio.js";
 import { sesion, ErrorApi } from "./modules/store.js";
 import { api } from "./modules/api.js";
 import { pesos, fecha, fechaCorta, $, $$, crear, toast } from "./modules/util.js";
+import { errorEmail, errorPassword, requisitosPassword, vigilarPassword }
+  from "./modules/validacion.js";
 
 /** Los motivos de cancelacion, como los lee una persona. */
 const MOTIVOS = {
@@ -94,6 +96,119 @@ function pantallaIngreso() {
   return envoltorio;
 }
 
+/*
+ * El MISMO Client ID que usa el back-end (alba.google.client-id en
+ * application.properties). El back-end comprueba que el token venga
+ * emitido para este client id, asi que si no coinciden, Google firma
+ * un token valido y nuestro servidor lo rechaza igual.
+ *
+ * Es publico por diseno: viaja en el HTML y cualquiera que abra el
+ * sitio lo ve. El secreto del cliente no esta aca ni hace falta.
+ */
+const GOOGLE_CLIENT_ID =
+  "417202778791-af38hruvgs1tust27jj050lkll4cm6sm.apps.googleusercontent.com";
+
+/**
+ * El boton oficial de Google.
+ *
+ * POR QUE EL BOTON LO DIBUJA GOOGLE Y NO NOSOTROS: su marca tiene reglas
+ * de uso (el logo, los colores, el texto). Dibujarlo a mano con una
+ * imagen del logo bajada por ahi las incumple. Ademas el de ellos ya
+ * viene traducido y accesible.
+ *
+ * SI EL SCRIPT NO CARGO (sin internet, o bloqueado), esta funcion no
+ * rompe nada: queda el ingreso con email y contrasena, que es el que
+ * siempre tiene que funcionar.
+ */
+function botonGoogle(alError) {
+  const caja = crear("div", { class: "ingreso-google" });
+
+  /*
+   * initialize() se llama UNA SOLA VEZ. El bucle de reintento de mas
+   * abajo puede ejecutar dibujar() varias veces mientras espera, y
+   * Google avisa en consola si se lo inicializa de nuevo ("only the
+   * last initialized instance will be used").
+   */
+  let iniciado = false;
+
+  const dibujar = () => {
+    if (!window.google?.accounts?.id) return false;
+
+    /*
+     * EL ANCHO SE MIDE, NO SE ADIVINA.
+     *
+     * Google dibuja su boton adentro de un iframe, y el ancho de adentro
+     * no se toca con CSS: hay que pedirselo al dibujarlo. Con un numero
+     * fijo, el boton queda mas angosto que el de "Ingresar" de arriba y
+     * los bordes no coinciden.
+     *
+     * Se mide ANTES de inicializar: si la caja todavia no esta en la
+     * pagina mide cero, y conviene volver a intentar sin haber tocado
+     * nada de Google.
+     */
+    const ancho = Math.round(caja.getBoundingClientRect().width);
+    if (ancho === 0) return false;
+
+    if (!iniciado) {
+      /*
+       * De que origen cree Google que viene esta pagina.
+       *
+       * Si no figura TAL CUAL en "Origenes autorizados de JavaScript" de
+       * Google Cloud, el ingreso termina en "Error 400: origin_mismatch".
+       * Dos trampas que no se ven:
+       *   - http://127.0.0.1:5500 y http://localhost:5500 son origenes
+       *     DISTINTOS para Google, aunque sean la misma maquina;
+       *   - Live Server (5500) y python3 -m http.server (8099) tambien.
+       * Por eso se escribe en la consola: para copiarlo y pegarlo.
+       */
+      console.info("[Google] Origen de esta pagina: " + location.origin +
+        " — tiene que estar cargado tal cual en Google Cloud, en " +
+        '"Origenes autorizados de JavaScript".');
+
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (respuesta) => {
+          alError("");
+          try {
+            // Al servidor va el TOKEN, no el email: el email lo saca el
+            // back-end de adentro del token ya verificado. Si mandaramos
+            // el email, cualquiera podria escribir el del administrador.
+            const u = await sesion.loginGoogle(respuesta.credential);
+            location.href = u.rol === "ADMIN" ? "admin.html" : "index.html";
+          } catch (e) {
+            alError(e.message);
+          }
+        }
+      });
+      iniciado = true;
+    }
+
+    // El tope de 400 es de Google: mas que eso lo ignora.
+    window.google.accounts.id.renderButton(caja, {
+      theme: "outline", size: "large",
+      width: Math.min(400, Math.max(200, ancho)),
+      text: "signin_with", shape: "rectangular", locale: "es"
+    });
+    return true;
+  };
+
+  /*
+   * Se espera por DOS cosas: que haya cargado el script de Google (viene
+   * con defer) y que la caja ya este en la pagina, porque hasta entonces
+   * mide cero y no se puede calcular el ancho.
+   */
+  if (!dibujar()) {
+    const esperar = setInterval(() => { if (dibujar()) clearInterval(esperar); }, 150);
+    // A los 6 segundos se deja de esperar: si no cargo, no va a cargar, y
+    // un intervalo vivo para siempre es basura corriendo de fondo.
+    setTimeout(() => clearInterval(esperar), 6000);
+  }
+
+  return crear("div", { class: "otro-ingreso" },
+    crear("div", { class: "separador-o" }, crear("span", {}, "o")),
+    caja);
+}
+
 function formIngreso() {
   const error = crear("p", { class: "form-error", "aria-live": "polite" });
 
@@ -106,12 +221,15 @@ function formIngreso() {
       crear("input", { type: "password", id: "iPass", autocomplete: "current-password" })),
     error,
     crear("button", { type: "submit", class: "btn btn--primario btn--bloque" }, "Ingresar"),
-    crear("p", { class: "nota-tenue", style: "margin-top:18px;text-align:center" },
-      "Para la demostración: ",
-      crear("strong", {}, "admin@albaenlosandes.com / admin123"),
-      " (administrador) · ",
-      crear("strong", {}, "juan@mail.com / cliente123"),
-      " (cliente)"));
+    botonGoogle((msg) => { error.textContent = msg; }),
+    crear("div", { class: "usuarios-demo" },
+      crear("p", { class: "usuarios-demo__titulo" }, "Usuarios de prueba"),
+      crear("div", { class: "usuarios-demo__fila" },
+        crear("span", { class: "usuarios-demo__rol" }, "Admin"),
+        crear("code", {}, "admin@albaenlosandes.com / Admin123")),
+      crear("div", { class: "usuarios-demo__fila" },
+        crear("span", { class: "usuarios-demo__rol" }, "Cliente"),
+        crear("code", {}, "juan@mail.com / Cliente123"))));
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -138,6 +256,10 @@ function formIngreso() {
 
 function formRegistro() {
   const error = crear("p", { class: "form-error", "aria-live": "polite" });
+  // Los requisitos se ven desde antes de escribir: enterarse de que la
+  // contrasena no sirve recien al mandar el formulario obliga a pensarla
+  // dos veces. Asi se elige una que sirva a la primera.
+  const requisitos = requisitosPassword();
 
   const form = crear("form", { class: "form-cuenta", novalidate: "true" },
     crear("div", { class: "form-fila-2" },
@@ -146,12 +268,11 @@ function formRegistro() {
     campo("rEmail", "Email", "email"),
     campo("rTelefono", "Teléfono", "tel"),
     campo("rPass", "Contraseña", "password"),
+    requisitos.nodo,
     error,
-    crear("button", { type: "submit", class: "btn btn--primario btn--bloque" }, "Crear mi cuenta"),
-    // Aviso honesto: no hay que dar por sentado que esto es seguro.
-    crear("p", { class: "nota-tenue", style: "margin-top:16px" },
-      "Este es un trabajo práctico: las contraseñas se guardan sin cifrar. " +
-      "No uses una que uses en otro sitio."));
+    crear("button", { type: "submit", class: "btn btn--primario btn--bloque" }, "Crear mi cuenta"));
+
+  vigilarPassword($("#rPass", form), requisitos);
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -168,12 +289,14 @@ function formRegistro() {
     if (datos.nombre.length < 2 || datos.apellido.length < 2) {
       error.textContent = "Completá tu nombre y apellido."; return;
     }
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(datos.email)) {
-      error.textContent = "El email no parece válido."; return;
+    const malEmail = errorEmail(datos.email);
+    if (malEmail) { error.textContent = malEmail; return; }
+
+    if (!datos.password) {
+      error.textContent = "Escribí una contraseña."; return;
     }
-    if (datos.password.length < 6) {
-      error.textContent = "La contraseña tiene que tener al menos 6 caracteres."; return;
-    }
+    const malPassword = errorPassword(datos.password);
+    if (malPassword) { error.textContent = malPassword; return; }
 
     const boton = form.querySelector("button[type=submit]");
     boton.disabled = true; boton.textContent = "Creando...";
@@ -376,9 +499,8 @@ function seccionDatos(panel) {
     if (datos.nombre.length < 2 || datos.apellido.length < 2) {
       error.textContent = "Completá tu nombre y apellido."; return;
     }
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(datos.email)) {
-      error.textContent = "El email no parece válido."; return;
-    }
+    const malEmail = errorEmail(datos.email);
+    if (malEmail) { error.textContent = malEmail; return; }
 
     const boton = form.querySelector("button[type=submit]");
     boton.disabled = true; boton.textContent = "Guardando...";
@@ -691,16 +813,19 @@ function grupoTildes(nombre, opciones, elegidas) {
 
 function seccionSeguridad(panel) {
   const error = crear("p", { class: "form-error", "aria-live": "polite" });
+  const requisitos = requisitosPassword("La contraseña nueva tiene que tener:");
 
   const form = crear("form", { class: "perfil__form", novalidate: "true" },
     campoValor("sActual", "Contraseña actual", "password", ""),
     crear("div", { class: "form-fila-2" },
       campoValor("sNueva", "Contraseña nueva", "password", ""),
       campoValor("sRepetir", "Repetir la nueva", "password", "")),
-    crear("p", { class: "nota-tenue" }, "Al menos 6 caracteres."),
+    requisitos.nodo,
     error,
     crear("div", { class: "perfil__acciones" },
       crear("button", { type: "submit", class: "btn btn--primario" }, "Cambiar contraseña")));
+
+  vigilarPassword($("#sNueva", form), requisitos);
 
   // Los tres campos son de contrasena: el navegador no tiene que ofrecer
   // completarlos con la guardada, porque dos de ellos son nuevos.
@@ -719,9 +844,9 @@ function seccionSeguridad(panel) {
     // Lo que se puede comprobar sin molestar al servidor, se comprueba aca.
     // Que la actual sea la correcta solo lo sabe el servidor.
     if (!actual) { error.textContent = "Escribí tu contraseña actual."; return; }
-    if (nueva.length < 6) {
-      error.textContent = "La contraseña nueva tiene que tener al menos 6 caracteres."; return;
-    }
+    if (!nueva)  { error.textContent = "Escribí la contraseña nueva."; return; }
+    const malPassword = errorPassword(nueva, "la contraseña nueva");
+    if (malPassword) { error.textContent = malPassword; return; }
     if (nueva !== repetir) {
       error.textContent = "Las dos contraseñas nuevas no coinciden."; return;
     }
@@ -745,12 +870,7 @@ function seccionSeguridad(panel) {
 
   panel.append(
     tituloSeccion("Seguridad", "Cambiá la contraseña con la que ingresás."),
-    form,
-    // El mismo aviso que ve alguien al registrarse: no hay que dar por
-    // sentado que esto es seguro.
-    crear("p", { class: "nota-tenue", style: "margin-top:22px" },
-      "Este es un trabajo práctico: las contraseñas se guardan sin cifrar. " +
-      "No uses una que uses en otro sitio."));
+    form);
 }
 
 // ============================================================

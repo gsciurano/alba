@@ -169,6 +169,18 @@ export const pedidos = {
     const pedido = await api.pedidos.cambiarEstado(id, nuevoEstado);
     await Promise.all([recargarProductos(), recargarPedidos()]);
     return pedido;
+  },
+
+  /**
+   * Acredita (o desacredita) el pago de una transferencia.
+   *
+   * No toca stock ni productos, asi que solo recarga pedidos: a
+   * diferencia de cambiarEstado, confirmar un pago no mueve botellas.
+   */
+  async confirmarPago(id, confirmado, idAdmin) {
+    const pedido = await api.pedidos.confirmarPago(id, confirmado, idAdmin);
+    await recargarPedidos();
+    return pedido;
   }
 };
 
@@ -202,8 +214,20 @@ async function resolverUsuario(comprador) {
     email:    comprador.email,
     telefono: comprador.telefono,
     rol:      "CLIENTE",
-    // Valor aleatorio, no una contrasena elegida: ver la nota de arriba.
-    passwordHash: "sin-cuenta-" + crypto.randomUUID()
+    /*
+     * Valor aleatorio, no una contrasena elegida: ver la nota de arriba.
+     *
+     * EL PREFIJO NO ES DECORATIVO. UsuarioService.registrar() exige que
+     * toda contrasena tenga 8 caracteres, una mayuscula, una minuscula y
+     * un numero. Un UUID solo (minusculas, digitos y guiones) NO tiene
+     * mayuscula, asi que el back-end rechazaba el alta con "A la
+     * contrasena le falta: una mayuscula" y la compra se caia entera:
+     * nadie con un email nuevo podia comprar.
+     *
+     * "SinCuenta1-" aporta la mayuscula y el numero que faltaban. Nadie
+     * puede entrar con esto: el resto es un UUID al azar.
+     */
+    passwordHash: "SinCuenta1-" + crypto.randomUUID()
   });
   return creado.idUsuario;
 }
@@ -271,6 +295,27 @@ export const sesion = {
       email:     u.email,
       telefono:  u.telefono || "",
       rol:       u.rol                       // ADMIN o CLIENTE
+    };
+    localStorage.setItem(CLAVE_SESION, JSON.stringify(datos));
+    return datos;
+  },
+
+  /**
+   * Ingreso con Google. Guarda la sesion igual que login(): de ahi en
+   * adelante al resto de la aplicacion le da lo mismo por donde entro.
+   *
+   * Si es la primera vez, el back-end crea la cuenta como CLIENTE; si
+   * ya habia una con ese email, la vincula en vez de duplicarla.
+   */
+  async loginGoogle(credential) {
+    const u = await api.usuarios.ingresarConGoogle(credential);
+    const datos = {
+      idUsuario: u.idUsuario,
+      nombre:    u.nombre,
+      apellido:  u.apellido,
+      email:     u.email,
+      telefono:  u.telefono || "",
+      rol:       u.rol
     };
     localStorage.setItem(CLAVE_SESION, JSON.stringify(datos));
     return datos;

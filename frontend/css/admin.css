@@ -51,7 +51,7 @@
   border-right: 1px solid rgba(255,255,255,.12);
   text-decoration: none; color: #fff; flex-shrink: 0;
 }
-.marca__sello { width: 30px; height: 30px; color: #fff; flex-shrink: 0; }
+.marca__sello { width: 34px; height: 34px; flex-shrink: 0; }
 .marca__texto { display: flex; flex-direction: column; line-height: 1.25; }
 .marca__texto strong {
   font-size: 13.5px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase;
@@ -65,7 +65,7 @@
 .nav-item {
   display: flex; align-items: center; gap: 7px;
   background: none; border: none; color: var(--barra-texto);
-  padding: 0 14px; font-size: 14.5px; font-family: inherit;
+  padding: 0 11px; font-size: 14.5px; font-family: inherit;
   white-space: nowrap; cursor: pointer;
   border-bottom: 3px solid transparent;   /* el indicador de la activa */
   transition: color .15s, border-color .15s;
@@ -202,7 +202,14 @@
 .indicador__pie a:hover { text-decoration: underline; }
 .indicador--alerta .indicador__valor { color: var(--advertencia); }
 
-.doble-columna { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+/*
+   align-items: stretch (el valor por defecto) a proposito: las dos
+   tarjetas de una fila quedan de la misma altura. Con 'start' la mas
+   corta terminaba antes y dejaba un pozo blanco al lado de la otra;
+   estirada, ese espacio queda DENTRO de la tarjeta y se lee como aire,
+   no como un hueco.
+*/
+.doble-columna { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
 
 /* ============================================================
    TABLAS
@@ -253,6 +260,19 @@
 /* ============================================================
    ETIQUETAS DE ESTADO
    ============================================================ */
+/*
+   CASILLA DE CONFIRMACION (acreditar el pago de una transferencia).
+   El rotulo entero es clickeable, no solo el cuadradito: un objetivo de
+   16px es incomodo de acertar, sobre todo en una pantalla tactil.
+*/
+.casilla {
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer; font-size: 15px; line-height: 1.45;
+}
+.casilla input { width: 17px; height: 17px; accent-color: var(--vino); cursor: pointer; flex-shrink: 0; }
+.casilla input:disabled { cursor: progress; }
+.casilla input:disabled + span { color: var(--texto-tenue); }
+
 .marca-estado {
   display: inline-block; padding: 5px 13px; border-radius: 7px;
   font-size: 14px; font-weight: 600; white-space: nowrap;
@@ -318,6 +338,202 @@
 /* ============================================================
    INGRESO DE MERCADERIA
    ============================================================ */
+/* ============================================================
+   ORGANIZACION DEL TABLERO
+
+   El tablero contesta dos preguntas distintas (como vendo / que tengo)
+   y antes estaban mezcladas: nueve indicadores sueltos en dos filas con
+   los graficos en el medio. Ahora cada mitad arranca con su titulo, y
+   lo unico que pide una accion va arriba de todo en vez de perderse
+   entre indicadores que no se miran nunca.
+   ============================================================ */
+.seccion-tablero {
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  margin: 34px 0 16px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--borde);
+}
+.seccion-tablero:first-of-type { margin-top: 26px; }
+.seccion-tablero__titulo {
+  font-family: var(--fuente-titulo); font-weight: 400; font-size: 21px;
+  color: var(--vino); margin: 0;
+}
+.seccion-tablero__nota { font-size: 13.5px; color: var(--texto-tenue); }
+
+/* ---- la franja de lo que hay que hacer ---- */
+.atencion {
+  display: flex; align-items: center; gap: 12px 26px; flex-wrap: wrap;
+  background: #fbf0db; border: 1px solid #e8d4a8; border-left: 4px solid var(--advertencia);
+  border-radius: var(--radio); padding: 15px 20px; margin-bottom: 4px;
+}
+.atencion__rotulo {
+  font-size: 12px; letter-spacing: 1.6px; text-transform: uppercase;
+  font-weight: 700; color: #7a540c;
+}
+.atencion__item { display: flex; align-items: baseline; gap: 10px; font-size: 15px; color: #5b4209; }
+.atencion__item a { color: #7a540c; font-weight: 600; font-size: 14px; text-decoration: underline; }
+.atencion__item a:hover { color: #4d3606; }
+
+/* ============================================================
+   GRAFICOS DEL TABLERO
+
+   Dibujados a mano, sin librerias. El de meses es un SVG con viewBox,
+   asi que se achica solo con la tarjeta; el ranking son barras de
+   ancho porcentual con elementos normales, para que el nombre del vino
+   se pueda seleccionar y lo lea bien un lector de pantalla.
+   ============================================================ */
+.grafico { margin-top: 6px; }
+/*
+   max-height es el tope: sin el, en un monitor ancho el SVG se escala
+   con el ancho y termina midiendo 700px de alto. Con el tope se achica
+   parejo y queda centrado.
+*/
+.grafico__svg { display: block; width: 100%; height: auto; max-height: 300px; margin: 0 auto; }
+.grafico__vacio {
+  color: var(--texto-tenue); font-size: 15px; text-align: center; padding: 40px 10px;
+}
+
+/* ---- ranking de barras horizontales ---- */
+.ranking { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 15px; }
+.ranking__cabeza {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 12px; margin-bottom: 6px;
+}
+.ranking__etiqueta { font-size: 15px; color: var(--texto); }
+.ranking__valor { font-size: 14px; font-weight: 700; color: var(--vino); white-space: nowrap; }
+.ranking__riel { height: 9px; background: var(--superficie-2); border-radius: 999px; overflow: hidden; }
+.ranking__barra { height: 100%; background: var(--oro); border-radius: 999px; }
+.ranking__detalle { margin-top: 5px; font-size: 13px; color: var(--texto-tenue); }
+
+/* ---- variacion contra el mes anterior ---- */
+.variacion { font-size: 13px; font-weight: 600; }
+.variacion--bien   { color: var(--ok); }
+.variacion--mal    { color: var(--error); }
+.variacion--neutra { color: var(--texto-tenue); font-weight: 400; }
+
+/* ---- cuanto dura el stock ---- */
+.cobertura { list-style: none; margin: 6px 0 0; padding: 0; }
+.cobertura__fila {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: baseline;
+  padding: 11px 0; border-bottom: 1px solid var(--borde);
+}
+.cobertura__fila:last-child { border-bottom: none; }
+.cobertura__vino  { font-size: 15px; color: var(--texto); }
+.cobertura__stock { font-size: 13.5px; color: var(--texto-tenue); white-space: nowrap; }
+.cobertura__meses {
+  font-size: 14px; font-weight: 700; color: var(--vino);
+  white-space: nowrap; min-width: 110px; text-align: right;
+}
+.cobertura__meses--alerta { color: var(--error); }
+.cobertura__meses--sin { color: var(--texto-tenue); font-weight: 400; }
+
+/* Aclaracion al lado del titulo de un panel, en tono menor. */
+.panel-titulo__nota { font-size: 13px; color: var(--texto-tenue); }
+
+@media (max-width: 680px) {
+  .cobertura__fila { grid-template-columns: 1fr auto; }
+  .cobertura__stock { grid-column: 1; }
+}
+
+/* ============================================================
+   ESQUELETO DE LOS MODALES DEL PANEL
+
+   Los cuatro formularios (vino, usuario, pregunta y el detalle de
+   pedido) comparten la misma estructura: CABECERA con el titulo,
+   CUERPO con el relleno de verdad, y PIE con las acciones.
+
+   POR QUE ASI: antes el modal no tenia relleno (padding: 0) y todo
+   iba en una sola columna continua, sin nada que separara los datos
+   del cliente de los renglones del pedido ni de los botones. El
+   titulo ademas quedaba debajo del boton de cerrar, porque el <h2>
+   ocupaba el ancho completo y la X flotaba encima.
+   ============================================================ */
+
+/*
+   La X sigue pegada arriba mientras se scrollea (position: sticky), que
+   es lo que ya hacia, pero ahora la cabecera le reserva lugar con su
+   padding derecho en vez de dejar que se superponga al titulo.
+
+   POR QUE NO ABSOLUTE: estos modales pueden ser mas altos que la
+   pantalla y scrollean por dentro. Anclada con absolute, la X se iria
+   de vista al bajar y habria que volver arriba para cerrar.
+
+   Se toca solo dentro del panel: la tienda tiene su propio modal.
+*/
+.admin .modal { position: relative; }
+.admin .modal__cerrar {
+  z-index: 3; padding: 10px 14px; margin: 10px 12px 0 0;
+  border-radius: var(--radio-s); background: var(--superficie);
+}
+.admin .modal__cerrar:hover { background: var(--superficie-2); }
+
+.modal-cab {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+  padding: 26px 72px 20px 32px;            /* el 72 de la derecha es para la X */
+  border-bottom: 1px solid var(--borde);
+}
+.modal-cab h2 {
+  font-family: var(--fuente-titulo); font-weight: 400;
+  font-size: 24px; color: var(--vino); margin: 0;
+}
+.modal-cab__bajada { margin-top: 7px; font-size: 14.5px; color: var(--texto-tenue); }
+
+.modal-cuerpo { padding: 24px 32px 28px; }
+
+/*
+   El pie se despega del contenido con una linea y un fondo propio:
+   antes los botones quedaban pegados al ultimo campo y no se veia
+   donde terminaba "completar" y empezaba "confirmar".
+*/
+.modal-pie {
+  display: flex; justify-content: flex-end; gap: 12px; flex-wrap: wrap;
+  padding: 18px 32px; border-top: 1px solid var(--borde);
+  background: var(--fondo-alt);
+  border-radius: 0 0 var(--radio) var(--radio);
+}
+
+/* ---- grupos dentro del cuerpo ---- */
+.grupo + .grupo { margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--borde); }
+.grupo__rotulo {
+  font-size: 12px; letter-spacing: 1.6px; text-transform: uppercase;
+  color: var(--texto-tenue); font-weight: 600; margin: 0 0 14px;
+}
+.grupo .campo { margin-bottom: 16px; }
+.grupo .campo:last-child { margin-bottom: 0; }
+.grupo .form-fila-2 .campo, .grupo .form-fila-3 .campo { margin-bottom: 0; }
+.grupo .form-fila-2, .grupo .form-fila-3 { margin-bottom: 16px; }
+.form-fila-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+/*
+   Los datos del cliente en una fila de tres y no en tres bloques
+   apilados: son tres valores de un renglon cada uno y antes ocupaban
+   mas alto que la lista de vinos del pedido.
+*/
+.datos-fila {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 18px 28px;
+}
+.datos-fila .detalle-dato { margin-bottom: 0; }
+
+/* La franja del total, separada de los renglones. */
+.tabla tfoot td {
+  background: var(--fondo-alt); border-top: 2px solid var(--borde);
+  font-size: 16px; padding-top: 14px; padding-bottom: 14px;
+}
+.tabla tfoot .total-rotulo {
+  font-size: 12px; letter-spacing: 1.6px; text-transform: uppercase;
+  color: var(--texto-tenue); font-weight: 600;
+}
+.tabla tfoot .total-valor { font-weight: 700; color: var(--vino); font-size: 18px; }
+
+@media (max-width: 680px) {
+  .modal-cab   { padding: 22px 64px 16px 20px; }
+  .modal-cuerpo { padding: 20px; }
+  .modal-pie   { padding: 16px 20px; }
+  .grupo .form-fila-2, .grupo .form-fila-3 { grid-template-columns: 1fr; gap: 0; }
+  .grupo .form-fila-2 .campo, .grupo .form-fila-3 .campo { margin-bottom: 16px; }
+}
+
 .form-panel { max-width: 920px; }
 .form-fila-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .form-acciones { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }

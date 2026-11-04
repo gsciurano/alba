@@ -19,6 +19,14 @@
   </main>
 
   <div id="raizModal"></div>
+  <!--
+    Google Identity Services: es lo que dibuja el boton oficial con el
+    logo. Viene de accounts.google.com y no de npm, asi que no rompe la
+    regla del proyecto, pero SI necesita internet: sin conexion el boton
+    no aparece (el formulario de email y contrasena sigue andando).
+    'defer' para que no frene el dibujado de la pagina.
+  -->
+  <script src="https://accounts.google.com/gsi/client" defer></script>
   <script type="module" src="js/cuenta.js"></script>
 </body>
 </html>

@@ -23,6 +23,29 @@
 import { sesion, carrito } from "./store.js";
 import { crear, $, $$ } from "./util.js";
 
+/*
+ * Texto OFICIAL de las normas que se citan en el pie. Son las paginas
+ * del Estado, no resumenes de terceros:
+ *
+ *   Ley 24.788 (Lucha contra el Alcoholismo). Su art. 1 prohibe el
+ *   expendio de bebidas alcoholicas a menores de 18 anios en todo el
+ *   pais; el art. 5 exige las leyendas "Beber con moderación" y
+ *   "Prohibida su venta a menores de 18 años" en los envases, y el
+ *   art. 6 inc. e) las exige tambien en la publicidad.
+ *
+ *   Resolución 424/2020 de la Secretaría de Comercio Interior. Obliga a
+ *   quien venda por web o aplicacion a publicar el link "Botón de
+ *   Arrepentimiento", con acceso facil y directo desde la pagina de
+ *   inicio y en lugar destacado. Remite al art. 34 de la Ley 24.240 y
+ *   al art. 1110 del Codigo Civil y Comercial.
+ */
+const LEY_ALCOHOL =
+  "https://www.argentina.gob.ar/normativa/nacional/ley-24788-42480/texto";
+const BOTON_ARREPENTIMIENTO =
+  "https://www.argentina.gob.ar/normativa/nacional/norma-342869/texto";
+const LEY_CONSUMIDOR =
+  "https://www.argentina.gob.ar/normativa/nacional/ley-24240-638/texto";
+
 /** Las paginas del sitio, en el orden en que van en la barra. */
 const PAGINAS = [
   { id: "inicio",   texto: "Inicio",   href: "index.html"    },
@@ -76,7 +99,9 @@ export function montarSitio(actual) {
           onclick: () => { sesion.logout(); location.href = "index.html"; }
         }))
     : crear("a", { href: "cuenta.html", class: "cinta__enlace",
-                   html: icono("persona") + "<span>Ingresar</span>" });
+                   html: icono("persona")
+                       + "<span>Ingresar</span>"
+                       + '<span class="cinta__opcional">/ Crear cuenta</span>' });
 
   const cinta = crear("div", { class: "cinta" },
     crear("div", { class: "cinta__interior" },
@@ -111,8 +136,17 @@ export function montarSitio(actual) {
   const pie = crear("footer", { class: "sitio-pie" },
     crear("div", { class: "sitio-pie__interior" },
       crear("div", {},
-        crear("div", { class: "sitio-pie__marca", html: sello(38) }),
-        crear("p", { class: "sitio-pie__nombre" }, "Alba en los Andes"),
+        /*
+         * En el pie entra el logo COMPLETO (sello + nombre) y no el sello
+         * suelto: antes el nombre iba aparte, escrito como texto, y se
+         * repetia lo que el logo ya dice. El alt lleva el nombre de la
+         * bodega porque aca la imagen SI es informacion; en el encabezado
+         * va vacio, que ahi al lado esta el nombre escrito.
+         */
+        crear("img", {
+          class: "sitio-pie__logo", src: "assets/img/sitio/logo-completo.png",
+          width: 884, height: 548, alt: "Alba en los Andes"
+        }),
         crear("p", {}, "Viñedos de altura en el Valle de Uco, a 1.100 metros sobre el nivel del mar.")),
       crear("div", {},
         crear("h3", {}, "El sitio"),
@@ -122,13 +156,63 @@ export function montarSitio(actual) {
         crear("a", { href: "mailto:contacto@albaenlosandes.com" }, "contacto@albaenlosandes.com"),
         crear("a", { href: "contacto.html" }, "Formulario de contacto"),
         crear("p", {}, "Tupungato, Mendoza, Argentina")),
+      /*
+       * La columna de la cuenta.
+       *
+       * Las secciones del perfil van SIEMPRE, con o sin sesion, cada una
+       * con su enlace directo: cuenta.html las elige por el #hash, asi
+       * que se puede caer en "Mis solicitudes" sin pasar antes por
+       * "Datos principales". Un solo enlace a "Mi cuenta" obligaba a
+       * entrar y despues buscar.
+       *
+       * POR QUE TAMBIEN PARA UN VISITANTE: el pie es donde se busca que
+       * ofrece un sitio. Esconder las secciones hasta despues de entrar
+       * hace que no se sepa que existen. Si todavia no ingreso, el enlace
+       * lo lleva a cuenta.html, que le muestra el formulario de ingreso:
+       * el mismo camino que si tocara "Ingresar", nada mas que sabiendo
+       * a que iba.
+       */
       crear("div", {},
         crear("h3", {}, "Tu cuenta"),
-        crear("a", { href: "cuenta.html" }, u ? "Mis pedidos" : "Ingresar o crear cuenta"),
-        u?.rol === "ADMIN" ? crear("a", { href: "admin.html" }, "Panel de gestión") : "")),
+        u ? "" : crear("a", { href: "cuenta.html" }, "Ingresar o crear cuenta"),
+        crear("a", { href: "cuenta.html#datos" },       "Mi perfil"),
+        crear("a", { href: "cuenta.html#pedidos" },     "Mis pedidos"),
+        crear("a", { href: "cuenta.html#solicitudes" }, "Mis solicitudes"),
+        u?.rol === "ADMIN" ? crear("a", { href: "admin.html" }, "Panel de gestión") : ""),
+      /*
+       * COLUMNA LEGAL.
+       *
+       * Los enlaces van al texto OFICIAL de cada norma en
+       * argentina.gob.ar, no a un resumen escrito por nosotros: quien
+       * quiera verificar que dice la ley tiene que poder leerla en la
+       * fuente, no creernos a nosotros.
+       *
+       * Se abren en una pestania nueva porque sacan a la persona del
+       * sitio en medio de una compra; rel="noopener" es obligatorio con
+       * target="_blank": sin el, la pagina que se abre puede manipular
+       * la nuestra a traves de window.opener.
+       */
+      crear("div", {},
+        crear("h3", {}, "Legal"),
+        crear("a", { href: LEY_ALCOHOL, target: "_blank", rel: "noopener noreferrer" },
+              "Ley 24.788 — venta de alcohol ↗"),
+        crear("a", { href: BOTON_ARREPENTIMIENTO, target: "_blank", rel: "noopener noreferrer" },
+              "Resolución 424/2020 — arrepentimiento ↗"),
+        crear("a", { href: LEY_CONSUMIDOR, target: "_blank", rel: "noopener noreferrer" },
+              "Ley 24.240 — defensa del consumidor ↗"))),
+
+    /*
+     * La franja de abajo lleva las dos leyendas que la Ley 24.788 exige
+     * en los envases (art. 5) y en la publicidad (art. 6 inc. e), con el
+     * numero de ley a la vista y enlazado a su texto.
+     */
     crear("div", { class: "sitio-pie__legal" },
-      crear("span", {}, "Beber con moderación. Prohibida su venta a menores de 18 años."),
-      crear("span", {}, "Trabajo Integrador de Aplicaciones Interactivas · UADE")));
+      // El numero de ley va al final y sin punto detras: puesto en el
+      // medio, el punto que lo seguia caia solo en un renglon aparte.
+      crear("span", {},
+        "Beber con moderación. Prohibida su venta a menores de 18 años — ",
+        crear("a", { href: LEY_ALCOHOL, target: "_blank", rel: "noopener noreferrer" },
+              "Ley 24.788"))));
 
   document.body.prepend(cabecera);
   document.body.append(pie);

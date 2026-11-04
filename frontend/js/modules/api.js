@@ -203,6 +203,18 @@ export function pedidoDesdeApi(p) {
     },
     idUsuario: u.idUsuario,
     items,
+    /*
+     * El pago es un eje distinto del estado: un pedido puede estar
+     * CONFIRMADO y la transferencia sin acreditar. 'esperaComprobante'
+     * no viene del servidor, se deduce, que es justamente por lo que no
+     * hizo falta un estado nuevo en la base.
+     */
+    pagoConfirmado:   p.pagoConfirmado === true,
+    pagoConfirmadoEn: p.pagoConfirmadoEn || null,
+    pagoConfirmadoPor: p.pagoConfirmadoPor
+      ? [p.pagoConfirmadoPor.nombre, p.pagoConfirmadoPor.apellido].filter(Boolean).join(" ")
+      : "",
+    esperaComprobante: p.medioPago === "TRANSFERENCIA" && p.pagoConfirmado !== true,
     // El back-end guarda un unico 'total' (suma de cantidad x precio
     // congelado). No guarda envio ni impuestos desglosados, asi que el
     // subtotal es ese total y los otros dos quedan en cero.
@@ -292,6 +304,19 @@ export const api = {
     cambiarEstado: (id, estadoTexto) =>
       put("/pedidos/" + id + "/estado?valor=" + aEstadoApi(estadoTexto), {})
         .then(pedidoDesdeApi),
+    /**
+     * PUT /api/pedidos/{id}/pago?confirmado=true&admin=1
+     * Marca que la transferencia se acredito. El back-end rechaza los
+     * pedidos que no sean TRANSFERENCIA y a quien no sea ADMIN.
+     */
+    confirmarPago: (id, confirmado, idAdmin) =>
+      put("/pedidos/" + id + "/pago?confirmado=" + confirmado + "&admin=" + idAdmin, {})
+        .then(pedidoDesdeApi),
+    /**
+     * POST /api/pedidos/{id}/comprobante -> reenvia el mail al comprador.
+     * No devuelve el pedido: el envio sale en otro hilo del servidor.
+     */
+    reenviarComprobante: (id) => post("/pedidos/" + id + "/comprobante", {}),
     eliminar: (id) => borrar("/pedidos/" + id)
   },
 
@@ -303,6 +328,15 @@ export const api = {
      * El rol lo decide el SERVIDOR, no el navegador: es lo que permite
      * mandar a un administrador al panel y a un cliente a la tienda.
      */
+    /**
+     * POST /api/usuarios/google con el ID token que devolvio el boton.
+     *
+     * Se manda el TOKEN y nada mas: el email sale de adentro del token,
+     * ya verificado por el servidor contra Google. Mandar el email
+     * seria dejar que el navegador diga quien es.
+     */
+    ingresarConGoogle: (credential) => post("/usuarios/google", { credential }),
+
     async login(email, password) {
       try {
         return await post("/usuarios/login", { email, password });
