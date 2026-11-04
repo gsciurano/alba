@@ -82,7 +82,9 @@ Todo cuelga de `http://localhost:8080` y todo va y viene en JSON.
 | DELETE | `/api/pedidos/{id}` | Baja lógica. Si estaba `CONFIRMADO` lo cancela primero, así el stock vuelve antes de archivarlo |
 
 Los estados posibles son `CONFIRMADO`, `ENTREGADO` y `CANCELADO`, y los medios
-de pago `TARJETA`, `TRANSFERENCIA` y `EFECTIVO`.
+de pago `TARJETA` y `TRANSFERENCIA`. `EFECTIVO` existe todavía en el enum y en
+la columna, pero solo para los pedidos viejos que quedaron cargados así: un
+pedido nuevo que lo mande se rechaza.
 
 # Renglones de un pedido
 

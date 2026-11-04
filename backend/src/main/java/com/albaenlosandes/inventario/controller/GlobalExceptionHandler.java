@@ -96,7 +96,7 @@ public class GlobalExceptionHandler {
         return respuesta(HttpStatus.BAD_REQUEST,
                 "El cuerpo de la peticion no se pudo leer: revisa que sea JSON valido "
                         + "y que los valores de enum esten bien escritos (por ejemplo "
-                        + "medioPago: TARJETA, TRANSFERENCIA o EFECTIVO).", req);
+                        + "medioPago: TARJETA o TRANSFERENCIA).", req);
     }
 
     /** 400 - Un valor de la URL no es del tipo esperado (/productos/abc, /linea/INVENTADA). */

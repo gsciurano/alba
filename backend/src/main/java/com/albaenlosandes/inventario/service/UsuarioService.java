@@ -5,11 +5,33 @@ import com.albaenlosandes.inventario.model.Usuario;
 import com.albaenlosandes.inventario.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 @Service
 public class UsuarioService {
+
+    /**
+     * ==================================================================
+     *  REGLAS DE EMAIL Y CONTRASENA
+     * ==================================================================
+     *
+     * Las mismas que comprueba el navegador en js/modules/validacion.js.
+     * POR QUE ESTAN EN LOS DOS LADOS: la del navegador existe para
+     * avisarle rapido y claro a una persona, pero se saltea con cualquier
+     * cliente HTTP. Esta es la que de verdad protege la base.
+     *
+     * HASTA DONDE LLEGA LA DE EMAIL: solo la FORMA. Que el dominio exista
+     * necesita una consulta DNS, que la casilla exista solo lo sabe el
+     * servidor de correo destino, y que la persona sea duenia de esa
+     * casilla no lo prueba nada salvo un correo de confirmacion. No se
+     * sigue el RFC 5322 al pie a proposito: acepta cosas como
+     * "juan perez"@[192.168.1.1] y no atrapa ningun error de tipeo real.
+     */
+    private static final Pattern FORMA_EMAIL = Pattern.compile(
+            "^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,}$");
 
     private final UsuarioRepository repository;
 
@@ -69,13 +91,15 @@ public class UsuarioService {
     }
 
     public Usuario registrar(Usuario usuario) {
+        validarEmail(usuario.getEmail());
         if (repository.existsByEmail(usuario.getEmail())) {
             throw new IllegalArgumentException("Ya existe un usuario con el email " + usuario.getEmail());
         }
         // En el alta la contrasena SI es obligatoria (en la edicion no: ver actualizar).
         if (usuario.getPasswordHash() == null || usuario.getPasswordHash().isBlank()) {
-            throw new IllegalArgumentException("La contrasena es obligatoria para dar de alta un usuario");
+            throw new IllegalArgumentException("La contraseña es obligatoria para dar de alta un usuario.");
         }
+        validarPassword(usuario.getPasswordHash());
         // NOTA para la etapa de seguridad: aca ira el hash BCrypt de la contrasena.
         return repository.save(usuario);
     }
@@ -141,6 +165,7 @@ public class UsuarioService {
         Usuario actual = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("No existe el usuario con id " + id));
 
+        if (datos.getEmail() != null) validarEmail(datos.getEmail());
         if (datos.getEmail() != null && !datos.getEmail().equalsIgnoreCase(actual.getEmail())
                 && repository.existsByEmail(datos.getEmail())) {
             throw new IllegalArgumentException("Ya existe un usuario con el email " + datos.getEmail());
@@ -180,13 +205,11 @@ public class UsuarioService {
                 .orElseThrow(() -> new IllegalArgumentException("No existe el usuario con id " + id));
 
         if (actual == null || !actual.equals(usuario.getPasswordHash())) {
-            throw new IllegalArgumentException("La contrasena actual no es correcta.");
+            throw new IllegalArgumentException("La contraseña actual no es correcta.");
         }
-        if (nueva == null || nueva.length() < 6) {
-            throw new IllegalArgumentException("La contrasena nueva tiene que tener al menos 6 caracteres.");
-        }
+        validarPassword(nueva);
         if (nueva.equals(actual)) {
-            throw new IllegalArgumentException("La contrasena nueva tiene que ser distinta de la actual.");
+            throw new IllegalArgumentException("La contraseña nueva tiene que ser distinta de la actual.");
         }
 
         usuario.setPasswordHash(nueva);
@@ -200,6 +223,37 @@ public class UsuarioService {
      */
     private String limpiar(String valor) {
         return valor.isBlank() ? null : valor.trim();
+    }
+
+    /** La forma del email. Ver el comentario de FORMA_EMAIL. */
+    private void validarEmail(String email) {
+        if (email == null || !FORMA_EMAIL.matcher(email.trim()).matches()) {
+            throw new IllegalArgumentException(
+                    "El email no tiene un formato válido: se espera algo como nombre@dominio.com.");
+        }
+    }
+
+    /**
+     * Las cuatro condiciones de la contrasena.
+     *
+     * El mensaje nombra LO QUE FALTA y no la regla entera, igual que el
+     * del navegador: a quien ya puso ocho caracteres y un numero no le
+     * sirve que le repitan las cuatro condiciones.
+     */
+    private void validarPassword(String password) {
+        String p = password == null ? "" : password;
+        List<String> falta = new ArrayList<>();
+        if (p.length() < 8)                 falta.add("al menos 8 caracteres");
+        if (!p.matches(".*[A-ZÁÉÍÓÚÜÑ].*")) falta.add("una mayúscula");
+        if (!p.matches(".*[a-záéíóúüñ].*")) falta.add("una minúscula");
+        if (!p.matches(".*[0-9].*"))        falta.add("un número");
+        if (falta.isEmpty()) return;
+
+        String detalle = falta.size() == 1
+                ? falta.get(0)
+                : String.join(", ", falta.subList(0, falta.size() - 1))
+                  + " y " + falta.get(falta.size() - 1);
+        throw new IllegalArgumentException("A la contraseña le falta: " + detalle + ".");
     }
 
     /** Baja logica: conserva el historial de pedidos del cliente */

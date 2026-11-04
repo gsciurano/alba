@@ -1,6 +1,7 @@
 package com.albaenlosandes.inventario.controller;
 
 import com.albaenlosandes.inventario.model.Usuario;
+import com.albaenlosandes.inventario.service.ServicioGoogle;
 import com.albaenlosandes.inventario.service.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -32,10 +33,12 @@ import java.util.Map;
 public class UsuarioController {
 
     private final UsuarioService service;
+    private final ServicioGoogle google;
 
     /** Inyeccion por constructor: Spring pasa el servicio al crear el bean. */
-    public UsuarioController(UsuarioService service) {
+    public UsuarioController(UsuarioService service, ServicioGoogle google) {
         this.service = service;
+        this.google = google;
     }
 
     /** GET /api/usuarios -> los usuarios DE ALTA, sin su contrasena */
@@ -72,6 +75,27 @@ public class UsuarioController {
         return service.autenticar(credenciales.get("email"), credenciales.get("password"))
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+    }
+
+    /**
+     * POST /api/usuarios/google
+     * Cuerpo: { "credential": "<ID token que devolvio el boton de Google>" }
+     *
+     * Devuelve el usuario, creandolo la primera vez. Si ya existia una
+     * cuenta con ese email, se vincula en vez de duplicarla.
+     *
+     * POR QUE NO RECIBE EL EMAIL: si confiaramos en un email mandado por
+     * el navegador, alcanzaria con escribir admin@albaenlosandes.com para
+     * entrar como administrador. Lo unico que se acepta es el token
+     * firmado por Google, y el email sale de adentro del token ya
+     * verificado.
+     *
+     * Los rechazos salen como 400 con su explicacion, via
+     * GlobalExceptionHandler, igual que el resto de la API.
+     */
+    @PostMapping("/google")
+    public Usuario ingresarConGoogle(@RequestBody Map<String, String> cuerpo) {
+        return google.ingresar(cuerpo.get("credential"));
     }
 
     /**
@@ -152,7 +176,7 @@ public class UsuarioController {
 
     /**
      * POST /api/usuarios/2/password
-     * Cuerpo: { "actual": "cliente123", "nueva": "otraClave" }
+     * Cuerpo: { "actual": "Cliente123", "nueva": "OtraClave1" }
      *
      * POR QUE ES UN ENDPOINT APARTE Y NO UN CAMPO DEL PUT: el PUT guarda
      * la contrasena que le manden sin preguntar por la anterior. Un cambio

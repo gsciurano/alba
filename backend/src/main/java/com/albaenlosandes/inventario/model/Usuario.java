@@ -30,7 +30,7 @@ public class Usuario {
     private String apellido;
 
     @NotBlank(message = "El email es obligatorio")
-    @Email(message = "El email no tiene un formato valido")
+    @Email(message = "El email no tiene un formato válido: se espera algo como nombre@dominio.com.")
     @Size(max = 150, message = "El email no puede superar los 150 caracteres")
     @Column(nullable = false, unique = true)
     private String email;
@@ -45,9 +45,38 @@ public class Usuario {
      * La misma clase se usa para las dos operaciones, asi que la regla no
      * puede vivir en la anotacion.
      */
+    /*
+     * nullable = true desde que existe el ingreso con Google: una cuenta
+     * de Google NO TIENE contrasena. Guardar una cadena vacia o un
+     * "google" de relleno seria peor, porque el dia que se compare la
+     * contrasena esa cuenta entraria con cualquier cosa.
+     */
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    @Column(name = "password_hash", nullable = false)
+    @Column(name = "password_hash")
     private String passwordHash;
+
+    /**
+     * Como ingresa esta cuenta. Sin este dato no se puede distinguir
+     * "no tiene contrasena porque usa Google" de "quedo sin contrasena
+     * por un error".
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ProveedorIngreso proveedor = ProveedorIngreso.LOCAL;
+
+    /**
+     * El identificador que Google le da a la persona (el claim 'sub').
+     *
+     * POR QUE NO ALCANZA CON EL EMAIL: el email se puede cambiar, y con
+     * el tiempo dos personas distintas pueden terminar con el mismo. El
+     * 'sub' no cambia nunca y es unico; es lo que la documentacion de
+     * Google indica usar como clave de la cuenta.
+     *
+     * WRITE_ONLY: no tiene por que salir en las respuestas de la API.
+     */
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @Column(name = "google_sub", unique = true)
+    private String googleSub;
 
     @Size(max = 30, message = "El telefono no puede superar los 30 caracteres")
     private String telefono;
@@ -95,6 +124,10 @@ public class Usuario {
     public void setEmail(String email) { this.email = email; }
     public String getPasswordHash() { return passwordHash; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    public ProveedorIngreso getProveedor() { return proveedor; }
+    public void setProveedor(ProveedorIngreso proveedor) { this.proveedor = proveedor; }
+    public String getGoogleSub() { return googleSub; }
+    public void setGoogleSub(String googleSub) { this.googleSub = googleSub; }
     public String getTelefono() { return telefono; }
     public void setTelefono(String telefono) { this.telefono = telefono; }
     public String getVarietalesFavoritos() { return varietalesFavoritos; }

@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.*;
 
 /**
@@ -102,6 +103,26 @@ public class PedidoService {
             throw new IllegalArgumentException("El pedido debe tener al menos un producto");
         }
 
+        /*
+         * EL EFECTIVO YA NO SE ACEPTA. La bodega dejo de cobrar contra
+         * entrega, asi que la tienda no lo ofrece mas.
+         *
+         * POR QUE TAMBIEN SE CORTA ACA Y NO SOLO EN EL NAVEGADOR: sacar la
+         * ficha del checkout no impide que alguien mande el JSON a mano
+         * con medioPago EFECTIVO. Y seria el peor caso posible, porque
+         * ademas el pedido nace con pagoConfirmado=true: una venta que
+         * nadie va a cobrar, dada por pagada.
+         *
+         * POR QUE EFECTIVO SIGUE EXISTIENDO EN EL ENUM: hay pedidos viejos
+         * guardados con ese valor. Si se borrara del enum, esos pedidos
+         * dejarian de poder leerse y el panel se caeria al listarlos. El
+         * valor se conserva para la historia; lo que se corta es crearlo.
+         */
+        if (pedido.getMedioPago() == MedioPago.EFECTIVO) {
+            throw new IllegalArgumentException(
+                    "Ya no se acepta el pago en efectivo. Elegi tarjeta o transferencia.");
+        }
+
         // ---- 2. Agrupar por producto (el mismo vino puede venir repetido) ----
         Map<Integer, Integer> cantidadPorProducto = new TreeMap<>();   // TreeMap = queda ordenado por id
         for (DetallePedido detalle : pedido.getDetalles()) {
@@ -146,6 +167,18 @@ public class PedidoService {
 
         pedido.setTotal(total);
         pedido.setEstado(EstadoPedido.CONFIRMADO);
+        /*
+         * La tarjeta se cobra en el acto, asi que el pedido nace con el
+         * pago confirmado. La transferencia no: la plata todavia no esta,
+         * y queda esperando que un administrador la acredite.
+         *
+         * Se decide ACA y no en el navegador porque es una regla de plata:
+         * si viniera en el JSON, cualquiera podria mandar
+         * pagoConfirmado=true y darse por pagado solo.
+         */
+        pedido.setPagoConfirmado(pedido.getMedioPago() != MedioPago.TRANSFERENCIA);
+        pedido.setPagoConfirmadoEn(null);
+        pedido.setPagoConfirmadoPor(null);
         Pedido guardado = pedidoRepository.save(pedido);       // cascade guarda los detalles
 
         // ---- 6. Descontar stock y registrar trazabilidad (inventario perpetuo) ----
@@ -238,6 +271,58 @@ public class PedidoService {
         }
 
         pedido.setEstado(nuevoEstado);
+        return pedidoRepository.save(pedido);
+    }
+
+    // ==================================================================
+    //  CONFIRMACION DEL PAGO POR TRANSFERENCIA
+    // ==================================================================
+
+    /**
+     * Tilda (o destilda) que la transferencia de un pedido se acredito.
+     *
+     * POR QUE SOLO TRANSFERENCIA: la tarjeta se cobra en el acto
+     * y nacen confirmados. Dejar que alguien los "confirme" de nuevo no
+     * significa nada y esconde errores: si el panel manda un pedido con
+     * tarjeta a este endpoint, es que algo se llamo mal.
+     *
+     * POR QUE SE PUEDE DESTILDAR: el error humano existe. Si se tilda el
+     * pedido equivocado tiene que haber forma de volver atras, y que se
+     * note: al destildar se borran la fecha y el administrador, porque
+     * dejarlos seria afirmar que alguien confirmo algo que no esta
+     * confirmado.
+     */
+    @Transactional
+    public Pedido confirmarPago(Integer idPedido, boolean confirmado, Integer idAdmin) {
+        Pedido pedido = pedidoRepository.findById(idPedido)
+                .orElseThrow(() -> new IllegalArgumentException("No existe el pedido con id " + idPedido));
+
+        if (pedido.getMedioPago() != MedioPago.TRANSFERENCIA) {
+            throw new IllegalArgumentException(
+                    "El pedido #" + idPedido + " se pago con " + pedido.getMedioPago()
+                    + ", que se cobra en el acto: no hay transferencia que acreditar.");
+        }
+        if (pedido.getEstado() == EstadoPedido.CANCELADO) {
+            throw new IllegalArgumentException(
+                    "El pedido #" + idPedido + " esta cancelado: no se le puede acreditar el pago.");
+        }
+
+        if (confirmado) {
+            Usuario admin = usuarioRepository.findById(idAdmin)
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "No existe el usuario con id " + idAdmin));
+            if (admin.getRol() != Rol.ADMIN) {
+                throw new IllegalArgumentException(
+                        "Solo un administrador puede dar por acreditado un pago.");
+            }
+            pedido.setPagoConfirmado(true);
+            pedido.setPagoConfirmadoEn(LocalDateTime.now());
+            pedido.setPagoConfirmadoPor(admin);
+        } else {
+            pedido.setPagoConfirmado(false);
+            pedido.setPagoConfirmadoEn(null);
+            pedido.setPagoConfirmadoPor(null);
+        }
         return pedidoRepository.save(pedido);
     }
 }

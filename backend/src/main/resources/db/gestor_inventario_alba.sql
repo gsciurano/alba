@@ -131,12 +131,12 @@ CREATE TABLE movimientos_stock (
 -- registrar y comparar contra el hash al ingresar, para que la contrasena
 -- original no quede en ningun lado.
 -- Estas son credenciales de DEMO, pensadas para mostrar el circuito:
---   admin@albaenlosandes.com / admin123    (administrador)
---   juan@mail.com            / cliente123  (cliente)
+--   admin@albaenlosandes.com / Admin123    (administrador)
+--   juan@mail.com            / Cliente123  (cliente)
 INSERT INTO usuarios (nombre, apellido, email, password_hash, telefono, rol) VALUES
-('Admin',  'Bodega',  'admin@albaenlosandes.com', 'admin123', '261-0000000', 'ADMIN'),
-('Juan',   'Perez',   'juan.perez@mail.com',      'cliente123',  '261-1111111', 'CLIENTE'),
-('Ana',    'Garcia',  'ana.garcia@mail.com',      'cliente123',   '261-2222222', 'CLIENTE');
+('Admin',  'Bodega',  'admin@albaenlosandes.com', 'Admin123', '261-0000000', 'ADMIN'),
+('Juan',   'Perez',   'juan.perez@mail.com',      'Cliente123',  '261-1111111', 'CLIENTE'),
+('Ana',    'Garcia',  'ana.garcia@mail.com',      'Cliente123',   '261-2222222', 'CLIENTE');
 
 -- ------------------------------------------------------------
 --  CATALOGO REAL DE ALBA EN LOS ANDES

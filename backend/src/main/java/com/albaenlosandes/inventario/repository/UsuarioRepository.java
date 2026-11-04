@@ -48,6 +48,12 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
     Optional<Usuario> findByEmail(String email);
 
     /**
+     * Busca por el identificador de Google ('sub'), que es la clave
+     * estable de la cuenta: a diferencia del email, no cambia nunca.
+     */
+    Optional<Usuario> findByGoogleSub(String googleSub);
+
+    /**
      * Los usuarios que siguen de alta. Es el listado que usan los
      * desplegables de la aplicacion: un usuario dado de baja no puede ser
      * elegido como responsable de un movimiento ni como cliente de un pedido.
