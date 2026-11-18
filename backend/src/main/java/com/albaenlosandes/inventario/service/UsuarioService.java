@@ -18,10 +18,21 @@ public class UsuarioService {
      *  REGLAS DE EMAIL Y CONTRASENA
      * ==================================================================
      *
-     * Las mismas que comprueba el navegador en js/modules/validacion.js.
-     * POR QUE ESTAN EN LOS DOS LADOS: la del navegador existe para
-     * avisarle rapido y claro a una persona, pero se saltea con cualquier
-     * cliente HTTP. Esta es la que de verdad protege la base.
+     * ESTE ES EL UNICO LUGAR DONDE VIVEN. Antes estaban tambien escritas
+     * en el navegador (js/modules/validacion.js), una copia por cada
+     * lado: la del navegador avisaba rapido, pero se salteaba con
+     * cualquier cliente HTTP, y dos copias de la misma regla terminan
+     * diciendo cosas distintas.
+     *
+     * Ahora la pantalla MUESTRA estas mismas reglas en vez de tener las
+     * suyas: la lista de requisitos del alta, del recupero y de
+     * Seguridad sale de REQUISITOS_PASSWORD, mas abajo en esta clase.
+     * La unica validacion que queda en el HTML es la nativa del
+     * navegador (required, type="email"), que avisa antes de mandar el
+     * formulario y no reemplaza a nada.
+     *
+     * La copia de js/panel/validacion.js sigue existiendo porque la usa
+     * el panel viejo, que todavia no se migro.
      *
      * HASTA DONDE LLEGA LA DE EMAIL: solo la FORMA. Que el dominio exista
      * necesita una consulta DNS, que la casilla exista solo lo sabe el
@@ -88,6 +99,78 @@ public class UsuarioService {
         return repository.findByEmail(email.trim())
                 .filter(u -> Boolean.TRUE.equals(u.getActivo()))
                 .filter(u -> password.equals(u.getPasswordHash()));
+    }
+
+    /**
+     * ==============================================================
+     *  EL COMPRADOR SIN CUENTA
+     * ==============================================================
+     *
+     * DE DONDE SALE ESTE METODO. Es la traduccion de
+     * js/modules/store.js:202 (resolverUsuario). La tabla 'pedidos' no
+     * guarda los datos del comprador: guarda un id_usuario. Entonces
+     * alguien tiene que convertir el nombre, el email y el telefono
+     * del checkout en una fila de 'usuarios'.
+     *
+     * HASTA HOY LO HACIA EL NAVEGADOR, y eso era peor de lo que
+     * parece: la pantalla de compra tenia que poder llamar a
+     * POST /api/usuarios para crear cuentas. Un formulario publico con
+     * permiso para dar de alta usuarios es un formulario con el que se
+     * llena la tabla de usuarios desde afuera.
+     *
+     * Si el email ya existe se reutiliza ese cliente, porque el email
+     * es UNIQUE en MySQL y volver a insertarlo seria un error.
+     *
+     * LA LIMITACION QUE SIGUE EN PIE, Y SE MUDA TAL CUAL:
+     * registrar() exige una contrasena, pero una tienda no le pide una
+     * a quien solo esta comprando. Se genera un valor al azar que no
+     * sirve para entrar. Antes lo generaba el navegador; ahora lo
+     * genera el servidor, que al menos es el unico que lo ve. Lo
+     * correcto sigue siendo otra cosa: o un checkout que acepte una
+     * compra sin cuenta, o un registro de verdad antes de comprar. No
+     * esta resuelto, esta mudado.
+     *
+     * @throws IllegalArgumentException si el email ya pertenece a un
+     *         ADMIN: un administrador administra, no compra, y
+     *         PedidoService lo rechazaria mas adelante con un mensaje
+     *         mas confuso.
+     */
+    @Transactional
+    public Usuario resolverComprador(String nombreCompleto, String email, String telefono) {
+        validarEmail(email);
+
+        Optional<Usuario> existente = repository.findByEmail(email.trim());
+        if (existente.isPresent()) {
+            return existente.get();
+        }
+
+        // "Juan Carlos Perez" -> nombre "Juan Carlos", apellido "Perez".
+        // El guion para el apellido ausente es el mismo que ponia el
+        // navegador: la columna es NOT NULL y una sola palabra es un
+        // nombre, no un apellido.
+        String[] partes = nombreCompleto == null ? new String[0] : nombreCompleto.trim().split("\\s+");
+        String apellido = partes.length > 1 ? partes[partes.length - 1] : "-";
+        String nombre = partes.length > 1
+                ? String.join(" ", java.util.Arrays.copyOf(partes, partes.length - 1))
+                : (partes.length == 1 ? partes[0] : "");
+
+        Usuario nuevo = new Usuario();
+        nuevo.setNombre(nombre);
+        nuevo.setApellido(apellido);
+        nuevo.setEmail(email.trim());
+        nuevo.setTelefono(telefono);
+        nuevo.setRol(Rol.CLIENTE);
+        /*
+         * EL PREFIJO NO ES DECORATIVO. validarPassword() exige 8
+         * caracteres, una mayuscula, una minuscula y un numero. Un UUID
+         * solo (minusculas, digitos y guiones) NO tiene mayuscula, asi
+         * que el alta se rechazaba con "A la contrasena le falta: una
+         * mayuscula" y la compra se caia entera: nadie con un email
+         * nuevo podia comprar. "SinCuenta1-" aporta la mayuscula y el
+         * numero; el resto es azar y nadie puede entrar con esto.
+         */
+        nuevo.setPasswordHash("SinCuenta1-" + java.util.UUID.randomUUID());
+        return registrar(nuevo);
     }
 
     public Usuario registrar(Usuario usuario) {
@@ -217,6 +300,38 @@ public class UsuarioService {
     }
 
     /**
+     * ==================================================================
+     *  RESTABLECER LA CONTRASENA — sin pedir la anterior
+     * ==================================================================
+     *
+     * Lo usa el recupero (ServicioRecupero), que es justamente el caso de
+     * quien NO se acuerda la actual y por eso no puede escribirla.
+     *
+     * POR QUE ES SEGURO NO PEDIRLA ACA Y NO EN cambiarPassword(): este
+     * metodo no es una puerta, es el ultimo escalon de una escalera.
+     * Antes de llegar, ServicioRecupero ya comprobo los digitos del
+     * telefono y un codigo que solo esta en la casilla de correo de esa
+     * cuenta. Quien no paso por ahi no llega hasta este metodo.
+     *
+     * Y POR QUE ESTA ACA Y NO EN ServicioRecupero: las reglas de la
+     * contrasena tienen que ser las mismas se entre por donde se entre.
+     * Puesto alla, el recupero terminaria aceptando contrasenas que el
+     * registro rechaza, y nadie se enteraria hasta que pase.
+     */
+    @Transactional
+    public void restablecerPassword(Integer id, String nueva) {
+        Usuario usuario = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("No existe el usuario con id " + id));
+        validarPassword(nueva);
+        usuario.setPasswordHash(nueva);
+        /*
+         * Si la cuenta venia de Google y ademas tenia contrasena, sigue
+         * pudiendo entrar por los dos lados: el proveedor no se toca.
+         */
+        repository.save(usuario);
+    }
+
+    /**
      * Un campo de texto opcional que llego vacio se guarda como null y no
      * como "". Son la misma cosa para quien lo lee, y tener las dos formas
      * obligaria a preguntar por las dos en cada consulta.
@@ -240,13 +355,32 @@ public class UsuarioService {
      * del navegador: a quien ya puso ocho caracteres y un numero no le
      * sirve que le repitan las cuatro condiciones.
      */
+    /**
+     * Una condicion, con el texto con el que se muestra y con el que se
+     * nombra cuando falta.
+     *
+     * POR QUE ES PUBLICA: la pantalla de alta muestra la lista de
+     * requisitos ANTES de que la persona escriba, para que elija una
+     * contrasena que sirva a la primera (era requisitosPassword() de
+     * js/modules/validacion.js:72). Esa lista y este control tienen que
+     * salir del mismo lugar: escritas dos veces, un dia la pantalla
+     * pide una cosa y el servidor otra. Agregar una regla sigue siendo
+     * agregar un renglon aca.
+     */
+    public record RequisitoPassword(String texto, java.util.function.Predicate<String> cumple) { }
+
+    public static final List<RequisitoPassword> REQUISITOS_PASSWORD = List.of(
+            new RequisitoPassword("al menos 8 caracteres", p -> p.length() >= 8),
+            new RequisitoPassword("una mayúscula",         p -> p.matches(".*[A-ZÁÉÍÓÚÜÑ].*")),
+            new RequisitoPassword("una minúscula",         p -> p.matches(".*[a-záéíóúüñ].*")),
+            new RequisitoPassword("un número",             p -> p.matches(".*[0-9].*")));
+
     private void validarPassword(String password) {
         String p = password == null ? "" : password;
-        List<String> falta = new ArrayList<>();
-        if (p.length() < 8)                 falta.add("al menos 8 caracteres");
-        if (!p.matches(".*[A-ZÁÉÍÓÚÜÑ].*")) falta.add("una mayúscula");
-        if (!p.matches(".*[a-záéíóúüñ].*")) falta.add("una minúscula");
-        if (!p.matches(".*[0-9].*"))        falta.add("un número");
+        List<String> falta = new ArrayList<>(REQUISITOS_PASSWORD.stream()
+                .filter(r -> !r.cumple().test(p))
+                .map(RequisitoPassword::texto)
+                .toList());
         if (falta.isEmpty()) return;
 
         String detalle = falta.size() == 1

@@ -8,9 +8,10 @@
 #  nadie sin que nadie se entere. Con este script no hay nada que
 #  recordar.
 #
-#  LA CLAVE NO SE GUARDA EN NINGUN LADO. Si no esta en el entorno, se
-#  pide por teclado y no se escribe en pantalla ni en el historial.
-#  Por eso el script puede estar en el repositorio sin problema.
+#  LA CLAVE NO SE GUARDA EN EL REPOSITORIO. Queda en el llavero de
+#  macOS, que es el lugar del sistema para esto: cifrado, atado a tu
+#  usuario y fuera de la carpeta del proyecto. La primera vez el
+#  script la pide y la guarda; despues ya no vuelve a preguntar.
 #
 #  Uso:
 #    ./arrancar.sh
@@ -25,18 +26,83 @@ export MAIL_FROM="${MAIL_FROM:-theolambert.ar@gmail.com}"
 export MAIL_AUTH=true
 export MAIL_TLS=true
 
+# Nombre con el que la clave queda archivada en el llavero.
+LLAVERO_SERVICIO="brevo-alba-smtp"
+
 if [ -z "${MAIL_PASSWORD:-}" ]; then
-    echo "Clave SMTP de Brevo (Settings -> SMTP & API). No se muestra al escribir."
-    read -r -s -p "MAIL_PASSWORD: " MAIL_PASSWORD
-    echo
-    export MAIL_PASSWORD
+    # 2>/dev/null porque cuando la clave todavia no esta guardada,
+    # 'security' escribe un error que no aporta nada: lo que importa
+    # es que devuelve vacio, y de eso se encarga el if de abajo.
+    MAIL_PASSWORD="$(security find-generic-password \
+                        -s "$LLAVERO_SERVICIO" -a "$MAIL_USER" -w 2>/dev/null || true)"
 fi
 
 if [ -z "$MAIL_PASSWORD" ]; then
-    echo "Sin clave no se puede mandar ningun comprobante. Cancelado." >&2
-    exit 1
+    echo "No hay clave guardada para $MAIL_USER."
+    echo "Clave SMTP de Brevo (Settings -> SMTP & API). No se muestra al escribir."
+    read -r -s -p "MAIL_PASSWORD: " MAIL_PASSWORD
+    echo
+    if [ -z "$MAIL_PASSWORD" ]; then
+        echo "Sin clave no se puede mandar ningun comprobante. Cancelado." >&2
+        exit 1
+    fi
+    # -U actualiza la entrada si ya existia con otra clave, en lugar
+    # de fallar; asi este mismo camino sirve para corregir una clave
+    # vieja despues de regenerarla en Brevo.
+    if security add-generic-password -U \
+            -s "$LLAVERO_SERVICIO" -a "$MAIL_USER" -w "$MAIL_PASSWORD" 2>/dev/null; then
+        echo "Clave guardada en el llavero: la proxima vez no te la pide."
+    else
+        echo "No se pudo guardar en el llavero; esta vez va a andar igual." >&2
+    fi
+fi
+export MAIL_PASSWORD
+
+# ------------------------------------------------------------
+#  CLAVE DE LA API HTTP (opcional, para redes que bloquean SMTP)
+#
+#  Muchas redes bloquean los puertos de SMTP. Con esta clave puesta,
+#  los correos salen por el puerto 443 (el de cualquier pagina web),
+#  que ninguna red bloquea. Sin ella, se usa SMTP como siempre.
+#
+#  NO ES LA MISMA QUE MAIL_PASSWORD: sale de Brevo -> Settings ->
+#  SMTP & API -> pestania "API keys", y empieza con "xkeysib-".
+#
+#  Si no esta guardada no se pregunta nada: el envio por SMTP sigue
+#  siendo un camino valido, asi que no tiene sentido frenar el
+#  arranque por una clave que quizas no haga falta.
+# ------------------------------------------------------------
+if [ -z "${BREVO_API_KEY:-}" ]; then
+    BREVO_API_KEY="$(security find-generic-password \
+                        -s "brevo-alba-api" -a "$MAIL_USER" -w 2>/dev/null || true)"
+fi
+export BREVO_API_KEY
+
+if [ -n "$BREVO_API_KEY" ]; then
+    echo "Correo por la API de Brevo (puerto 443): anda tambien en redes que bloquean SMTP."
+else
+    echo "Correo por SMTP. Si la red bloquea el puerto 587 los comprobantes no van a salir;"
+    echo "para que salgan igual, guardar la clave de API una vez con:"
+    echo "  security add-generic-password -U -s brevo-alba-api -a \"$MAIL_USER\" -w"
 fi
 
-# DB_PASSWORD ya tiene valor por defecto en application.properties
-# ("root"), asi que solo se pisa si quien arranca la definio.
-exec ./mvnw spring-boot:run
+# ------------------------------------------------------------
+#  EL LOG VA TAMBIEN A UN ARCHIVO.
+#
+#  POR QUE: el envio del comprobante es @Async y se traga sus errores
+#  para no tirar abajo una compra. El motivo real ("authentication
+#  failed", "connect timed out", "quota exceeded") aparece una sola
+#  vez, en el log. Si el log vive nada mas que en la terminal, se
+#  pierde al cerrarla y la pregunta "por que no llego el mail?" se
+#  queda sin respuesta. Con el archivo, la respuesta se puede buscar
+#  despues:
+#
+#    grep -i comprobante backend/arranque.log
+# ------------------------------------------------------------
+LOG="arranque.log"
+echo "Log de esta corrida: $(pwd)/$LOG"
+
+# 'tee -a' agrega al final en vez de pisar, para no perder la corrida
+# anterior. 'pipefail' (arriba) hace que si mvnw falla, el script
+# tambien falle, aunque tee haya terminado bien.
+./mvnw spring-boot:run 2>&1 | tee -a "$LOG"

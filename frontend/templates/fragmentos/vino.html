@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  ============================================================
+   LA TARJETA DE VINO — un solo lugar, tres pantallas
+  ============================================================
+   Reemplaza a js/modules/vino.js (tarjetaVino y grillaVinos), que era
+   el componente mas reutilizado del proyecto: lo usaban la portada, la
+   pagina de vinos y la tienda. Si cada pantalla lo dibujara por su
+   cuenta, un cambio de diseno habria que hacerlo tres veces.
+
+   Lo que cambia entre pantallas se pasa por parametro, igual que antes:
+   'comprable' decide si aparece el boton de agregar al carrito.
+
+   PRECIOS: se formatean con #numbers y no con una funcion propia. El
+   separador de miles va con punto, que es como se escribe en Argentina
+   ($ 40.000). Antes lo hacia pesos() en util.js:10 con toLocaleString.
+*/-->
+<body>
+
+<!--/* ============================================================
+     UNA TARJETA
+     ============================================================ */-->
+<article th:fragment="tarjeta(vino, comprable)"
+         class="tarjeta"
+         th:classappend="${comprable} ? '' : ' tarjeta--quieta'">
+
+  <div class="tarjeta__foto">
+    <!--/*
+      La foto ya viene resuelta por el servidor: si el archivo no
+      existe, VinoVista devuelve el dibujo de respaldo. Por eso aca no
+      hace falta ningun evento 'error'.
+    */-->
+    <img th:src="@{${vino.imagen}}" th:alt="'Botella de ' + ${vino.nombre}" loading="lazy">
+  </div>
+
+  <div class="tarjeta__cuerpo">
+    <span class="tarjeta__linea" th:text="${vino.linea}">Gran Reserva</span>
+    <h3 class="tarjeta__nombre" th:text="${vino.nombre}">Nombre del vino</h3>
+    <span class="tarjeta__meta"
+          th:text="${vino.varietal} + ' · Cosecha ' + ${vino.cosecha}">Malbec · Cosecha 2021</span>
+
+    <div class="tarjeta__pie">
+      <span class="tarjeta__precio"
+            th:text="'$ ' + ${#numbers.formatInteger(vino.precio, 1, 'POINT')}">$ 40.000</span>
+
+      <!--/*
+        Del stock solo se dice lo que le sirve a quien compra. El numero
+        exacto no viaja al navegador: ver el comentario de VinoVista.
+      */-->
+      <span th:if="${comprable and vino.agotado}"
+            class="etiqueta-stock etiqueta-stock--agotado">Agotado</span>
+      <span th:if="${comprable and vino.ultimas}"
+            class="etiqueta-stock etiqueta-stock--bajo">Últimas botellas</span>
+    </div>
+
+    <!--/*
+      El boton de compra solo existe donde se compra: en la tienda. La
+      portada y "Nuestros vinos" pasan comprable=false y la tarjeta
+      sale sin el, igual que antes.
+    */-->
+    <!--/*
+      OJO CON EL ORDEN DE LOS ATRIBUTOS, OTRA VEZ. th:replace tiene
+      MAS precedencia que th:if, asi que los dos en la misma etiqueta
+      no condicionan nada: el reemplazo ocurre primero y el th:if ni
+      se mira. Es la misma trampa que obliga a envolver th:each en un
+      th:block unas lineas mas abajo.
+
+      Lo que pasaba: el boton de compra salia tambien en la portada y
+      en "Nuestros vinos", que pasan comprable=false. Dos pantallas
+      informativas con un boton de comprar que no tenian que tener.
+    */-->
+    <th:block th:if="${comprable}">
+      <div th:replace="~{fragmentos/vino :: compra(${vino}, false)}"></div>
+    </th:block>
+  </div>
+
+  <!--/*
+    Toda la tarjeta lleva a la ficha. Es un enlace de verdad que cubre
+    la tarjeta, y no un onclick: asi funciona el clic del medio, el
+    "abrir en pestana nueva" y la navegacion por teclado sin que haya
+    que agregar tabindex ni role="button" a mano, que es lo que tenia
+    que hacer modules/vino.js:81.
+  */-->
+  <a class="tarjeta__enlace" th:href="@{/vinos/{id}(id=${vino.id})}" href="/vinos/1"
+     th:aria-label="'Ver la ficha de ' + ${vino.nombre}"></a>
+</article>
+
+
+<!--/* ============================================================
+     EL BOTON DE COMPRA
+     ============================================================
+     Un fragmento aparte y con id propio porque es la unica parte de
+     la tarjeta que cambia sola: al agregar, el servidor devuelve este
+     pedazo en estado "Agregado" y HTMX lo reemplaza. El resto de la
+     tarjeta no se vuelve a mandar.
+
+     EL <form> LLEVA display:contents (la clase .tarjeta__compra, que
+     se agrego a sitio.css). Sin eso el boton dejaria de ser hijo
+     directo de .tarjeta__cuerpo, que es un flex en columna, y pasaria
+     de ocupar todo el ancho a ocupar lo que mide el texto. Con
+     display:contents el formulario no genera caja: el boton sigue
+     siendo el flex item y se ve exactamente igual que antes.
+
+     POR QUE FORMULARIO Y NO UN BOTON SUELTO: para que agregar al
+     carrito funcione sin JavaScript, y para que Thymeleaf meta el
+     token CSRF solo.
+
+     QUE PASA CON EL ENLACE QUE CUBRE LA TARJETA: el boton queda por
+     encima gracias a .tarjeta__cuerpo .btn { z-index: 2 }, que ya
+     estaba. Es lo que reemplaza al stopPropagation() de
+     modules/vino.js:62.
+     ============================================================ */-->
+<form th:fragment="compra(vino, agregado)"
+      class="tarjeta__compra" th:id="'compra-' + ${vino.id}"
+      method="post" th:action="@{/tienda/carrito}">
+
+  <input type="hidden" name="idProducto" th:value="${vino.id}">
+  <input type="hidden" name="cantidad" value="1">
+
+  <!--/*
+    TRES ESTADOS Y UN SOLO BOTON:
+      agotado    deshabilitado, "Sin stock"
+      recien agregado  "Agregado ✓", y el renglon de abajo ofrece ir al carrito
+      normal     "Agregar"
+
+    El estado "Agregado" lo decide el servidor y vuelve en la
+    respuesta: no hay una variable en el navegador que recuerde que se
+    toco el boton. Reemplaza al toast() de tienda.js:320, que avisaba
+    en una esquina de la pantalla y se iba solo.
+  */-->
+  <button type="submit" class="btn btn--primario btn--chico"
+          th:disabled="${vino.agotado}"
+          th:attr="hx-post=@{/tienda/carrito},
+                   hx-target='#compra-' + ${vino.id}"
+          hx-swap="outerHTML"
+          th:text="${vino.agotado} ? 'Sin stock' : (${agregado} ? 'Agregado ✓' : 'Agregar')">Agregar</button>
+
+  <!--/*
+    El atajo al carrito aparece recien despues de agregar. Antes de
+    eso no tiene sentido ofrecerlo desde cada tarjeta: el carrito ya
+    esta en el encabezado.
+
+    role="status" hace que el lector de pantalla lo anuncie cuando
+    aparece, que es lo que el toast nunca hizo.
+  */-->
+  <a th:if="${agregado}" role="status" class="tarjeta__ir-al-carrito"
+     th:href="@{/tienda/carrito}" href="/tienda/carrito">Ver el carrito →</a>
+
+  <!--/*
+    EL AVISO CUANDO NO SE PUDO AGREGAR. Pasa cuando el stock se acabo
+    entre que se dibujo el catalogo y se toco el boton: el servidor
+    contesta "No quedan tantas botellas de ...". Aparece pegado al
+    boton que se toco, que es donde la persona esta mirando, y no en
+    una esquina de la pantalla como el toast viejo.
+
+    role="alert" lo anuncia apenas aparece.
+  */-->
+  <p th:if="${aviso != null}" class="form-error" role="alert" th:text="${aviso}">Mensaje</p>
+</form>
+
+
+<!--/* ============================================================
+     UNA GRILLA DE TARJETAS
+     ============================================================
+     Es lo que devuelve /vinos/destacados y lo que usa la tienda.
+     ============================================================ */-->
+<div th:fragment="grilla" class="grilla">
+  <!--/*
+    OJO CON EL ORDEN DE LOS ATRIBUTOS: th:replace tiene mas precedencia
+    que th:each, asi que ponerlos en la misma etiqueta no itera nada (el
+    reemplazo ocurre primero y la variable del bucle todavia no existe).
+    Por eso el th:each va en un <th:block>, que no deja rastro en el
+    HTML, y el th:replace en la etiqueta de adentro.
+  */-->
+  <th:block th:each="v : ${vinos}">
+    <article th:replace="~{fragmentos/vino :: tarjeta(${v}, ${comprable})}"></article>
+  </th:block>
+  <p th:if="${#lists.isEmpty(vinos)}" style="text-align:center;color:var(--texto-tenue)">
+    Por el momento no hay vinos disponibles.
+  </p>
+</div>
+
+
+<!--/* ============================================================
+     FICHA ANCHA — foto a la izquierda, notas de cata a la derecha
+     ============================================================
+     La usa "Nuestros vinos". Reemplaza a fichaVino() de vinos.js:77.
+     ============================================================ */-->
+<article th:fragment="fichaAncha(vino)" class="ficha ficha--enlace">
+  <div class="ficha__foto">
+    <img th:src="@{${vino.imagen}}" th:alt="'Botella de ' + ${vino.nombre}" loading="lazy">
+  </div>
+  <div class="ficha__texto">
+    <h3>
+      <a class="ficha__titulo" th:href="@{/vinos/{id}(id=${vino.id})}" href="/vinos/1"
+         th:text="${vino.nombre}">Nombre del vino</a>
+    </h3>
+    <p class="ficha__meta"
+       th:text="${vino.varietal} + ' · Cosecha ' + ${vino.cosecha} + ' · $ ' + ${#numbers.formatInteger(vino.precio, 1, 'POINT')}">
+      Malbec · Cosecha 2021 · $ 40.000</p>
+    <p class="ficha__notas"
+       th:text="${#strings.isEmpty(vino.notasCata)} ? 'Notas de cata en preparación.' : ${vino.notasCata}">
+      Notas de cata.</p>
+    <div class="ficha__acciones">
+      <span class="ficha__ver">Ver la ficha completa →</span>
+      <a class="btn btn--fantasma btn--chico" th:href="@{/tienda}" href="/tienda"
+         th:text="${vino.agotado} ? 'Ver en la tienda' : 'Comprar'">Comprar</a>
+    </div>
+  </div>
+</article>
+
+</body>
+</html>

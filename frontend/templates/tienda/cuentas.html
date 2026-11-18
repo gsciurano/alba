@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  ============================================================
+   LAS CUENTAS DEL PEDIDO — un solo lugar, tres pantallas
+  ============================================================
+   El carrito, el checkout y la confirmacion muestran la misma cuenta.
+   Antes el mismo desglose estaba escrito tres veces en tienda.js
+   (lineas 396, 732 y 872) y las tres versiones habian ido quedando
+   distintas: en el carrito el renglon decia "Envio" sin acento y en
+   las otras dos "Envío".
+
+   LOS NUMEROS NO SE CALCULAN ACA. Llegan ya resueltos en ${cuentas},
+   que arma CalculadoraDeCuentas en el servidor. La plantilla los
+   formatea y nada mas: es la cuarta regla de la presentacion.
+*/-->
+<body>
+
+<!--/* ============================================================
+     EL DESGLOSE
+     ============================================================
+     'quitable' decide si el renglon del descuento trae el boton de
+     quitar el cupon: en el checkout si, en la confirmacion no (el
+     pedido ya esta hecho).
+
+     'destino' es el hx-target de ese boton, porque lo que hay que
+     redibujar al quitar el cupon cambia segun la pantalla: en el
+     checkout es el resumen de la derecha, en el carrito es el modal
+     entero. El fragmento no puede adivinarlo, asi que lo recibe.
+     ============================================================ */-->
+<div th:fragment="desglose(quitable, destino)" class="carrito-resumen">
+
+  <div class="carrito-resumen__fila">
+    <span>Subtotal</span>
+    <span th:text="'$ ' + ${#numbers.formatInteger(cuentas.subtotal, 1, 'POINT')}">$ 40.000</span>
+  </div>
+
+  <!--/* El descuento solo existe si hay descuento. */-->
+  <div th:if="${cuentas.conDescuento}" class="carrito-resumen__fila resumen__descuento">
+    <span>
+      <span th:text="'Descuento ' + ${cuentas.cupon}">Descuento ALBA10</span>
+      <!--/*
+        QUITAR EL CUPON ES UN FORMULARIO, no un onclick. Manda el
+        codigo vacio, que es lo que CarritoSesion.setCupon entiende
+        como "borralo". Asi el boton es una escritura de verdad, con
+        su token CSRF, y funciona sin JavaScript.
+      */-->
+      <form th:if="${quitable}" method="post" th:action="@{/tienda/cupon}" style="display:inline">
+        <input type="hidden" name="codigo" value="">
+        <button type="submit" class="cupon__quitar" aria-label="Quitar el cupón"
+                th:attr="hx-post=@{/tienda/cupon}, hx-target=${destino}"
+                hx-swap="outerHTML">quitar</button>
+      </form>
+    </span>
+    <span th:text="'− $ ' + ${#numbers.formatInteger(cuentas.descuento, 1, 'POINT')}">− $ 4.000</span>
+  </div>
+
+  <div class="carrito-resumen__fila">
+    <span>Envío</span>
+    <span th:text="'$ ' + ${#numbers.formatInteger(cuentas.envio, 1, 'POINT')}">$ 2.500</span>
+  </div>
+
+  <div class="carrito-resumen__fila">
+    <span>Impuestos (21%)</span>
+    <span th:text="'$ ' + ${#numbers.formatInteger(cuentas.impuestos, 1, 'POINT')}">$ 8.400</span>
+  </div>
+
+  <div class="carrito-resumen__total">
+    <span>Total</span>
+    <span th:text="'$ ' + ${#numbers.formatInteger(cuentas.total, 1, 'POINT')}">$ 50.900</span>
+  </div>
+</div>
+
+</body>
+</html>

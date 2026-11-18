@@ -3,63 +3,53 @@
   //  Como arrancar el proyecto desde VS Code.
   //
   //  Menu  Terminal > Ejecutar tarea...  (o Cmd+Shift+P -> "Run Task")
+  //  La primera es la tarea por defecto: Cmd+Shift+B.
   //
-  //  POR QUE EL BACKEND HACE 'source ~/.zshrc': la clave de MySQL vive en
-  //  ese archivo, pero zsh solo lo lee en terminales interactivas. Las
-  //  tareas de VS Code corren en una terminal que NO lo es, asi que hay
-  //  que leerlo a mano. Sin eso la aplicacion arranca igual, pero todos
-  //  los endpoints responden error 500 por "Access denied" de MySQL, que
-  //  es un sintoma confuso porque parece que el servidor anda bien.
-  //
-  //  La clave no esta escrita en ningun archivo del proyecto: se lee de
-  //  la variable DB_PASSWORD en el momento de arrancar.
+  //  AHORA ES UN SOLO SERVIDOR. Antes eran dos (Spring en el 8080 y
+  //  python sirviendo el frontend en el 8099); desde que las paginas las
+  //  arma el servidor, Spring sirve todo y el sitio queda en el 8080.
   // ============================================================
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "1 · Backend (Spring Boot, puerto 8080)",
+      "label": "▶︎ Arrancar el sitio (http://localhost:8080)",
       "type": "shell",
+      "command": "./arrancar.sh",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "group": "alba", "clear": true },
+      "group": { "kind": "build", "isDefault": true },
+      "detail": "Saca las claves del correo del llavero y levanta Spring Boot. Listo cuando dice 'Started GestorInventarioApplication'."
+    },
+    {
+      "label": "Arrancar sin correo (mas rapido)",
+      "type": "shell",
+      // POR QUE 'source ~/.zshrc': la clave de MySQL vive en ese archivo,
+      // pero zsh solo lo lee en terminales interactivas, y las tareas de
+      // VS Code no lo son. Sin eso la aplicacion arranca igual pero todo
+      // responde 500 por "Access denied" de MySQL, que es un sintoma
+      // confuso porque el servidor parece estar bien.
       "command": "source ~/.zshrc 2>/dev/null; ./mvnw spring-boot:run",
       "options": { "cwd": "${workspaceFolder}/backend" },
       "problemMatcher": [],
       "isBackground": true,
       "presentation": { "panel": "dedicated", "group": "alba", "clear": true },
-      "detail": "Levanta la API REST. Tiene que decir 'Started GestorInventarioApplication'."
+      "detail": "Igual que la de arriba pero sin pedir las claves de Brevo: los comprobantes y el codigo del recupero no van a salir."
     },
     {
-      "label": "2 · Frontend (servidor web, puerto 8099)",
-      "type": "shell",
-      "command": "python3 -m http.server 8099",
-      "options": { "cwd": "${workspaceFolder}/frontend" },
-      "problemMatcher": [],
-      "isBackground": true,
-      "presentation": { "panel": "dedicated", "group": "alba", "clear": true },
-      "detail": "Sirve la tienda y el panel. Despues abrir http://localhost:8099/index.html"
-    },
-    {
-      "label": "▶︎ Arrancar todo (backend + frontend)",
-      "dependsOn": [
-        "1 · Backend (Spring Boot, puerto 8080)",
-        "2 · Frontend (servidor web, puerto 8099)"
-      ],
-      "dependsOrder": "parallel",
-      "problemMatcher": [],
-      "group": { "kind": "build", "isDefault": true },
-      "detail": "Las dos cosas de una. Es la tarea por defecto: Cmd+Shift+B."
-    },
-    {
-      "label": "Compilar el backend (sin arrancarlo)",
+      "label": "Compilar sin arrancar",
       "type": "shell",
       "command": "./mvnw -q clean compile",
       "options": { "cwd": "${workspaceFolder}/backend" },
-      "problemMatcher": ["$tsc"],
+      "problemMatcher": [],
       "presentation": { "panel": "dedicated", "group": "alba" },
-      "detail": "Para comprobar que el codigo Java compila sin errores."
+      "detail": "Comprueba que el Java compile. Tambien copia el frontend adentro del jar."
     },
     {
-      "label": "Apagar los dos servidores",
+      "label": "Apagar el servidor",
       "type": "shell",
-      "command": "pkill -f 'spring-boot:run' ; pkill -f 'http.server 8099' ; echo 'Servidores apagados.'",
+      "command": "pkill -f 'spring-boot:run' ; echo 'Servidor apagado.'",
       "problemMatcher": [],
       "presentation": { "panel": "dedicated", "group": "alba", "clear": true },
       "detail": "Util cuando el puerto 8080 quedo ocupado por un arranque anterior."

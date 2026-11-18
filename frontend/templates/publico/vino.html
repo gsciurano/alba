@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  ============================================================
+   LA FICHA DE UN VINO  —  /vinos/{id}
+  ============================================================
+   Reemplaza a vino.html + js/vino.js (259 lineas).
+
+   El HTML viejo pesaba 1.186 bytes y era un cascaron: un <article>
+   vacio. El <h1>, el <title> de la pestana y las cinco secciones las
+   escribia JavaScript despues de pedir el catalogo entero por fetch.
+   Para un buscador, esa pagina no tenia titulo ni contenido.
+
+   MEZCLA DOS FUENTES, como antes:
+     - de la base   precio, stock, cosecha, si esta a la venta
+     - de la ficha  cata, vinificacion, crianza, vinedo, analitica
+
+   Si el vino no tiene ficha cargada (uno nuevo dado de alta desde el
+   panel), la pagina se dibuja igual con lo que si sabe la base y
+   saltea las secciones que faltan, en vez de dejar titulos vacios.
+*/-->
+<head th:replace="~{fragmentos/comunes :: cabeza(${vino.nombre} + ' — Alba en los Andes', ${vino.notasCata})}">
+  <title>Ficha del vino — Alba en los Andes</title>
+</head>
+<body>
+
+<header th:replace="~{fragmentos/comunes :: encabezado('vinos')}"></header>
+
+<main id="contenido">
+  <article>
+
+    <!--/* ===================== ENCABEZADO DEL VINO ===================== */-->
+    <section class="vino-hero">
+      <div class="vino-hero__interior">
+        <div class="vino-hero__foto">
+          <img th:src="@{${vino.imagen}}" th:alt="'Botella de ' + ${vino.nombre}">
+        </div>
+
+        <div class="vino-hero__info">
+          <nav class="miga" aria-label="Dónde estás">
+            <a th:href="@{/vinos}" href="/vinos">Nuestros vinos</a>
+            <span> / </span>
+            <span th:text="${vino.nombre}">Nombre del vino</span>
+          </nav>
+
+          <p class="vino-hero__linea" th:text="${vino.linea}">Gran Reserva</p>
+          <h1 class="vino-hero__nombre" th:text="${vino.nombre}">Nombre del vino</h1>
+
+          <!--/*
+            Composicion si hay ficha (dice los porcentajes de la mezcla);
+            si no, el varietal de la base, que siempre esta.
+          */-->
+          <p class="vino-hero__meta"
+             th:text="(${ficha != null and ficha.composicion != null} ? ${ficha.composicion} : ${vino.varietal})
+                      + (${vino.cosecha != null} ? ' · Cosecha ' + ${vino.cosecha} : '')
+                      + ' · ' + ${vinedo.region}">
+            Malbec · Cosecha 2021 · Tupungato, Valle de Uco, Mendoza</p>
+
+          <p class="vino-hero__presentacion"
+             th:text="${ficha != null and ficha.presentacion != null} ? ${ficha.presentacion} : ${vino.notasCata}">
+            Presentación del vino.</p>
+
+          <div class="vino-hero__compra">
+            <span class="vino-hero__precio"
+                  th:text="'$ ' + ${#numbers.formatInteger(vino.precio, 1, 'POINT')}">$ 40.000</span>
+
+            <span th:if="${vino.agotado}" class="etiqueta-stock etiqueta-stock--agotado">Agotado</span>
+            <span th:if="${vino.ultimas}" class="etiqueta-stock etiqueta-stock--bajo">Últimas botellas</span>
+
+            <!--/*
+              El boton de agregar al carrito llega con la etapa de la
+              tienda, que es la que mueve el carrito al servidor. Hasta
+              entonces lleva a la tienda, que es donde hoy se compra.
+            */-->
+            <a class="btn btn--primario" th:href="@{/tienda}" href="/tienda"
+               th:text="${vino.agotado} ? 'Ver en la tienda' : 'Comprar en la tienda'">Comprar</a>
+          </div>
+
+          <!--/*
+            Del stock solo se dice lo que le sirve a quien esta por
+            comprar. El numero exacto es informacion de la bodega.
+          */-->
+          <p class="vino-hero__nota" th:if="${vino.agotado}">
+            Podés consultarnos por la próxima partida desde Contacto.</p>
+          <p class="vino-hero__nota" th:if="${vino.ultimas}">
+            ¡Quedan pocas botellas de esta cosecha! Si lo querés, compralo ahora.</p>
+        </div>
+      </div>
+    </section>
+
+    <!--/* ===================== CUERPO ===================== */-->
+    <section class="seccion">
+      <div class="seccion__interior">
+        <div class="vino-cuerpo">
+
+          <div class="vino-cuerpo__texto">
+
+            <!--/* ---------- sin ficha: al menos lo que dice la base ---------- */-->
+            <section class="vino-bloque" th:if="${ficha == null}">
+              <h2 class="vino-bloque__titulo">Sobre este vino</h2>
+              <p class="vino-parrafo"
+                 th:text="${#strings.isEmpty(vino.notasCata)}
+                          ? 'La ficha de cata de este vino todavía está en preparación.'
+                          : ${vino.notasCata}">Notas.</p>
+            </section>
+
+            <!--/* ---------- notas de cata ---------- */-->
+            <section class="vino-bloque" th:if="${ficha != null and ficha.cata != null}">
+              <h2 class="vino-bloque__titulo">Notas de cata</h2>
+              <dl class="cata">
+                <th:block th:if="${ficha.cata.vista != null}">
+                  <dt>Vista</dt><dd th:text="${ficha.cata.vista}">Color.</dd>
+                </th:block>
+                <th:block th:if="${ficha.cata.nariz != null}">
+                  <dt>Nariz</dt><dd th:text="${ficha.cata.nariz}">Aromas.</dd>
+                </th:block>
+                <th:block th:if="${ficha.cata.boca != null}">
+                  <dt>Boca</dt><dd th:text="${ficha.cata.boca}">En boca.</dd>
+                </th:block>
+              </dl>
+              <p class="vino-parrafo vino-parrafo--destacado"
+                 th:if="${ficha.servicio != null}" th:text="${ficha.servicio}">Al servir.</p>
+            </section>
+
+            <!--/* ---------- elaboracion y crianza ---------- */-->
+            <section class="vino-bloque"
+                     th:if="${ficha != null and (ficha.vinificacion != null or ficha.crianza != null)}">
+              <h2 class="vino-bloque__titulo">Elaboración y crianza</h2>
+              <p class="vino-parrafo" th:if="${ficha.vinificacion != null}"
+                 th:text="${ficha.vinificacion}">Vinificación.</p>
+              <p class="vino-parrafo" th:if="${ficha.crianza != null}">
+                <strong>Crianza. </strong><span th:text="${ficha.crianza}">Barrica.</span>
+              </p>
+            </section>
+
+            <!--/* ---------- el vinedo ---------- */-->
+            <!--/*
+              Es el mismo para las diez etiquetas, asi que sale de la
+              constante compartida y no de la ficha de cada vino.
+            */-->
+            <section class="vino-bloque" th:if="${ficha != null}">
+              <h2 class="vino-bloque__titulo">El viñedo</h2>
+              <p class="vino-parrafo" th:text="${vinedo.suelo}">El suelo.</p>
+              <dl class="cata cata--compacta">
+                <dt>Región</dt><dd th:text="${vinedo.region}">Tupungato</dd>
+                <dt>Antigüedad</dt><dd th:text="${vinedo.antiguedad}">Más de 25 años</dd>
+                <dt>Altura</dt><dd th:text="${vinedo.altura}">1.100 m</dd>
+                <dt>Conducción</dt><dd th:text="${vinedo.conduccion}">Espaldero alto</dd>
+                <dt>Orientación</dt><dd th:text="${vinedo.orientacion}">Oeste-Este</dd>
+                <dt>Cosecha</dt><dd th:text="${vinedo.cosecha}">Manual</dd>
+              </dl>
+            </section>
+
+            <!--/* ---------- maridaje ---------- */-->
+            <section class="vino-bloque" th:if="${ficha != null and ficha.maridaje != null}">
+              <h2 class="vino-bloque__titulo">Para acompañar</h2>
+              <p class="vino-parrafo" th:text="${ficha.maridaje}">Con qué tomarlo.</p>
+            </section>
+          </div>
+
+          <!--/* ---------- la columna del laboratorio ---------- */-->
+          <aside class="vino-tecnica" th:if="${ficha != null}">
+            <h2 class="vino-tecnica__titulo">Ficha técnica</h2>
+            <dl class="vino-tecnica__lista">
+              <th:block th:if="${ficha.composicion != null}">
+                <dt>Varietal</dt><dd th:text="${ficha.composicion}">Malbec</dd>
+              </th:block>
+              <th:block th:if="${vino.cosecha != null}">
+                <dt>Cosecha</dt><dd th:text="${vino.cosecha}">2021</dd>
+              </th:block>
+              <dt>Línea</dt><dd th:text="${vino.linea}">Gran Reserva</dd>
+              <th:block th:if="${ficha.analitica != null}">
+                <th:block th:if="${ficha.analitica.alcohol != null}">
+                  <dt>Alcohol</dt><dd th:text="${ficha.analitica.alcohol}">14,5%</dd>
+                </th:block>
+                <th:block th:if="${ficha.analitica.acidez != null}">
+                  <dt>Acidez total</dt><dd th:text="${ficha.analitica.acidez}">5,4 g/l</dd>
+                </th:block>
+                <th:block th:if="${ficha.analitica.ph != null}">
+                  <dt>pH</dt><dd th:text="${ficha.analitica.ph}">3,7</dd>
+                </th:block>
+                <th:block th:if="${ficha.analitica.azucar != null}">
+                  <dt>Azúcar residual</dt><dd th:text="${ficha.analitica.azucar}">2,1 g/l</dd>
+                </th:block>
+              </th:block>
+            </dl>
+            <p class="vino-tecnica__sello" th:text="${certificacion}">Vino vegano certificado por IRAM</p>
+            <a class="vino-tecnica__origen" th:if="${ficha.origen != null}"
+               th:href="${ficha.origen}" target="_blank" rel="noopener noreferrer">
+              Ver la ficha en albaenlosandes.com</a>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!--/* ===================== MAS DE LA MISMA LINEA ===================== */-->
+    <section class="seccion seccion--gris" th:if="${not #lists.isEmpty(hermanos)}">
+      <div class="seccion__interior">
+        <h2 class="seccion__titulo" th:text="'Más de la línea ' + ${vino.linea}">Más de la línea</h2>
+        <div class="vino-hermanos">
+          <a th:each="h : ${hermanos}" class="vino-hermano"
+             th:href="@{/vinos/{id}(id=${h.id})}" href="/vinos/1">
+            <span class="vino-hermano__nombre" th:text="${h.nombre}">Nombre</span>
+            <span class="vino-hermano__meta"
+                  th:text="${h.varietal} + (${h.cosecha != null} ? ' · ' + ${h.cosecha} : '')">Malbec · 2021</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </article>
+</main>
+
+<footer th:replace="~{fragmentos/comunes :: pie}"></footer>
+
+</body>
+</html>

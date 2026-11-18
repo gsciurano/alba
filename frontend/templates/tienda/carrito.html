@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  ============================================================
+   EL CARRITO
+  ============================================================
+   Reemplaza a abrirCarrito() de js/tienda.js:355, que armaba el panel
+   nodo por nodo con crear() y lo volvia a dibujar ENTERO cada vez que
+   se tocaba una cantidad (cambiarCant llamaba a abrirCarrito otra vez).
+
+   Lo dibuja el servidor y lo que viaja es el panel ya hecho. La
+   diferencia practica: el precio y el stock que se ven son los de la
+   base en este segundo, no una copia que quedo en el navegador cuando
+   se agrego el vino.
+
+   ============================================================
+    POR QUE ES UNA PAGINA Y NO UN MODAL
+   ============================================================
+   En la version vieja el carrito era un modal: montarModal() lo metia
+   en #raizModal y la direccion seguia siendo tienda.html. Aca es una
+   pagina con su propia direccion, /tienda/carrito. El cambio es a
+   proposito y estas son las razones:
+
+     - El carrito ya era enlazable: el icono del encabezado hacia
+       location.href = "tienda.html#carrito" (sitio.js:128) y la
+       tienda, al cargar, leia ese ancla y abria el modal
+       (atenderEnlaceDirecto, tienda.js:60). O sea que el modal ya
+       queria ser una pagina y lo simulaba con un ancla.
+     - El boton Atras ahora funciona. Antes cerrar el modal con Atras
+       te sacaba del sitio.
+     - Sin modal no hay dialogo que haya que anunciar, atrapar el foco
+       ni cerrar con Escape. No se pierde accesibilidad: desaparece la
+       necesidad de sostenerla a mano. El role="dialog" y el
+       aria-modal="true" del original (tienda.js:895) no se perdieron,
+       dejaron de hacer falta.
+     - Un solo camino de codigo. Un modal servido por HTMX obliga a
+       mantener dos versiones de la misma pantalla, una para el modal
+       y otra para quien abre la direccion directo.
+
+   El modal sigue existiendo en el CSS y lo siguen usando las
+   pantallas que todavia no se migraron: no se borro ni una regla.
+*/-->
+<head th:replace="~{fragmentos/comunes :: cabeza('Tu carrito — Alba en los Andes', 'Los vinos que elegiste en la tienda de Alba en los Andes.')}">
+  <title>Tu carrito — Alba en los Andes</title>
+</head>
+
+<!--/*
+  EL TOKEN CSRF PARA TODA LA PAGINA. Los formularios con th:action lo
+  llevan solos; hx-delete no es un formulario y lo necesita en una
+  cabecera. Ver la nota larga en tienda/catalogo.html.
+*/-->
+<body th:attr="hx-headers=|{&quot;${_csrf.headerName}&quot;: &quot;${_csrf.token}&quot;}|">
+
+<header th:replace="~{fragmentos/comunes :: encabezado('tienda')}"></header>
+
+<main id="contenido">
+  <section class="seccion">
+    <div class="seccion__interior" style="max-width:820px">
+      <div th:replace="~{tienda/fragmentos :: panel}"></div>
+    </div>
+  </section>
+</main>
+
+<footer th:replace="~{fragmentos/comunes :: pie}"></footer>
+
+
+</body>
+</html>

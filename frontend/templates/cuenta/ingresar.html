@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  ============================================================
+   INGRESO A LA CUENTA
+  ============================================================
+   LAS TRES PUERTAS DE ESTA PANTALLA, Y QUIEN ATIENDE CADA UNA:
+
+     - Ingresar con email y contrasena: lo atiende Spring Security solo
+       (SecurityConfig.formLogin escucha POST /cuenta/ingresar). No hay
+       un metodo nuestro para eso.
+     - Crear cuenta: IngresoController.crearCuenta (POST /cuenta/registro).
+     - Entrar con Google: IngresoController.conGoogle (POST /cuenta/google).
+
+   LAS SOLAPAS SON DOS DIRECCIONES, no un boton que esconde un panel
+   como hacia pantallaIngreso() en cuenta.js:79: /cuenta muestra el
+   ingreso y /cuenta/registro el alta. Asi el alta se puede enlazar,
+   volver atras funciona, y un formulario que vuelve con un error
+   reaparece en su propia solapa.
+
+   LO QUE TODAVIA NO ESTA ACA: el recupero de contrasena en cuatro
+   pasos, que sigue en la pantalla vieja (/cuenta.html) hasta que llegue
+   su etapa.
+
+   QUE CAMBIO RESPECTO DE LA PANTALLA VIEJA:
+     - El formulario se manda al servidor (POST /cuenta/ingresar), no a
+       un fetch de JavaScript. Si el JavaScript no corre, igual funciona.
+     - El servidor crea una SESION. Antes solo contestaba quien era y el
+       navegador lo anotaba en localStorage.
+     - A donde va cada uno despues de entrar lo decide el servidor
+       (SecurityConfig.aDondeVaCadaUno), no el navegador.
+     - Los campos tienen validacion nativa (required, type="email"), que
+       antes no tenia ni un solo formulario del proyecto.
+*/-->
+<head th:replace="~{fragmentos/comunes :: cabeza('Mi cuenta — Alba en los Andes', 'Ingresá a tu cuenta de Alba en los Andes para seguir tus pedidos.')}">
+  <title>Mi cuenta — Alba en los Andes</title>
+</head>
+<body>
+
+<header th:replace="~{fragmentos/comunes :: encabezado('cuenta')}"></header>
+
+<main id="contenido">
+
+  <section class="portada-chica">
+    <h1>Mi cuenta</h1>
+    <p>Ingresá para seguir tus pedidos, o creá tu cuenta en un minuto.</p>
+  </section>
+
+  <section class="seccion">
+    <div class="caja-cuenta">
+
+      <!--/*
+        LAS SOLAPAS SON ENLACES, no botones como en cuenta.js:81. Un
+        boton que esconde un panel no deja direccion que compartir ni
+        historial al que volver; dos enlaces a dos direcciones, si. Y
+        sin JavaScript siguen funcionando, que es la regla de toda esta
+        migracion.
+
+        El estilo .solapa estaba escrito para <button>; para <a> se le
+        suma el centrado y el quitarle el subrayado en sitio.css.
+      */-->
+      <nav class="solapas">
+        <a class="solapa" th:href="@{/cuenta}"
+           th:classappend="${solapa == 'registro'} ? '' : ' activo'">Ingresar</a>
+        <a class="solapa" th:href="@{/cuenta/registro}"
+           th:classappend="${solapa == 'registro'} ? ' activo' : ''">Crear cuenta</a>
+      </nav>
+
+      <!--/* ============ SOLAPA 1: INGRESAR ============ */-->
+      <th:block th:if="${solapa != 'registro'}">
+      <form class="form-cuenta" th:action="@{/cuenta/ingresar}" method="post">
+
+        <div class="form-grupo">
+          <label for="iEmail">Email</label>
+          <input type="email" id="iEmail" name="email"
+                 autocomplete="email" required
+                 th:value="${param.email}">
+        </div>
+
+        <div class="form-grupo">
+          <label for="iPass">Contraseña</label>
+          <input type="password" id="iPass" name="password"
+                 autocomplete="current-password" required minlength="1">
+        </div>
+
+        <!--/*
+          EL ENLACE DE "ME OLVIDE" VA DEBAJO DE LA CONTRASENA y no al
+          pie del formulario: es ahi donde uno se da cuenta de que no se
+          la acuerda (cuenta.js:224).
+
+          Y ES UN ENLACE DE VERDAD, no el <button type="button"> de
+          antes: ahora lleva a una pantalla con direccion propia. Se le
+          pasa el email ya escrito si lo hay... pero eso solo lo puede
+          hacer el JavaScript, porque el servidor no sabe que se tecleo
+          sin mandar el formulario. Sin JavaScript el enlace va igual y
+          la pantalla pide el email: un paso mas, nada roto.
+        */-->
+        <div class="form-olvide">
+          <a class="enlace-suave" th:href="@{/cuenta/recupero}"
+             id="enlaceOlvide">¿Olvidaste tu contraseña?</a>
+        </div>
+
+        <!--/*
+          El error es uno solo para los tres casos posibles (el email no
+          existe, la contrasena no coincide, la cuenta esta dada de
+          baja). Distinguirlos le confirmaria a cualquiera que pregunte
+          que direcciones estan registradas. Es la misma decision que ya
+          tomaba UsuarioService.autenticar().
+        */-->
+        <p class="form-error" aria-live="polite"
+           th:if="${param.error != null}">Email o contraseña incorrectos.</p>
+
+        <p class="form-error" aria-live="polite"
+           th:if="${param.sesionVencida != null}">Tu sesión se cerró. Ingresá de nuevo.</p>
+
+        <!--/*
+          El cartel con el que vuelve quien acaba de cambiar su
+          contrasena en el recupero. Viaja como flash attribute: se
+          muestra una vez y no queda pegado en la direccion para
+          reaparecer en cada recarga.
+        */-->
+        <p class="form-aviso" aria-live="polite"
+           th:if="${avisoIngreso != null}" th:text="${avisoIngreso}"></p>
+
+        <button type="submit" class="btn btn--primario btn--bloque">Ingresar</button>
+
+        <!--/*
+          USUARIOS DE PRUEBA, a la vista y a proposito.
+
+          Son las credenciales con las que se puede entrar a probar el
+          sistema sin pedirselas a nadie, incluida la cuenta de
+          administrador. Estan publicadas porque este es un trabajo
+          practico que se entrega para ser evaluado: quien lo corrige
+          tiene que poder abrir el panel sin esperar un correo.
+
+          EN UN SISTEMA REAL ESTO NO VA. Es, literalmente, regalar el
+          usuario administrador. Si alguna vez este proyecto se publica
+          fuera de la cursada, este bloque se borra y las contrasenas se
+          cambian, no alcanza con esconderlo.
+        */-->
+        <div class="usuarios-demo">
+          <p class="usuarios-demo__titulo">Usuarios de prueba</p>
+          <div class="usuarios-demo__fila">
+            <span class="usuarios-demo__rol">Admin</span>
+            <code>admin@albaenlosandes.com / Admin123</code>
+          </div>
+          <div class="usuarios-demo__fila">
+            <span class="usuarios-demo__rol">Cliente</span>
+            <code>juan@mail.com / Cliente123</code>
+          </div>
+        </div>
+      </form>
+
+        <!--/*
+          ENTRAR CON GOOGLE.
+
+          El boton lo dibuja la libreria de Google adentro de un iframe:
+          no se puede escribir en HTML, hay que pedirselo. Eso es todo
+          lo que hace js/ingreso-google.js, que es el unico pedazo de
+          esta pantalla que necesita JavaScript. Si no carga, las otras
+          dos puertas siguen abiertas.
+
+          EL TOKEN VIAJA EN UN FORMULARIO NORMAL, con su token CSRF, y
+          el servidor es el que lo verifica. Antes se mandaba por fetch
+          y el navegador se guardaba al usuario en localStorage.
+        */-->
+        <div class="otro-ingreso">
+          <div class="separador-o"><span>o</span></div>
+
+          <p class="form-error" aria-live="polite"
+             th:if="${errorGoogle != null}" th:text="${errorGoogle}"></p>
+
+          <form id="formGoogle" th:action="@{/cuenta/google}" method="post" hidden>
+            <input type="hidden" name="credential" id="credentialGoogle">
+          </form>
+
+          <div class="ingreso-google" id="botonGoogle"
+               th:attr="data-client-id=${googleClientId}"></div>
+        </div>
+
+        <!--/*
+          Dos agregados chicos de JavaScript, los dos opcionales: el
+          boton de Google (que no se puede escribir en HTML) y llevar el
+          email tecleado al enlace del recupero.
+        */-->
+        <script src="https://accounts.google.com/gsi/client" defer></script>
+        <script th:src="@{/js/ingreso-google.js}" defer></script>
+      </th:block>
+
+      <!--/* ============ SOLAPA 2: CREAR CUENTA ============ */-->
+      <th:block th:if="${solapa == 'registro'}">
+
+        <!--/*
+          QUE PASO CON LAS VALIDACIONES DE cuenta.js:604.
+
+          Las hace el servidor, una sola vez, en
+          UsuarioService.registrar(): la forma del email, que no este
+          repetido y las cuatro condiciones de la contrasena, con los
+          mismos mensajes. Lo que queda en el HTML es la validacion
+          nativa del navegador (required, type, minlength), que avisa
+          antes de mandar pero no reemplaza a la del servidor.
+
+          Los valores vuelven del objeto 'alta' cuando el alta se
+          rechaza, para no hacer escribir todo de nuevo.
+        */-->
+        <form class="form-cuenta" th:action="@{/cuenta/registro}" method="post">
+
+          <div class="form-fila-2">
+            <div class="form-grupo">
+              <label for="rNombre">Nombre</label>
+              <input type="text" id="rNombre" name="nombre" required minlength="2"
+                     autocomplete="given-name" th:value="${alta?.nombre}">
+            </div>
+            <div class="form-grupo">
+              <label for="rApellido">Apellido</label>
+              <input type="text" id="rApellido" name="apellido" required minlength="2"
+                     autocomplete="family-name" th:value="${alta?.apellido}">
+            </div>
+          </div>
+
+          <div class="form-grupo">
+            <label for="rEmail">Email</label>
+            <input type="email" id="rEmail" name="email" required
+                   autocomplete="email" th:value="${alta?.email}">
+          </div>
+
+          <div class="form-grupo">
+            <label for="rTelefono">Teléfono</label>
+            <input type="tel" id="rTelefono" name="telefono"
+                   autocomplete="tel" th:value="${alta?.telefono}">
+          </div>
+
+          <div class="form-grupo">
+            <label for="rPass">Contraseña</label>
+            <input type="password" id="rPass" name="password" required
+                   autocomplete="new-password">
+          </div>
+
+          <!--/*
+            LOS REQUISITOS SE VEN ANTES DE ESCRIBIR, igual que en
+            requisitosPassword() (js/modules/validacion.js:72):
+            enterarse de que la contrasena no sirve recien al mandar el
+            formulario obliga a pensarla dos veces.
+
+            La lista sale de UsuarioService.REQUISITOS_PASSWORD, que es
+            la misma lista con la que el servidor despues controla. Lo
+            que se perdio al migrar es el tilde que se iba marcando
+            sola al tipear, que era puro JavaScript; lo que se gano es
+            que la lista y el control ya no pueden decir cosas
+            distintas.
+          */-->
+          <div class="requisitos">
+            <p class="requisitos__titulo">La contraseña tiene que tener:</p>
+            <ul class="requisitos__lista">
+              <li class="requisito" th:each="r : ${requisitosPassword}">
+                <span class="requisito__marca" aria-hidden="true">○</span>
+                <span class="requisito__texto" th:text="${r}">al menos 8 caracteres</span>
+              </li>
+            </ul>
+          </div>
+
+          <p class="form-error" aria-live="polite"
+             th:if="${errorRegistro != null}" th:text="${errorRegistro}"></p>
+
+          <button type="submit" class="btn btn--primario btn--bloque">Crear mi cuenta</button>
+        </form>
+      </th:block>
+
+    </div>
+  </section>
+
+</main>
+
+<footer th:replace="~{fragmentos/comunes :: pie}"></footer>
+
+</body>
+</html>

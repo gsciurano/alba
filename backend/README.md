@@ -261,18 +261,33 @@ Y los diez vinos, repartidos en las cuatro líneas de la bodega: Finca
 
 ## Dónde está cada cosa
 
+El mapa completo, archivo por archivo, está en
+[`../docs/ESTRUCTURA.md`](../docs/ESTRUCTURA.md). En resumen:
+
     src/main/java/com/albaenlosandes/inventario/
       GestorInventarioApplication.java    el main del servidor (@SpringBootApplication)
-      model/         7 entidades y 7 enums
+      web/           los controladores DEL SITIO: devuelven paginas HTML (Thymeleaf)
+      controller/    los controladores DE LA API: devuelven JSON (/api/**)
+      service/       las reglas de negocio
       repository/    7 interfaces JpaRepository
-      service/       7 servicios con las reglas, más la política de cancelación
-      controller/    7 controllers y el manejador global de errores
-      escritorio/    el cliente Swing (no forma parte de la Etapa 1)
+      model/         7 entidades y 8 enums
+      config/        seguridad: quien puede entrar a donde
+      escritorio/    el cliente Swing (otro programa, misma API)
 
     src/main/resources/
-      application.properties    la conexión a MySQL y la configuración de JPA
-      db/                       los cinco scripts, en el orden en que van, más
-                                uno alternativo para una base ya creada
+      application.properties    la conexion a MySQL, el correo, Google y Thymeleaf
+      datos/fichas-vinos.json   el texto editorial de cada vino
+
+**Lo que NO esta aca:** las paginas del sitio y sus estilos viven en
+[`../frontend/`](../frontend/), y los scripts de la base en [`../sql/`](../sql/).
+El frontend lo sirve este mismo servidor, pero se escribe afuera: Maven lo copia
+adentro del jar al compilar, y eso es lo unico que hace el bloque `<resources>`
+de `pom.xml`.
+
+**Dos puertas, y se tratan distinto:** `web/` contesta HTML a un navegador, con
+sesion y token CSRF; `controller/` contesta JSON a la aplicacion de escritorio,
+y queda abierta a proposito. El por que, y como se cerraria, estan escritos en
+`config/SecurityConfig.java`.
 
 Sobre las tecnologías: Spring Boot 3.5.16, Spring Data JPA con Hibernate de ORM,
 MySQL 8, Bean Validation para las validaciones de entrada y JSON como formato de

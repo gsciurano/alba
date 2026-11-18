@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  NUESTROS VINOS — el catalogo agrupado por linea.
+
+  Reemplaza a vinos.html + js/vinos.js. El HTML viejo pesaba 1.070 bytes
+  y tenia un <div id="lineas"> vacio: las cuatro lineas, sus textos y
+  las diez fichas las dibujaba JavaScript despues de pedir el catalogo.
+
+  Es la cara informativa del catalogo: no se compra desde aca, se compra
+  en /tienda. Las dos leen los mismos productos de la misma base, asi
+  que no pueden quedar diciendo cosas distintas.
+*/-->
+<head th:replace="~{fragmentos/comunes :: cabeza('Nuestros vinos — Alba en los Andes', 'Las cuatro lineas de Alba en los Andes: Finca, Estate Reserve, Gran Reserva y Ediciones Especiales.')}">
+  <title>Nuestros vinos — Alba en los Andes</title>
+</head>
+<body>
+
+<header th:replace="~{fragmentos/comunes :: encabezado('vinos')}"></header>
+
+<main id="contenido">
+
+  <section class="portada-chica">
+    <h1>Nuestros vinos</h1>
+    <p>Cuatro líneas que recorren la finca, de los frescos y frutados a los de guarda.</p>
+  </section>
+
+  <section class="seccion">
+    <div class="seccion__interior" id="lineas">
+
+      <!--/*
+        Una seccion por linea. Las lineas sin vinos no llegan hasta aca:
+        las descarta el controlador, para no mostrar un titulo con nada
+        debajo. 'stat.index' marca la primera, que no lleva separador
+        arriba.
+      */-->
+      <section th:each="linea, stat : ${lineas}"
+               class="linea" th:classappend="${stat.index > 0} ? ' linea--separada'">
+        <header class="linea__encabezado">
+          <h2 class="seccion__titulo" th:text="${linea.nombre}">Gran Reserva</h2>
+          <p class="seccion__bajada" th:text="${linea.texto}">Qué cuenta esta línea.</p>
+        </header>
+
+        <div class="linea__vinos">
+          <th:block th:each="vino : ${linea.vinos}">
+            <article th:replace="~{fragmentos/vino :: fichaAncha(${vino})}"></article>
+          </th:block>
+        </div>
+      </section>
+
+      <p th:if="${#lists.isEmpty(lineas)}" style="text-align:center;color:var(--texto-tenue)">
+        Por el momento no hay vinos disponibles.
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer th:replace="~{fragmentos/comunes :: pie}"></footer>
+
+</body>
+</html>

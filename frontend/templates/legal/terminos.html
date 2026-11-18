@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/comunes :: cabeza('Términos y condiciones — Alba en los Andes', 'Condiciones de compra del sitio de Alba en los Andes: precios, medios de pago, entrega, cancelaciones y derecho de arrepentimiento.')}">
+  <title>Términos y condiciones — Alba en los Andes</title>
+</head>
+<!--/*
+  TERMINOS Y CONDICIONES.
+
+  Mismo criterio que privacidad.html: contenido fijo con js/pagina.js
+  y acceso desde la columna "Legal" del pie.
+
+  CADA PLAZO Y CADA MEDIO DE PAGO QUE FIGURA ACA EXISTE EN EL SISTEMA.
+  Las 24 horas de cancelacion automatica son las de
+  PoliticaCancelacion.HORAS_PARA_CANCELACION_DIRECTA, y los medios de
+  pago son los del enum MedioPago. Si se cambia una constante, hay que
+  cambiar este texto: prometer un plazo que el codigo no respeta es
+  un incumplimiento, no una imprecision.
+*/-->
+<body>
+
+<header th:replace="~{fragmentos/comunes :: encabezado('')}"></header>
+
+<main id="contenido">
+
+    <section class="portada-chica">
+      <h1>Términos y condiciones</h1>
+      <p>Las reglas de la compra, en castellano y sin letra chica</p>
+    </section>
+
+    <section class="seccion">
+      <div class="seccion__interior">
+        <div class="legal">
+
+          <p class="legal__fecha">
+            Última actualización: 4 de noviembre de 2026 &middot;
+            Vigente desde el 4 de noviembre de 2026
+          </p>
+
+          <p>
+            Estos términos regulan el uso del sitio de <strong>Alba en los Andes</strong>
+            y la compra de productos a través de él. Al crear una cuenta o realizar un
+            pedido, aceptás estas condiciones. Si no estás de acuerdo con alguna, no uses
+            el sitio.
+          </p>
+
+          <nav class="legal__indice" aria-label="Secciones de estos términos">
+            <ol>
+              <li><a href="#quienes">Quién vende</a></li>
+              <li><a href="#edad">Mayoría de edad</a></li>
+              <li><a href="#cuenta">Tu cuenta</a></li>
+              <li><a href="#productos">Productos, precios y disponibilidad</a></li>
+              <li><a href="#compra">Cómo se cierra la compra</a></li>
+              <li><a href="#pago">Medios de pago</a></li>
+              <li><a href="#entrega">Entrega</a></li>
+              <li><a href="#arrepentimiento">Derecho de arrepentimiento</a></li>
+              <li><a href="#cancelaciones">Cancelaciones por otros motivos</a></li>
+              <li><a href="#problemas">Si algo llega mal</a></li>
+              <li><a href="#uso">Uso del sitio</a></li>
+              <li><a href="#propiedad">Contenido del sitio</a></li>
+              <li><a href="#cambios">Cambios en estos términos</a></li>
+              <li><a href="#ley">Ley aplicable y reclamos</a></li>
+            </ol>
+          </nav>
+
+          <!--/* ===================== 1 ===================== */-->
+          <h2 id="quienes">1. Quién vende</h2>
+          <p>
+            Vende <strong>Alba en los Andes</strong>, bodega con domicilio en Tupungato,
+            Provincia de Mendoza, República Argentina. Contacto:
+            <a href="mailto:contacto@albaenlosandes.com">contacto@albaenlosandes.com</a>.
+          </p>
+
+          <!--/* ===================== 2 ===================== */-->
+          <h2 id="edad">2. Mayoría de edad</h2>
+          <p>
+            La venta de bebidas alcohólicas a menores de 18 años está prohibida por la
+            <a href="https://www.argentina.gob.ar/normativa/nacional/ley-24788-42480/texto"
+               target="_blank" rel="noopener noreferrer">Ley 24.788</a>. Al comprar
+            declarás ser mayor de 18 años. Si detectamos lo contrario, cancelamos el
+            pedido y damos de baja la cuenta.
+          </p>
+
+          <!--/* ===================== 3 ===================== */-->
+          <h2 id="cuenta">3. Tu cuenta</h2>
+          <p>
+            Para comprar necesitás una cuenta. Los datos que cargues tienen que ser
+            verdaderos y estar actualizados: el comprobante y las comunicaciones del
+            pedido van al correo que figure en ella.
+          </p>
+          <p>
+            Sos responsable de mantener tu contraseña en reserva y de la actividad que
+            ocurra en tu cuenta. Si sospechás que alguien más entró, cambiala desde
+            <a th:href="@{/cuenta/datos}" href="/cuenta/datos">Mi perfil</a> y avisanos.
+          </p>
+          <p>
+            Podemos dar de baja una cuenta que incumpla estos términos o que se use para
+            un fin distinto al de comprar en el sitio. El tratamiento de tus datos está
+            explicado en la <a th:href="@{/legal/privacidad}" href="/legal/privacidad">política de privacidad</a>.
+          </p>
+
+          <!--/* ===================== 4 ===================== */-->
+          <h2 id="productos">4. Productos, precios y disponibilidad</h2>
+          <p>
+            Los precios están expresados en <strong>pesos argentinos</strong> e incluyen
+            los impuestos aplicables. Pueden cambiar sin aviso previo, pero el precio que
+            vale es el vigente al momento en que confirmás el pedido: una modificación
+            posterior no afecta una compra ya hecha.
+          </p>
+          <p>
+            La disponibilidad se descuenta del stock real en el momento de la compra. Si
+            por un error de carga un producto aparece con un precio o una disponibilidad
+            equivocada, podemos cancelar el pedido y devolverte lo pagado, avisándote por
+            correo.
+          </p>
+          <p>
+            Las fotografías y descripciones son ilustrativas. La añada, la etiqueta y la
+            presentación pueden variar entre partidas.
+          </p>
+
+          <!--/* ===================== 5 ===================== */-->
+          <h2 id="compra">5. Cómo se cierra la compra</h2>
+          <p>
+            La compra queda registrada cuando confirmás el pedido y el sistema te asigna
+            un <strong>número de pedido</strong>. A continuación te enviamos por correo
+            un comprobante con el detalle y el total.
+          </p>
+          <div class="legal__caja">
+            <p>
+              <strong>Ese comprobante no es una factura fiscal.</strong> Es la constancia
+              de tu compra, con el detalle de lo que pediste y lo que pagaste. Guardá el
+              número de pedido: es el dato con el que podemos encontrar tu operación.
+            </p>
+          </div>
+
+          <!--/* ===================== 6 ===================== */-->
+          <h2 id="pago">6. Medios de pago</h2>
+          <p>Podés pagar de dos formas:</p>
+          <ul>
+            <li>
+              <strong>Tarjeta.</strong> El pedido queda registrado como pago confirmado.
+            </li>
+            <li>
+              <strong>Transferencia bancaria.</strong> Al confirmar la compra te mostramos
+              el alias, el CVU y el titular de la cuenta, y te los repetimos en el
+              comprobante. <strong>El pedido queda reservado y no se prepara hasta que
+              veamos el dinero acreditado.</strong> Una vez transferido, enviános el
+              comprobante indicando tu número de pedido.
+            </li>
+          </ul>
+          <p>
+            El sitio no pide ni almacena números de tarjeta, códigos de seguridad ni
+            claves bancarias en ningún momento.
+          </p>
+
+          <!--/* ===================== 7 ===================== */-->
+          <h2 id="entrega">7. Entrega</h2>
+          <p>
+            El sitio no solicita una dirección de envío al momento de la compra: la
+            entrega se coordina después, por correo electrónico o teléfono, usando los
+            datos de tu cuenta. Al coordinarla acordamos la modalidad, el plazo y el costo
+            del envío, si correspondiera.
+          </p>
+          <p>
+            Los pedidos pagados por transferencia se coordinan recién cuando el pago está
+            acreditado.
+          </p>
+
+          <!--/* ===================== 8 ===================== */-->
+          <h2 id="arrepentimiento">8. Derecho de arrepentimiento</h2>
+          <p>
+            Como la compra se hace a distancia, tenés derecho a arrepentirte dentro de los
+            <strong>10 días corridos</strong> contados desde que recibís el producto o
+            desde que se cierra el contrato, lo que suceda después. Está previsto en el
+            artículo 34 de la
+            <a href="https://www.argentina.gob.ar/normativa/nacional/ley-24240-638/texto"
+               target="_blank" rel="noopener noreferrer">Ley 24.240</a> y en la
+            <a href="https://www.argentina.gob.ar/normativa/nacional/norma-342869/texto"
+               target="_blank" rel="noopener noreferrer">Resolución 424/2020</a>.
+          </p>
+          <p>
+            <strong>Ejercerlo no tiene costo para vos y no hace falta que des
+            explicaciones.</strong> El costo de la devolución corre por nuestra cuenta.
+            Te devolvemos lo que hayas pagado una vez recibido el producto, que tiene que
+            estar sin usar y en su envase original.
+          </p>
+          <div class="legal__caja">
+            <p>
+              <strong>Cómo ejercerlo.</strong> Entrá al
+              <a th:href="@{/legal/arrepentimiento}" href="/legal/arrepentimiento">botón de arrepentimiento</a>, disponible
+              también en la página de inicio y en el pie de todas las páginas. Si preferís,
+              escribinos a
+              <a href="mailto:contacto@albaenlosandes.com">contacto@albaenlosandes.com</a>
+              indicando tu número de pedido.
+            </p>
+          </div>
+
+          <!--/* ===================== 9 ===================== */-->
+          <h2 id="cancelaciones">9. Cancelaciones por otros motivos</h2>
+          <p>
+            Además del arrepentimiento, podés pedir la cancelación de un pedido desde
+            <a th:href="@{/cuenta/pedidos}" href="/cuenta/pedidos">Mis pedidos</a> por otros motivos: te
+            equivocaste de vino o de cantidad, tuviste un problema con el pago, la entrega
+            se demoró o te llegó algo distinto.
+          </p>
+          <p>
+            Dentro de las primeras <strong>24 horas</strong> desde la compra, la
+            cancelación se aprueba de forma automática y el stock vuelve al catálogo.
+            Pasado ese plazo, la solicitud queda en revisión y la resuelve una persona.
+            En los dos casos podés seguir el estado en
+            <a th:href="@{/cuenta/solicitudes}" href="/cuenta/solicitudes">Mis solicitudes</a>.
+          </p>
+          <p>
+            Ese plazo de 24 horas es solo el del trámite automático del sitio y
+            <strong>no limita</strong> los 10 días corridos del derecho de arrepentimiento
+            explicado en el punto anterior.
+          </p>
+
+          <!--/* ===================== 10 ===================== */-->
+          <h2 id="problemas">10. Si algo llega mal</h2>
+          <p>
+            Si recibís un producto equivocado, incompleto o en mal estado, avisanos dentro
+            de los 10 días de recibido y lo resolvemos: reposición o devolución del importe,
+            según prefieras. Esto es independiente del derecho de arrepentimiento y de las
+            garantías legales de la Ley 24.240.
+          </p>
+
+          <!--/* ===================== 11 ===================== */-->
+          <h2 id="uso">11. Uso del sitio</h2>
+          <p>
+            Podés usar el sitio para conocer los vinos y comprarlos. No está permitido
+            intentar vulnerar su seguridad, acceder a cuentas ajenas, extraer datos de
+            forma automatizada ni interferir con su funcionamiento.
+          </p>
+          <p>
+            Hacemos lo posible por mantener el sitio disponible y la información
+            actualizada, pero puede haber interrupciones por mantenimiento o por causas
+            ajenas a nosotros.
+          </p>
+
+          <!--/* ===================== 12 ===================== */-->
+          <h2 id="propiedad">12. Contenido del sitio</h2>
+          <p>
+            Los textos, las fotografías, el nombre y el logotipo de Alba en los Andes son
+            de la bodega. No pueden reproducirse con fines comerciales sin autorización
+            escrita.
+          </p>
+
+          <!--/* ===================== 13 ===================== */-->
+          <h2 id="cambios">13. Cambios en estos términos</h2>
+          <p>
+            Podemos modificar estos términos. La versión vigente es siempre la publicada
+            en esta página, con su fecha en el encabezado. Los cambios no se aplican de
+            forma retroactiva a pedidos ya confirmados.
+          </p>
+
+          <!--/* ===================== 14 ===================== */-->
+          <h2 id="ley">14. Ley aplicable y reclamos</h2>
+          <p>
+            Estos términos se rigen por las leyes de la República Argentina. Ante
+            cualquier conflicto son competentes los tribunales ordinarios del domicilio
+            del consumidor, conforme al artículo 36 de la Ley 24.240.
+          </p>
+          <p>
+            Antes de llegar ahí, escribinos: la mayoría de las cosas se resuelven por
+            correo. Si no quedás conforme, podés iniciar un reclamo ante
+            <a href="https://autogestion.produccion.gob.ar/consumidores"
+               target="_blank" rel="noopener noreferrer">Defensa de las y los
+            Consumidores ↗</a> o ante la autoridad de aplicación de tu provincia.
+          </p>
+          <p>
+            Ver también la <a th:href="@{/legal/privacidad}" href="/legal/privacidad">política de privacidad</a>.
+          </p>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+<footer th:replace="~{fragmentos/comunes :: pie}"></footer>
+
+</body>
+</html>

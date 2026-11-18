@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  ============================================================
+   CABEZA, ENCABEZADO Y PIE — compartidos por todo el sitio
+  ============================================================
+   DE DONDE SALE ESTO. Hasta esta etapa, ninguna pagina publica tenia
+   escrito un <header>, un <nav> ni un <footer>: los tres los dibujaba
+   js/modules/sitio.js:82 (montarSitio) al cargar la pagina. Si ese
+   archivo fallaba o el JavaScript estaba apagado, el sitio entero se
+   quedaba sin navegacion: no habia forma de ir a ninguna parte.
+
+   Ahora los arma el servidor y llegan dentro del HTML. El peor caso
+   pasa a ser una pagina sin animaciones, no una pagina sin menu.
+
+   QUE REEMPLAZA CADA COSA:
+     cabeza      el <head> repetido a mano en las 12 paginas
+     encabezado  la cinta superior, la marca, el menu y el carrito
+     pie         las seis columnas del pie y la franja legal
+     el array PAGINAS de sitio.js:50 pasa a ser la lista de <a> de aca
+
+   LO QUE AHORA DECIDE EL SERVIDOR. Antes el encabezado se dibujaba
+   igual para todos y el JavaScript leia localStorage para saber si
+   mostrar "Ingresar" o el nombre de la persona. Ahora eso lo resuelve
+   th:if contra el usuario de la sesion: si no hay sesion, el enlace al
+   panel NO EXISTE en el HTML que recibe el navegador, en vez de existir
+   escondido.
+*/-->
+<head th:fragment="cabeza(titulo, descripcion)">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="${titulo}">Alba en los Andes</title>
+  <meta name="description" th:attr="content=${descripcion}" content="Bodega Alba en los Andes.">
+
+  <!--/*
+    Las dos hojas de estilo de siempre, sin un solo cambio adentro.
+    Cambia como se escribe la ruta: @{...} la resuelve contra el
+    context-path de la aplicacion, asi que sigue funcionando si manana
+    el sitio se publica colgado de un subdirectorio.
+  */-->
+  <link rel="stylesheet" th:href="@{/css/estilos.css}" href="/css/estilos.css">
+  <link rel="stylesheet" th:href="@{/css/sitio.css}" href="/css/sitio.css">
+
+  <!--/*
+    HTMX. Va local y no por CDN, por la misma regla que ya seguia
+    js/vendor/qrcode.js: una dependencia de terceros se baja una vez, se
+    versiona a mano y queda anotada en static/js/vendor/LEEME.md con su
+    SHA-256. Asi el sitio no depende de que un servidor ajeno siga en pie
+    ni cambia de version sin que nadie lo decida.
+
+    defer: que no frene el dibujado de la pagina.
+  */-->
+  <script th:src="@{/js/vendor/htmx.min.js}" defer></script>
+</head>
+
+<body>
+
+<!--/* ============================================================
+     ENCABEZADO
+     ============================================================ */-->
+<header th:fragment="encabezado(actual)" class="sitio-cabecera">
+
+  <!--/* ---------- cinta fina de arriba ---------- */-->
+  <div class="cinta">
+    <div class="cinta__interior">
+      <span class="cinta__dato">Valle de Uco · Tupungato, Mendoza</span>
+
+      <!--/* VISITANTE: todavia no ingreso */-->
+      <a th:if="${usuario == null}" class="cinta__enlace" th:href="@{/cuenta}" href="/cuenta">
+        <svg th:replace="~{fragmentos/iconos :: persona}"></svg>
+        <span>Ingresar</span>
+        <span class="cinta__opcional">/ Crear cuenta</span>
+      </a>
+
+      <!--/* CLIENTE o ADMIN: ya hay sesion en el servidor */-->
+      <div th:if="${usuario != null}" class="cinta__cuenta">
+        <a class="cinta__enlace" th:href="@{/cuenta}" href="/cuenta">
+          <svg th:replace="~{fragmentos/iconos :: persona}"></svg>
+          <!--/*
+            El nombre va en mayusculas por CSS (text-transform) y no
+            cambiando el texto: lo que se guarda y lo que lee un lector
+            de pantalla sigue siendo el nombre como lo escribio la
+            persona. Es la misma decision que tomaba sitio.js:90.
+          */-->
+          <span class="cinta__usuario" th:text="${usuario.nombre}">Nombre</span>
+        </a>
+
+        <!--/*
+          El acceso al panel SOLO EXISTE para un administrador. No esta
+          escondido con CSS: si quien mira no es ADMIN, esta etiqueta no
+          llega al navegador. Eso es lo que permite la sesion de servidor.
+        */-->
+        <a th:if="${usuario.rol.name() == 'ADMIN'}" class="cinta__enlace"
+           th:href="@{/admin}" href="/admin">
+          <svg th:replace="~{fragmentos/iconos :: panel}"></svg>
+          <span>Panel</span>
+        </a>
+
+        <!--/*
+          Salir es un POST y no un enlace: cerrar la sesion CAMBIA algo
+          en el servidor, y un GET no deberia cambiar nada. Ademas, al
+          ser POST, Spring Security exige el token CSRF, que th:action
+          agrega solo. El <form> no rompe el diseno: lleva la clase
+          cinta__forma, que no existia, pero el <button> conserva las
+          clases de antes y se ve igual.
+        */-->
+        <form th:action="@{/cuenta/salir}" method="post" class="cinta__forma">
+          <button type="submit" class="cinta__enlace cinta__enlace--boton">
+            <svg th:replace="~{fragmentos/iconos :: salir}"></svg>
+            <span>Salir</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!--/* ---------- marca, navegacion y carrito ---------- */-->
+  <div class="sitio-cabecera__fila">
+    <a class="sitio-marca" th:href="@{/}" href="/">
+      <img class="sello" th:src="@{/assets/img/sitio/logo-sello.png}"
+           src="/assets/img/sitio/logo-sello.png"
+           width="46" height="46" alt="" aria-hidden="true">
+      <span class="sitio-marca__texto">Alba en los Andes</span>
+    </a>
+
+    <!--/*
+      El menu que antes vivia en el array PAGINAS de sitio.js:50.
+      'actual' llega por parametro desde cada pagina y decide cual item
+      queda marcado, igual que antes.
+    */-->
+    <nav class="sitio-nav" aria-label="Navegación principal">
+      <a th:href="@{/}" href="/"
+         th:classappend="${actual == 'inicio'} ? ' activo'"
+         th:attr="aria-current=${actual == 'inicio'} ? 'page' : null"
+         class="sitio-nav__item">Inicio</a>
+      <a th:href="@{/vinos}" href="/vinos"
+         th:classappend="${actual == 'vinos'} ? ' activo'"
+         th:attr="aria-current=${actual == 'vinos'} ? 'page' : null"
+         class="sitio-nav__item">Vinos</a>
+      <a th:href="@{/tienda}" href="/tienda"
+         th:classappend="${actual == 'tienda'} ? ' activo'"
+         th:attr="aria-current=${actual == 'tienda'} ? 'page' : null"
+         class="sitio-nav__item">Comprar</a>
+      <a th:href="@{/finca}" href="/finca"
+         th:classappend="${actual == 'finca'} ? ' activo'"
+         th:attr="aria-current=${actual == 'finca'} ? 'page' : null"
+         class="sitio-nav__item">Finca</a>
+      <a th:href="@{/nosotros}" href="/nosotros"
+         th:classappend="${actual == 'nosotros'} ? ' activo'"
+         th:attr="aria-current=${actual == 'nosotros'} ? 'page' : null"
+         class="sitio-nav__item">Nosotros</a>
+      <a th:href="@{/contacto}" href="/contacto"
+         th:classappend="${actual == 'contacto'} ? ' activo'"
+         th:attr="aria-current=${actual == 'contacto'} ? 'page' : null"
+         class="sitio-nav__item">Contacto</a>
+    </nav>
+
+    <!--/*
+      El carrito. La burbuja con el numero la pinta el servidor desde el
+      carrito de la sesion (ver ModeloGlobal.itemsCarrito).
+    */-->
+    <a class="sitio-carrito" id="btnCarrito" th:href="@{/tienda/carrito}" href="/tienda/carrito"
+       aria-label="Abrir carrito">
+      <svg th:replace="~{fragmentos/iconos :: carrito}"></svg>
+      <span th:replace="~{fragmentos/comunes :: burbujaCarrito(false)}"></span>
+    </a>
+  </div>
+</header>
+
+
+<!--/* ============================================================
+     LA BURBUJA DEL CARRITO
+     ============================================================
+     Un fragmento propio, y no marcado suelto dentro del encabezado,
+     por una razon concreta: es el unico pedazo del encabezado que
+     cambia sin que se recargue la pagina. Cuando alguien agrega un
+     vino desde el catalogo, la respuesta de HTMX trae el panel del
+     carrito Y esta burbuja, que viaja "fuera de banda".
+
+     QUE ES UN SWAP FUERA DE BANDA (hx-swap-oob). Por omision HTMX pone
+     la respuesta en un solo lugar: el que dice hx-target. Pero una
+     accion puede tener que actualizar dos partes de la pantalla que no
+     estan una dentro de la otra. Agregar al carrito es exactamente
+     eso: cambia el panel (en el medio) y el numerito de arriba a la
+     derecha.
+
+     Con hx-swap-oob="true", HTMX saca este pedazo de la respuesta
+     ANTES de insertar el resto, y lo pone donde haya un elemento con
+     el mismo id: aca, #cuentaCarrito. Es la alternativa a devolver
+     toda la pagina para que cambie un numero de dos digitos.
+
+     El parametro 'oob' esta porque el mismo marcado se usa de las dos
+     maneras: dentro del encabezado va sin el atributo (seria un swap
+     fuera de banda sin pedido que lo haya originado), y en las
+     respuestas de HTMX va con el.
+
+     POR QUE NO SE PIERDE EL AVISO AL LECTOR DE PANTALLA: el numero
+     vive dentro del enlace del carrito, que ya tiene su aria-label; lo
+     que cambia es el contenido de un enlace, no un aviso. El aviso de
+     "agregado al carrito" lo da el panel, que si tiene aria-live.
+     ============================================================ */-->
+<span th:fragment="burbujaCarrito(oob)"
+      class="sitio-carrito__cuenta" id="cuentaCarrito"
+      th:text="${itemsCarrito}"
+      th:attr="hidden=${itemsCarrito == 0} ? 'hidden' : null,
+               hx-swap-oob=${oob} ? 'true' : null"
+      hidden>0</span>
+
+
+<!--/* ============================================================
+     PIE
+     ============================================================
+     Las seis columnas y la franja legal de sitio.js:136, tal cual. Los
+     enlaces a las normas van al texto OFICIAL en argentina.gob.ar y no a
+     un resumen nuestro: quien quiera verificar que dice la ley tiene que
+     poder leerla en la fuente. Se abren en pestana nueva porque sacan a
+     la persona del sitio en medio de una compra, y rel="noopener" es
+     obligatorio con target="_blank".
+     ============================================================ */-->
+<footer th:fragment="pie" class="sitio-pie">
+  <div class="sitio-pie__interior">
+
+    <div>
+      <!--/*
+        En el pie entra el logo COMPLETO (sello + nombre) y no el sello
+        suelto. El alt lleva el nombre de la bodega porque aca la imagen
+        SI es informacion; en el encabezado va vacio, que ahi al lado
+        esta el nombre escrito.
+      */-->
+      <img class="sitio-pie__logo" th:src="@{/assets/img/sitio/logo-completo.png}"
+           src="/assets/img/sitio/logo-completo.png"
+           width="884" height="548" alt="Alba en los Andes">
+      <p>Viñedos de altura en el Valle de Uco, a 1.100 metros sobre el nivel del mar.</p>
+    </div>
+
+    <div>
+      <h3>El sitio</h3>
+      <a th:href="@{/}" href="/">Inicio</a>
+      <a th:href="@{/vinos}" href="/vinos">Vinos</a>
+      <a th:href="@{/tienda}" href="/tienda">Comprar</a>
+      <a th:href="@{/finca}" href="/finca">Finca</a>
+      <a th:href="@{/nosotros}" href="/nosotros">Nosotros</a>
+      <a th:href="@{/contacto}" href="/contacto">Contacto</a>
+    </div>
+
+    <div>
+      <h3>Contacto</h3>
+      <a href="mailto:contacto@albaenlosandes.com">contacto@albaenlosandes.com</a>
+      <a th:href="@{/contacto}" href="/contacto">Formulario de contacto</a>
+      <p>Tupungato, Mendoza, Argentina</p>
+    </div>
+
+    <!--/*
+      LA COLUMNA DE LA CUENTA. Las secciones del perfil van SIEMPRE, con
+      o sin sesion, cada una con su enlace directo: el pie es donde se
+      busca que ofrece un sitio, y esconderlas hasta despues de entrar
+      hace que no se sepa que existen. Si todavia no ingreso, el enlace
+      lo lleva a /cuenta, que le muestra el formulario de ingreso.
+    */-->
+    <div>
+      <h3>Tu cuenta</h3>
+      <a th:if="${usuario == null}" th:href="@{/cuenta}" href="/cuenta">Ingresar o crear cuenta</a>
+      <a th:href="@{/cuenta/datos}" href="/cuenta/datos">Mi perfil</a>
+      <a th:href="@{/cuenta/pedidos}" href="/cuenta/pedidos">Mis pedidos</a>
+      <a th:href="@{/cuenta/solicitudes}" href="/cuenta/solicitudes">Mis solicitudes</a>
+      <a th:if="${usuario != null and usuario.rol.name() == 'ADMIN'}"
+         th:href="@{/admin}" href="/admin">Panel de gestión</a>
+    </div>
+
+    <!--/*
+      POLITICAS Y PRIVACIDAD: lo que escribimos nosotros. Va separada de
+      la columna Legal porque son dos cosas distintas y mezcladas no se
+      leian: estas tres responden lo que la persona viene a buscar
+      ("donde cancelo", "que hacen con mis datos"); las de Legal son
+      textos oficiales del Estado.
+    */-->
+    <div>
+      <h3>Políticas y privacidad</h3>
+      <a th:href="@{/legal/privacidad}" href="/legal/privacidad">Política de privacidad</a>
+      <a th:href="@{/legal/terminos}" href="/legal/terminos">Términos y condiciones</a>
+      <a th:href="@{/legal/arrepentimiento}" href="/legal/arrepentimiento"
+         class="pie-arrepentimiento">Botón de arrepentimiento</a>
+    </div>
+
+    <div>
+      <h3>Legal</h3>
+      <a href="https://www.argentina.gob.ar/normativa/nacional/ley-24788-42480/texto"
+         target="_blank" rel="noopener noreferrer">Ley 24.788 — venta de alcohol ↗</a>
+      <a href="https://www.argentina.gob.ar/normativa/nacional/norma-342869/texto"
+         target="_blank" rel="noopener noreferrer">Resolución 424/2020 — arrepentimiento ↗</a>
+      <a href="https://www.argentina.gob.ar/normativa/nacional/ley-24240-638/texto"
+         target="_blank" rel="noopener noreferrer">Ley 24.240 — defensa del consumidor ↗</a>
+    </div>
+  </div>
+
+  <!--/*
+    Las dos leyendas que la Ley 24.788 exige en los envases (art. 5) y en
+    la publicidad (art. 6 inc. e), con el numero de ley a la vista y
+    enlazado a su texto. El numero va al final y sin punto detras: puesto
+    en el medio, el punto que lo seguia caia solo en un renglon aparte.
+  */-->
+  <div class="sitio-pie__legal">
+    <span>Beber con moderación. Prohibida su venta a menores de 18 años —
+      <a href="https://www.argentina.gob.ar/normativa/nacional/ley-24788-42480/texto"
+         target="_blank" rel="noopener noreferrer">Ley 24.788</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

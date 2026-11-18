@@ -1,312 +1,112 @@
-# Alba en los Andes — Tienda web (Etapa 2)
+# El frontend
 
-Frontend completo de e-commerce de vinos para la bodega **Alba en los Andes**.
-Tienda publica + panel de administracion, en **HTML5 + CSS3 + JavaScript vanilla
-(ES módulos)**. Sin frameworks, sin build step, sin dependencias de npm.
-
-Es la Etapa 2 del Trabajo Integrador. **La tienda consume la API REST de la
-Etapa 1**: los vinos, los pedidos y el stock salen de MySQL a traves del
-back-end de Spring Boot. No hay datos de mentira ni catalogo duplicado.
-
----
-
-## Cómo correrlo
-
-Hacen falta **las dos cosas corriendo a la vez**: el back-end que sirve los
-datos y un servidor estatico que sirve las paginas.
-
-**1) El back-end (Etapa 1), en su propia terminal:**
-
-```bash
-cd ../backend && DB_PASSWORD="tu-clave" ./mvnw spring-boot:run
-```
-
-Tiene que quedar escuchando en `http://localhost:8080`. Para comprobarlo:
-
-```bash
-curl http://localhost:8080/api/productos
-```
-
-Si eso no devuelve la lista de vinos, la tienda va a mostrar la pantalla
-"No se puede conectar con el servidor" en vez de un catalogo vacio.
-
-**2) El frontend, en otra terminal:**
-
-```bash
-cd frontend && python3 -m http.server 8099
-```
-
-Los ES módulos no funcionan abriendo el archivo con doble clic, por la
-politica de `file://`: hay que servirlo.
-
-Después abrir en el navegador:
-
-- **Tienda:** http://localhost:8099/index.html
-- **Administracion:** http://localhost:8099/admin.html
-
-(Cualquier otro server estatico sirve: `npx serve`, la extension Live Server
-de VS Code, etc.)
-
-### Usuarios de prueba del admin
-
-| Usuario     | Contrasena  | Rol           |
-|-------------|-------------|---------------|
-| `admin`     | `Admin123`  | administrador |
-| `ejecutivo` | `ventas123` | ejecutivo     |
-
-Este login se valida en el navegador, no contra la base: el back-end todavia
-no tiene endpoint de autenticacion.
-
----
-
-## Estructura del proyecto
-
-Cada pagina publica tiene su archivo `.js` con el mismo nombre. El
-encabezado y el pie no estan escritos en ningun HTML: los arma
-`js/modules/sitio.js`, que es el unico lugar donde vive la barra de
-navegacion.
+Todo lo que ve el cliente: las páginas, los estilos, las imágenes y los pocos
+JavaScript que hacen falta.
 
 ```
 frontend/
-├── index.html              Inicio
-├── vinos.html              Catalogo informativo, agrupado por linea
-├── vino.html               FICHA DE UN VINO (se abre con ?id=N)
-├── tienda.html             Compra: filtros, carrito y checkout
-├── finca.html              La finca (contenido fijo)
-├── nosotros.html           La bodega y el equipo (contenido fijo)
-├── contacto.html           Formulario de contacto
-├── cuenta.html             Ingreso, registro y el perfil del cliente
-├── admin.html              Panel de administracion
-├── css/
-│   ├── estilos.css         Sistema de diseno (variables, botones, tarjetas)
-│   ├── sitio.css           Estilos del sitio publico (cabecera, portadas, fichas)
-│   └── admin.css           Estilos propios del panel
-├── js/
-│   ├── inicio.js           Destacados del inicio
-│   ├── vinos.js            Catalogo por linea
-│   ├── vino.js             Ficha de un vino
-│   ├── tienda.js           Catalogo, carrito y checkout
-│   ├── cuenta.js           Ingreso, registro y perfil (menu lateral de 5 secciones)
-│   ├── contacto.js         Validacion del formulario
-│   ├── pagina.js           Paginas de solo texto (finca, nosotros)
-│   ├── admin.js            Panel (login, CRUD, pedidos, auditoria)
-│   ├── modules/
-│   │   ├── api.js          CLIENTE HTTP + traduccion entre los dos modelos
-│   │   ├── store.js        CAPA DE PERSISTENCIA (cache + escrituras a la API)
-│   │   ├── sitio.js        Encabezado y pie compartidos + barra de navegacion
-│   │   ├── vino.js         La tarjeta de vino, usada por tres pantallas
-│   │   ├── transferencia.js Datos de la cuenta, botones de copiar y el QR
-│   │   ├── validacion.js   Reglas de email y contrasena (registro y perfil)
-│   │   ├── graficos.js     Graficos del tablero, dibujados en SVG a mano
-│   │   └── util.js         Utilidades compartidas (formato, placeholder, DOM)
-│   └── vendor/
-│       ├── qrcode.js       Generador de QR (Kazuhiko Arase, MIT) - de terceros
-│       └── LEEME.md        De donde salio, version, SHA-256 y que se reviso
-├── data/
-│   ├── productos.js        Listas fijas de filtros + usuarios del panel
-│   └── fichas-vinos.js     Ficha de cata de cada vino (texto editorial fijo)
-└── assets/img/
-    ├── vinos/              Fotos de las botellas, de albaenlosandes.com
-    ├── sitio/              Logo y fotos de la finca
-    └── equipo/             Fotos de los integrantes (pagina Nosotros)
+├── templates/   LAS PÁGINAS. Las arma el servidor con Thymeleaf
+└── static/      Lo que el navegador baja tal cual: css, js, imágenes
 ```
 
-### Por que hay una carpeta `js/vendor/`
-
-El proyecto no usa npm, pero eso no significa que no use nada de afuera:
-significa **sin gestor de paquetes y sin compilacion**. Dibujar un QR
-necesita correccion de errores Reed-Solomon, unas 400 lineas de matematica
-donde un error no se ve (el QR se dibuja igual) pero el telefono no lo lee.
-No es codigo para escribir a mano.
-
-Entonces la libreria se bajo una vez, quedo versionada a mano en
-`js/vendor/` y se carga con un `<script>` como cualquier archivo nuestro.
-Esta separada del resto a proposito: si algo de esa carpeta falla, no se
-arregla editandolo, se cambia de version o se reemplaza. `LEEME.md` deja
-anotado de donde salio, con que licencia, el SHA-256 para comprobar que
-nadie lo toco, y que APIs peligrosas se buscaron antes de incorporarlo.
-
-### Por que los datos bancarios estan en el codigo y repetidos
-
-`modules/transferencia.js` tiene el alias y el CVU de la bodega, y
-`application.properties` del back-end los tiene otra vez. No es un
-descuido:
-
-- **No son un secreto.** Son el dato que se le entrega a quien tiene que
-  pagarte: estan hechos para ser publicos.
-- **Estan repetidos porque son dos lugares que no pueden leerse entre si.**
-  El checkout los muestra sin pedirselos al servidor, y el mail lo arma el
-  servidor sin pasar por el navegador. Si cambian, hay que tocar los dos.
-
-### Por que la ficha de cata no esta en MySQL
-
-La tabla `productos` guarda lo que cambia y lo que el panel edita: precio,
-stock, anada, estado y una descripcion corta. La ficha de cata
-(`data/fichas-vinos.js`) es texto editorial fijo de la bodega: el suelo del
-vinedo, los meses de barrica, la analitica del laboratorio. No cambia entre
-dos consultas al stock y ningun formulario la llena, asi que guardarla en la
-base obligaria a sumar diez columnas de texto que nadie escribe.
-
-Un vino cargado desde el panel que no tenga ficha igual funciona: la pagina
-de detalle muestra lo que da la base y saltea las secciones que le faltan.
+**El detalle archivo por archivo está en
+[`../docs/ESTRUCTURA.md`](../docs/ESTRUCTURA.md).** Acá está lo otro: cómo
+funciona y qué reglas sigue.
 
 ---
 
-## Mapeo requisito funcional → pantalla → módulo de código
+## Las páginas las arma el servidor
 
-| Requisito | Pantalla | Módulo |
-|-----------|----------|--------|
-| Hero / propuesta de valor | Tienda, seccion hero | `index.html` |
-| Catalogo en grilla | Tienda, seccion catalogo | `tienda.js` → `renderCatalogo()` |
-| Filtros (varietal, linea, cosecha, precio) + orden | Barra de filtros | `tienda.js` → `productosFiltrados()` |
-| Busqueda por texto | Input de busqueda | `tienda.js` → filtro `texto` |
-| Vista de detalle de producto | Modal de detalle | `tienda.js` → `abrirDetalle()` |
-| Carrito (alta/baja/modificar cantidad) | Modal carrito | `store.js` → `carrito.*` |
-| Subtotal, envio e impuestos | Resumen del carrito | `tienda.js` → `calcularTotales()` |
-| Checkout con validacion en cliente | Modal checkout | `tienda.js` → `procesarCheckout()` |
-| Codigo promocional con descuento | Resumen del checkout | `tienda.js` → `CUPONES` y `panelResumen()` |
-| Numero de tarjeta de prueba (Luhn) | Paso 03 del checkout | `tienda.js` → `generarNumeroTarjeta()` |
-| Confirmacion con numero de pedido | Modal confirmacion | `tienda.js` → `mostrarConfirmacion()` |
-| Control de stock (no vender de mas) | Carrito y checkout | `store.js` → `carrito.agregar()` |
-| Estados vacio / carga / error | Catalogo y carrito | `tienda.js` (esqueletos, estado vacio) |
-| Login simulado con rol + guarda | Pantalla de login | `admin.js` + `store.js` → `sesion.*` |
-| Dashboard con metricas | Admin, Dashboard | `admin.js` → `vistaDashboard()` |
-| CRUD de productos | Admin, Productos | `admin.js` → `abrirFormProducto()` |
-| Edicion inline de stock y precio | Tabla de productos | `admin.js` → `guardarInline()` |
-| Baja logica de productos | Boton "Baja" | `store.js` → `productos.remove()` |
-| Gestion de categorias/varietales/bodegas | Admin, Categorias | `admin.js` → `vistaCategorias()` |
-| Listado de pedidos + cambio de estado | Admin, Pedidos | `admin.js` → `vistaPedidos()` |
-| Trazabilidad de stock (quien/que/cuando) | Admin, Auditoria | `api.js` → `movimientos.listar()` |
-| Persistencia tipo repositorio | — | `store.js` sobre `api.js` |
-| Carrito persistente del cliente | — | `store.js` → `carrito.*` |
+Una dirección → un controlador de `backend/.../web/` → una plantilla de
+`templates/`. El servidor llena la plantilla con los datos de MySQL y manda el
+HTML terminado. El navegador recibe una página completa, no un esqueleto que se
+rellena después.
 
-### Mapeo entidad del modelo → frontend
+```
+GET /vinos/3   →   VinosController.vino()   →   templates/publico/vino.html
+```
 
-- **Producto** → catalogo + CRUD admin, via `GET/POST/PUT/DELETE /api/productos`.
-- **Usuario + Rol** → se crea o reutiliza un CLIENTE al confirmar la compra.
-- **Pedido + DetallePedido + MedioPago** → carrito, checkout y listado de pedidos.
-- **EstadoPedido** → los tres reales del enum: confirmado, entregado, cancelado.
-- **MovimientoStock** → la vista "Trazabilidad de stock" del panel.
-- **Linea / varietal / bodega** → filtros del catalogo y gestion de categorias.
+Esto no es un detalle técnico: cambia quién manda. El total de una compra, el
+stock, los precios y quién está ingresado los decide el servidor. El navegador
+no tiene con qué discutirlos.
 
-### Como se traducen los nombres de los campos
+### El encabezado y el pie están escritos una sola vez
 
-El back-end y el front-end se escribieron por separado y nombran las cosas
-distinto. Toda la traduccion esta concentrada en `js/modules/api.js`, en las
-funciones `productoDesdeApi`, `productoHaciaApi` y `pedidoDesdeApi`:
-
-| Back-end (MySQL / JSON) | Front-end        |
-|-------------------------|------------------|
-| `idProducto`            | `id`             |
-| `anada`                 | `cosecha`        |
-| `descripcion`           | `notasCata`      |
-| `stockActual`           | `stock`          |
-| `linea: "GRAN_RESERVA"` | `linea: "Gran Reserva"` |
-| `imagenUrl` (remota)    | `imagen` (archivo local) |
-| `estado: "CONFIRMADO"`  | `estado: "confirmado"`   |
-
-La ruta de la imagen local se arma con el nombre del vino y la anada
-(`gran-reserva-malbec-2021.jpg`). Si el archivo no existe, la tarjeta cae
-sola al placeholder SVG.
+En `templates/fragmentos/comunes.html`. Cada página los trae con
+`th:replace`. Lo mismo la tarjeta de un vino (`fragmentos/vino.html`, usada por
+tres pantallas) y el desglose del total (`tienda/cuentas.html`, usado por el
+carrito, el pago y la confirmación).
 
 ---
 
-## Decisiones de diseno
+## La regla: el sitio funciona sin JavaScript
 
-- **Paleta real de la marca.** Colores tomados del sitio albaenlosandes.com:
-  petroleo `#388497` sobre blanco, con bandas en azul petroleo oscuro `#0B2C38`
-  y texto negro calido `#262121`. Como `#388497` no cumple contraste para texto
-  chico (4.27:1), para textos y links se usa `#2F6F7E` (5.68:1). Titulos con serif.
-- **Persistencia desacoplada detras de una interfaz.** `store.js` expone una API
-  tipo repositorio (`getAll`, `getById`, `create`, `update`, `remove`), la misma
-  forma que tendria contra una base de datos. Cuando los datos vivian en
-  localStorage las pantallas ya lo usaban asi, y al conectar la API REST se
-  reemplazo SOLO ese archivo: ninguna pantalla cambio su forma de pedir datos.
-- **Cache en memoria para no llenar el codigo de esperas.** Leer de localStorage
-  es instantaneo; pedir por HTTP tarda. En vez de poner un `await` en cada linea
-  que dibuja una tarjeta o una fila, `store.js` trae los datos una vez al
-  arrancar y las lecturas van contra esa copia. Solo las escrituras esperan al
-  servidor, y cuando responde refrescan la copia.
-- **La logica de negocio no se duplica en el navegador.** Al confirmar una
-  compra, el navegador manda que vino y cuanto, nada mas. El total, el precio
-  congelado, el descuento de stock y el movimiento de SALIDA los hace
-  `PedidoService` del lado del servidor. Si se calcularan aca, se podrian
-  falsear desde la consola del navegador.
-- **La tienda y el admin comparten la misma base.** Un cambio de precio o stock
-  en el panel queda en MySQL, asi que la tienda lo ve al recargar. Una compra
-  descuenta stock y aparece en los pedidos del admin y en la trazabilidad.
-- **Imagenes locales.** Las fotos se descargaron de albaenlosandes.com y se
-  sirven por ruta relativa, nunca por URL remota. El campo `imagenUrlOrigen`
-  queda registrado en el data model solo para trazabilidad. Si una imagen no
-  carga, `util.js` genera un placeholder SVG consistente con el diseno.
-- **Accesibilidad.** HTML semantico, foco visible en todo lo interactivo,
-  `aria-label`/`aria-live` donde corresponde, `alt` descriptivo en cada imagen,
-  navegacion por teclado en tarjetas y modales (Escape cierra), y respeto de
-  `prefers-reduced-motion`.
-- **Responsive mobile-first**, con grilla que se adapta de 1 a 4 columnas.
+Todo es formularios y enlaces normales. Los tres archivos de `static/js/` son
+**agregados**, y son exactamente las cosas que el servidor no puede hacer solo:
+
+| Archivo | Por qué no puede ser del servidor |
+|---|---|
+| `ingreso-google.js` | El botón de Google lo dibuja Google adentro de un iframe; hay que pedírselo |
+| `casilleros.js` | Saltar de casillero al tipear y pegar el código son cosas del teclado |
+| `tienda-tarjeta.js` | La tarjeta simulada y el QR se dibujan en el navegador |
+
+Si alguno no carga, esa comodidad se pierde y el resto sigue funcionando: el
+recupero se completa con el tabulador, se ingresa con email y contraseña, y la
+compra se termina igual.
+
+### HTMX, para los pedazos que se actualizan solos
+
+`static/js/vendor/htmx.min.js` permite pedirle al servidor **un pedazo** de
+página en vez de recargarla entera: los filtros de la tienda, el carrito, el
+menú de Mi cuenta. El servidor devuelve ese fragmento ya dibujado.
+
+Dónde se ve: `hx-get` / `hx-post` en las plantillas, y los métodos que devuelven
+`"plantilla :: fragmento"` en los controladores.
+
+Las librerías de terceros van **locales y versionadas a mano**, nunca por CDN:
+de dónde salió cada una y su SHA-256 están en
+[`static/js/vendor/LEEME.md`](static/js/vendor/LEEME.md). Así el sitio no
+depende de que un servidor ajeno siga en pie, ni cambia de versión sin que
+nadie lo haya decidido.
 
 ---
 
-## Limitaciones conocidas
+## Los estilos
 
-Son todas diferencias entre lo que la pantalla ofrece y lo que el back-end
-modela hoy. Ninguna rompe el funcionamiento, pero conviene tenerlas a la vista.
+| Archivo | Qué tiene |
+|---|---|
+| `static/css/estilos.css` | El sistema de diseño: colores, tipografías, botones, formularios, tarjetas |
+| `static/css/sitio.css` | El sitio: encabezado, portadas, tienda, Mi cuenta, recupero |
+| `static/css/admin.css` | El panel viejo, y nada más |
 
-- **Login del navegador.** No hay endpoint de autenticacion en la API, asi que
-  el ingreso al panel se valida contra la lista de `data/productos.js`. El
-  back-end ademas guarda las contrasenas sin hashear, con una nota en
-  `UsuarioService` de que BCrypt viene despues.
-- **Envio e impuestos no se guardan.** El carrito muestra el envio ($2.500) y el
-  21%, pero la tabla `pedidos` tiene una sola columna `total`, que es la suma de
-  los vinos. Por eso la confirmacion dice "Vinos: $X": es el numero que quedo en
-  la base. Para guardar el total final harian falta columnas nuevas.
-- **Los cupones viven en el navegador.** Los codigos (`ALBA10`, `VALLEUCO15`,
-  `BIENVENIDA`) estan en la constante `CUPONES` de `tienda.js`. No hay tabla de
-  cupones ni columna de descuento en `pedidos`, asi que el descuento se muestra
-  en el resumen y en la confirmacion pero no viaja al servidor: en la base queda
-  el total de los vinos sin descontar. Igual que el envio y el 21%.
-- **La tarjeta no sale del navegador.** El numero se valida con el algoritmo de
-  Luhn y se usa para mostrar los ultimos cuatro digitos en la confirmacion, nada
-  mas. No hay pasarela de pago ni columna donde guardarlo, y guardar numeros de
-  tarjeta sin cifrar seria peor que no tenerlos. El boton "Generar numero de
-  tarjeta" existe para poder probar la compra sin usar una tarjeta real.
-- **La direccion de entrega no se guarda.** Se pide en el checkout y se muestra
-  en la confirmacion, pero no hay columna donde ponerla.
-- **Compra sin cuenta.** `UsuarioService.registrar()` exige una contrasena, asi
-  que al comprar se da de alta el cliente con un valor aleatorio que no sirve
-  para iniciar sesion. Lo correcto seria que la API acepte una compra sin cuenta,
-  o que haya un registro de verdad antes de comprar.
-- **Foto por URL, no por archivo.** La columna `imagen_url` admite 300
-  caracteres y una imagen en base64 ocupa miles, asi que el formulario del admin
-  pide la URL de la foto en vez de subir un archivo.
-- **Tres estados de pedido, no cinco.** El enum de MySQL solo acepta
-  CONFIRMADO, ENTREGADO y CANCELADO. "En preparacion" y "enviado" requieren
-  cambiar la base, no la pantalla.
-- **La trazabilidad cubre stock, no acciones de pantalla.** Se muestran los
-  movimientos reales de inventario. "Inicio sesion" o "cambio un precio" no
-  aparecen porque no hay una tabla de auditoria general.
-- **Pago simulado.** El checkout no cobra: registra el pedido y confirma.
-- **Fuera de alcance de esta etapa** (existen en la Etapa 1 pero este enunciado
-  no los pide): el circuito de solicitudes de cancelacion y las preguntas
-  frecuentes, que ya tienen endpoints (`/api/solicitudes` y `/api/faq`).
+Los colores están todos como variables en `:root`, arriba de `estilos.css`.
+Cambiar el vino de la marca es cambiar una línea.
 
 ---
 
-## Estado de los requisitos (verificado en el navegador)
+## El panel de administración todavía es el viejo
 
-Probado con el back-end y MySQL corriendo, operando la interfaz en el navegador
-y verificando despues cada cambio con un `SELECT` en la base:
+`static/admin.html` + `static/js/panel/` es la única parte que funciona a la
+vieja: una página que se dibuja entera con JavaScript y le pega a `/api/**`. Está
+agrupada y nombrada aparte para que se vea que es lo que falta migrar, y es el
+único motivo por el que siguen vivos `static/js/panel/api.js`,
+`store.js`, `util.js`, `validacion.js`, `graficos.js` y `static/data/productos.js`.
 
-- **Catalogo:** los 11 vinos activos salen de `GET /api/productos`, con sus
-  precios, stock y descripciones reales. El que tiene stock 0 aparece "Agotado".
-- **Compra completa:** 3 botellas de Gran Reserva Malbec → pedido #22
-  CONFIRMADO / TRANSFERENCIA / total $75.000, con el detalle guardando el precio
-  congelado ($25.000), el stock bajando de 44 a 41, el movimiento
-  `SALIDA -3 "Venta - pedido #22"` y el cliente dado de alta como usuario 7.
-- **Cambio de estado:** el pedido #22 pasado a "entregado" desde el panel quedo
-  `ENTREGADO` en la tabla `pedidos`.
-- **Edicion inline:** poner stock 25 al Estate Reserve Malbec modifico solo esa
-  columna; precio, anada, descripcion e imagen quedaron intactos.
-- **Servidor caido:** con el back-end apagado, las dos pantallas muestran
-  "No se puede conectar con el servidor" con boton de reintentar, en vez de un
-  catalogo vacio que haria pensar que no hay vinos.
+El día que el panel pase a Thymeleaf, esa carpeta entera se borra. Está anotado
+en [`../docs/MEJORAS-PENDIENTES.md`](../docs/MEJORAS-PENDIENTES.md).
+
+---
+
+## Cómo ver un cambio
+
+El frontend vive acá, pero Spring lo busca adentro del jar, así que Maven lo
+copia al compilar (el bloque `<resources>` de `backend/pom.xml`). En la
+práctica: después de tocar una plantilla, un CSS o un JavaScript, hay que volver
+a arrancar.
+
+```bash
+cd ../backend && ./arrancar.sh
+```
+
+Y el sitio queda en **http://localhost:8080**. No hace falta ningún servidor
+aparte para el frontend.

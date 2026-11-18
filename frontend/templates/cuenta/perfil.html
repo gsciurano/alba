@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  ============================================================
+   MI CUENTA — el perfil
+  ============================================================
+   Reemplaza a pantallaCliente() de js/cuenta.js:675 y a
+   mostrarSeccion() de cuenta.js:738, que dibujaban el menu, el panel
+   y las cinco secciones con crear(), y cambiaban de seccion
+   escuchando el evento 'hashchange'.
+
+   EL #HASH ES AHORA UNA DIRECCION DE VERDAD. Antes era
+   cuenta.html#pedidos: el navegador no manda al servidor lo que sigue
+   al numeral, asi que el servidor jamas supo que seccion se estaba
+   mirando. Ahora cada seccion es /cuenta/pedidos, /cuenta/seguridad,
+   y se puede compartir, guardar en favoritos y recargar.
+
+   LAS CLASES DE CSS SON LAS MISMAS. .perfil, .perfil__menu,
+   .perfil__item, .perfil__panel, .perfil__cabeza, .perfil__form,
+   .pedido, .marca-sol, .tildes: ni estilos.css ni sitio.css se
+   tocaron para esta pantalla.
+*/-->
+<head th:replace="~{fragmentos/comunes :: cabeza('Mi cuenta — Alba en los Andes', 'Tus datos, tus pedidos y tus preferencias en Alba en los Andes.')}">
+  <title>Mi cuenta — Alba en los Andes</title>
+</head>
+<body th:attr="hx-headers=|{&quot;${_csrf.headerName}&quot;: &quot;${_csrf.token}&quot;}|">
+
+<header th:replace="~{fragmentos/comunes :: encabezado('cuenta')}"></header>
+
+<main id="contenido">
+
+  <section class="portada-chica">
+    <h1 th:text="'Hola, ' + ${perfil.nombre}">Hola, Ana</h1>
+    <p th:text="${perfil.email}">ana@mail.com</p>
+  </section>
+
+  <section class="seccion">
+    <div class="seccion__interior">
+
+      <!--/*
+        UN ADMINISTRADOR TAMBIEN PUEDE COMPRAR, pero su lugar es el
+        panel. El aviso se conserva de cuenta.js:710.
+      */-->
+      <div th:if="${perfil.rol.name() == 'ADMIN'}" class="aviso-panel">
+        <p>Entraste como administrador.</p>
+        <a class="btn btn--primario" th:href="@{/admin.html}" href="/admin.html">Ir al panel de gestión</a>
+      </div>
+
+      <div th:replace="~{cuenta/panel :: cuerpo}"></div>
+
+    </div>
+  </section>
+</main>
+
+<footer th:replace="~{fragmentos/comunes :: pie}"></footer>
+
+</body>
+</html>

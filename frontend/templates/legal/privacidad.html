@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/comunes :: cabeza('Política de privacidad — Alba en los Andes', 'Qué datos personales recopila Alba en los Andes, para qué los usa, con quién los comparte y cómo pedir verlos, corregirlos o borrarlos.')}">
+  <title>Política de privacidad — Alba en los Andes</title>
+</head>
+<!--/*
+  POLITICA DE PRIVACIDAD.
+
+  Contenido fijo, asi que usa js/pagina.js como finca.html y
+  nosotros.html: lo unico que necesita es el encabezado y el pie.
+
+  NO ESTA EN LA BARRA DE NAVEGACION a proposito. Se llega desde la
+  columna "Legal" del pie, que es donde se la busca; meterla en el
+  menu principal le daria el mismo peso que a "Vinos" o "Comprar".
+
+  LO QUE DICE ESTE TEXTO TIENE QUE SER CIERTO. Cada dato que figura
+  aca sale de una columna que existe de verdad en la base, y cada
+  tercero nombrado es uno al que el sistema le manda datos de verdad.
+  Si manana se agrega un campo al registro o se cambia de proveedor de
+  correo, este archivo hay que actualizarlo: una politica que promete
+  algo que el sistema no cumple es peor que no tenerla.
+*/-->
+<body>
+
+<header th:replace="~{fragmentos/comunes :: encabezado('')}"></header>
+
+<main id="contenido">
+
+    <section class="portada-chica">
+      <h1>Política de privacidad</h1>
+      <p>Qué datos guardamos, para qué, y cómo pedir que los borremos</p>
+    </section>
+
+    <section class="seccion">
+      <div class="seccion__interior">
+        <div class="legal">
+
+          <p class="legal__fecha">
+            Última actualización: 4 de noviembre de 2026 &middot;
+            Vigente desde el 4 de noviembre de 2026
+          </p>
+
+          <p>
+            Esta política explica qué datos personales recopila el sitio de
+            <strong>Alba en los Andes</strong>, con qué finalidad los trata, con quién
+            los comparte y qué podés hacer vos con ellos. Está redactada según la
+            <a href="https://www.argentina.gob.ar/normativa/nacional/ley-25326-64790/texto"
+               target="_blank" rel="noopener noreferrer">Ley 25.326 de Protección de
+            los Datos Personales</a> y su decreto reglamentario 1558/2001.
+          </p>
+
+          <nav class="legal__indice" aria-label="Secciones de esta política">
+            <ol>
+              <li><a href="#responsable">Quién es responsable de tus datos</a></li>
+              <li><a href="#datos">Qué datos recopilamos</a></li>
+              <li><a href="#finalidad">Para qué los usamos</a></li>
+              <li><a href="#consentimiento">Con qué base los tratamos</a></li>
+              <li><a href="#terceros">Con quién los compartimos</a></li>
+              <li><a href="#plazo">Cuánto tiempo los conservamos</a></li>
+              <li><a href="#navegador">Qué guardamos en tu navegador</a></li>
+              <li><a href="#seguridad">Cómo los protegemos</a></li>
+              <li><a href="#derechos">Tus derechos sobre tus datos</a></li>
+              <li><a href="#menores">Menores de 18 años</a></li>
+              <li><a href="#cambios">Cambios en esta política</a></li>
+              <li><a href="#contacto">Cómo contactarnos</a></li>
+            </ol>
+          </nav>
+
+          <!--/* ===================== 1 ===================== */-->
+          <h2 id="responsable">1. Quién es responsable de tus datos</h2>
+          <p>
+            El responsable de la base de datos es <strong>Alba en los Andes</strong>,
+            con domicilio en Tupungato, Provincia de Mendoza, República Argentina.
+            Podés escribirnos a
+            <a href="mailto:contacto@albaenlosandes.com">contacto@albaenlosandes.com</a>
+            por cualquier cuestión relacionada con tus datos personales.
+          </p>
+
+          <!--/* ===================== 2 ===================== */-->
+          <h2 id="datos">2. Qué datos recopilamos</h2>
+          <p>
+            Solo recopilamos datos que vos nos das y los que genera tu propia actividad
+            en el sitio. No compramos listas, no seguimos tu navegación fuera de este
+            sitio y no hacemos perfiles publicitarios.
+          </p>
+
+          <h3>Cuando creás una cuenta</h3>
+          <table class="legal__tabla">
+            <thead>
+              <tr><th>Dato</th><th>Obligatorio</th><th>Para qué</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-etiqueta="Dato">Nombre y apellido</td>
+                <td data-etiqueta="Obligatorio">Sí</td>
+                <td data-etiqueta="Para qué">Identificarte en tu cuenta y en los comprobantes</td>
+              </tr>
+              <tr>
+                <td data-etiqueta="Dato">Correo electrónico</td>
+                <td data-etiqueta="Obligatorio">Sí</td>
+                <td data-etiqueta="Para qué">Ingresar al sitio, enviarte el comprobante de compra y el código si olvidás tu contraseña</td>
+              </tr>
+              <tr>
+                <td data-etiqueta="Dato">Contraseña</td>
+                <td data-etiqueta="Obligatorio">Sí, salvo que entres con Google</td>
+                <td data-etiqueta="Para qué">Proteger tu cuenta. No la guardamos: guardamos un resumen cifrado del que no se puede recuperar la original</td>
+              </tr>
+              <tr>
+                <td data-etiqueta="Dato">Teléfono</td>
+                <td data-etiqueta="Obligatorio">No</td>
+                <td data-etiqueta="Para qué">Ubicarte por un pedido en curso y verificar tu identidad si pedís recuperar la contraseña</td>
+              </tr>
+              <tr>
+                <td data-etiqueta="Dato">Varietales y líneas favoritas</td>
+                <td data-etiqueta="Obligatorio">No</td>
+                <td data-etiqueta="Para qué">Mostrarte primero los vinos que te interesan</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>Si entrás con Google</h3>
+          <p>
+            Cuando usás el botón de Google, Google nos envía tu correo electrónico, tu
+            nombre y un identificador de cuenta. <strong>No recibimos tu contraseña de
+            Google</strong> ni tenemos acceso a tu cuenta de Google. Si ese correo ya
+            existía en nuestro sitio, vinculamos las dos formas de ingreso a la misma
+            cuenta en lugar de crear una nueva, así no perdés tus pedidos.
+          </p>
+
+          <h3>Cuando comprás</h3>
+          <p>
+            Guardamos qué vinos compraste, en qué cantidad, a qué precio, la fecha, el
+            total y el medio de pago elegido. Si cancelás una compra, guardamos también
+            el motivo y el comentario que escribas.
+          </p>
+          <p>
+            <strong>No guardamos datos de tarjetas.</strong> El sitio no pide ni almacena
+            números de tarjeta, códigos de seguridad ni claves bancarias en ningún momento.
+          </p>
+
+          <!--/* ===================== 3 ===================== */-->
+          <h2 id="finalidad">3. Para qué los usamos</h2>
+          <ul>
+            <li>Crear tu cuenta y dejarte ingresar.</li>
+            <li>Procesar tus pedidos y llevar el registro de tus compras.</li>
+            <li>Enviarte por correo el comprobante de cada compra.</li>
+            <li>Enviarte un código de verificación si pedís recuperar tu contraseña.</li>
+            <li>Atender tus pedidos de cancelación y responderte.</li>
+            <li>Cumplir con las obligaciones legales y contables que nos exige la ley.</li>
+          </ul>
+          <p>
+            <strong>No usamos tus datos para publicidad.</strong> No te mandamos
+            promociones ni novedades, no vendemos ni cedemos tu información a terceros
+            con fines comerciales, y no armamos perfiles para segmentarte.
+          </p>
+
+          <!--/* ===================== 4 ===================== */-->
+          <h2 id="consentimiento">4. Con qué base los tratamos</h2>
+          <p>
+            Tratamos tus datos con tu consentimiento, que prestás al crear la cuenta, y
+            porque son necesarios para cumplir el contrato de compraventa cuando comprás
+            (artículo 5, inciso 2, apartado a, de la Ley 25.326). Los datos de las
+            operaciones los conservamos además por obligación legal.
+          </p>
+          <p>
+            Dar tus datos es voluntario. Los marcados como obligatorios son los mínimos
+            para que el sitio funcione: sin ellos no podemos crear tu cuenta ni enviarte
+            tu comprobante.
+          </p>
+
+          <!--/* ===================== 5 ===================== */-->
+          <h2 id="terceros">5. Con quién los compartimos</h2>
+          <p>
+            Compartimos la menor cantidad posible de datos, y solo con quienes prestan un
+            servicio necesario para que el sitio funcione:
+          </p>
+          <table class="legal__tabla">
+            <thead>
+              <tr><th>Quién</th><th>Qué recibe</th><th>Para qué</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-etiqueta="Quién">Brevo (Sendinblue, Francia)</td>
+                <td data-etiqueta="Qué recibe">Tu nombre, tu correo y el detalle del pedido</td>
+                <td data-etiqueta="Para qué">Entregarte el comprobante de compra y el código de recuperación de contraseña</td>
+              </tr>
+              <tr>
+                <td data-etiqueta="Quién">Google (Estados Unidos)</td>
+                <td data-etiqueta="Qué recibe">Solo interviene si elegís el botón de ingresar con Google</td>
+                <td data-etiqueta="Para qué">Verificar tu identidad sin que tengamos que manejar otra contraseña</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            Estas transferencias salen del país. Francia integra la lista de países con
+            protección adecuada reconocida por la Agencia de Acceso a la Información
+            Pública. En el caso de Google, la transferencia se ampara en tu consentimiento
+            expreso al elegir ese método de ingreso, conforme al artículo 12 de la
+            Ley 25.326.
+          </p>
+          <p>
+            Además, podemos entregar datos cuando una autoridad judicial o administrativa
+            competente nos lo requiera por ley. Fuera de estos casos, no compartimos tu
+            información con nadie.
+          </p>
+
+          <!--/* ===================== 6 ===================== */-->
+          <h2 id="plazo">6. Cuánto tiempo los conservamos</h2>
+          <ul>
+            <li>
+              <strong>Los datos de tu cuenta</strong>, mientras la cuenta exista. Si pedís
+              la baja, dejamos de usarlos para contactarte.
+            </li>
+            <li>
+              <strong>Los datos de tus compras</strong>, por el plazo que exige la
+              normativa comercial y fiscal, aunque hayas dado de baja la cuenta. Esto no
+              es una elección nuestra: son registros que estamos obligados a conservar.
+            </li>
+            <li>
+              <strong>Los códigos de recuperación de contraseña</strong>, unos pocos
+              minutos. Vencen solos y no quedan guardados.
+            </li>
+          </ul>
+          <p>
+            Cuando damos de baja una cuenta, el registro no se borra de inmediato: se
+            marca como inactivo para no romper el historial de las compras asociadas. Si
+            querés la eliminación definitiva, pedila como se explica más abajo.
+          </p>
+
+          <!--/* ===================== 7 ===================== */-->
+          <h2 id="navegador">7. Qué guardamos en tu navegador</h2>
+          <p>
+            <strong>Este sitio no usa cookies</strong> ni servicios de analítica,
+            publicidad o seguimiento de terceros.
+          </p>
+          <p>
+            Sí guardamos dos cosas en el almacenamiento local de tu navegador, que nunca
+            salen de tu dispositivo y que podés borrar vaciando los datos del sitio:
+          </p>
+          <ul>
+            <li>
+              <strong>Tu sesión</strong>, para que no tengas que volver a ingresar cada
+              vez que cambiás de página.
+            </li>
+            <li>
+              <strong>Tu carrito</strong>, para que los vinos que elegiste sigan ahí si
+              cerrás la pestaña y volvés.
+            </li>
+          </ul>
+
+          <!--/* ===================== 8 ===================== */-->
+          <h2 id="seguridad">8. Cómo los protegemos</h2>
+          <p>
+            Las contraseñas no se guardan en texto legible: se almacena un resumen cifrado
+            del que no se puede reconstruir la original, de modo que ni siquiera nosotros
+            podemos verla. El acceso al panel de administración está restringido a las
+            cuentas con ese permiso, y los códigos de recuperación vencen a los pocos
+            minutos y sirven una sola vez.
+          </p>
+          <p>
+            Ninguna medida es infalible. Si detectamos un incidente de seguridad que
+            afecte tus datos, te lo vamos a comunicar al correo de tu cuenta.
+          </p>
+
+          <!--/* ===================== 9 ===================== */-->
+          <h2 id="derechos">9. Tus derechos sobre tus datos</h2>
+          <p>Podés pedirnos en cualquier momento:</p>
+          <ul>
+            <li><strong>Acceso:</strong> saber qué datos tuyos tenemos.</li>
+            <li><strong>Rectificación:</strong> que corrijamos los que estén mal.</li>
+            <li><strong>Actualización:</strong> que pongamos al día los que cambiaron.</li>
+            <li><strong>Supresión:</strong> que borremos los que ya no sean necesarios.</li>
+          </ul>
+
+          <div class="legal__caja">
+            <p>
+              <strong>Cómo ejercerlos.</strong> Buena parte podés hacerla vos mismo desde
+              <a th:href="@{/cuenta/datos}" href="/cuenta/datos">Mi perfil</a>: ahí ves y editás tus datos y
+              consultás tus pedidos. Para lo que no se pueda desde el sitio —por ejemplo,
+              la eliminación definitiva de tu cuenta— escribinos a
+              <a href="mailto:contacto@albaenlosandes.com">contacto@albaenlosandes.com</a>
+              desde la dirección de tu cuenta. Respondemos dentro de los 10 días corridos
+              para los pedidos de acceso y de los 5 días hábiles para los de rectificación
+              o supresión, como fija la Ley 25.326.
+            </p>
+          </div>
+
+          <p>
+            El titular de los datos personales tiene la facultad de ejercer el derecho de
+            acceso a los mismos en forma gratuita a intervalos no inferiores a seis meses,
+            salvo que se acredite un interés legítimo al efecto, conforme lo establecido en
+            el artículo 14, inciso 3, de la Ley 25.326.
+          </p>
+          <p>
+            La <strong>Agencia de Acceso a la Información Pública</strong>, en su carácter
+            de órgano de control de la Ley 25.326, tiene la atribución de atender las
+            denuncias y reclamos que se interpongan con relación al incumplimiento de las
+            normas sobre protección de datos personales.
+          </p>
+
+          <!--/* ===================== 10 ===================== */-->
+          <h2 id="menores">10. Menores de 18 años</h2>
+          <p>
+            Este sitio vende bebidas alcohólicas. Está prohibida su venta a menores de 18
+            años por la
+            <a href="https://www.argentina.gob.ar/normativa/nacional/ley-24788-42480/texto"
+               target="_blank" rel="noopener noreferrer">Ley 24.788</a>. No creamos cuentas
+            ni procesamos pedidos de menores de edad, y no recopilamos sus datos a
+            sabiendas. Si detectamos una cuenta de una persona menor de 18 años, la damos
+            de baja y eliminamos sus datos.
+          </p>
+
+          <!--/* ===================== 11 ===================== */-->
+          <h2 id="cambios">11. Cambios en esta política</h2>
+          <p>
+            Si cambiamos esta política, actualizamos la fecha del encabezado. Cuando el
+            cambio afecte de manera significativa cómo tratamos tus datos, te lo avisamos
+            al correo de tu cuenta antes de que entre en vigencia.
+          </p>
+
+          <!--/* ===================== 12 ===================== */-->
+          <h2 id="contacto">12. Cómo contactarnos</h2>
+          <p>
+            Por cualquier duda sobre esta política o sobre tus datos personales,
+            escribinos a
+            <a href="mailto:contacto@albaenlosandes.com">contacto@albaenlosandes.com</a>
+            o usá el <a th:href="@{/contacto}" href="/contacto">formulario de contacto</a>. También podés ver
+            los <a th:href="@{/legal/terminos}" href="/legal/terminos">términos y condiciones</a> del sitio.
+          </p>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+<footer th:replace="~{fragmentos/comunes :: pie}"></footer>
+
+</body>
+</html>

@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  ============================================================
+   LOS FRAGMENTOS DE LA TIENDA
+  ============================================================
+   Los pedazos de pantalla que las escrituras del carrito devuelven
+   por separado, sin encabezado ni pie.
+
+   POR QUE ESTAN EN UN ARCHIVO PROPIO Y NO EN LA PAGINA QUE LOS USA.
+   Primero los puse dentro de tienda/carrito.html, que es pagina y
+   tenia los fragmentos definidos abajo. Thymeleaf, al dibujar esa
+   plantilla como PAGINA, dibuja el archivo entero: las definiciones
+   de los fragmentos salian impresas junto con la pagina. El resultado
+   era un /tienda/carrito con el panel repetido tres veces y DOS
+   elementos con id="cuentaCarrito".
+
+   Lo segundo era lo grave: hx-swap-oob busca por id, y con el id
+   duplicado la burbuja se actualizaba en el primero que encontrara,
+   que podia no ser el del encabezado.
+
+   Una plantilla que es pagina se dibuja entera; una que solo tiene
+   fragmentos no se pide nunca como pagina. Separarlas es lo que
+   evita que una cosa se cuele en la otra.
+*/-->
+<body>
+
+<!--/* ============================================================
+     EL PANEL
+     ============================================================
+     Es lo que devuelven las escrituras del carrito. Vuelve a traer su
+     propio id porque se reemplaza entero (hx-swap="outerHTML"): si lo
+     perdiera, el segundo cambio de cantidad no encontraria donde
+     poner la respuesta.
+     ============================================================ */-->
+<div th:fragment="panel" id="panelCarrito" class="carrito-panel">
+
+  <h2>Tu carrito</h2>
+
+  <!--/*
+    LOS AVISOS DE ERROR. Antes eran toast() de util.js: un cartel
+    flotante que se iba solo a los tres segundos y que un lector de
+    pantalla no anunciaba. Ahora el aviso llega en la respuesta, vive
+    dentro del panel y tiene role="alert", que es lo que lo hace
+    anunciarse al aparecer.
+
+    Solo existe si hay algo que avisar ("No quedan tantas botellas de
+    Gran Reserva Malbec"), asi que no hay un cartel vacio esperando.
+  */-->
+  <p th:if="${aviso != null}" class="form-error" role="alert" th:text="${aviso}">Mensaje</p>
+
+  <!--/* ---------- el carrito vacio ---------- */-->
+  <div th:if="${#lists.isEmpty(renglones)}" class="estado">
+    <div class="estado__icono" aria-hidden="true">🛒</div>
+    <p>Tu carrito está vacío.</p>
+    <a class="btn btn--fantasma" style="margin-top:14px"
+       th:href="@{/tienda}" href="/tienda">Seguir comprando</a>
+  </div>
+
+  <!--/* ---------- los renglones ---------- */-->
+  <th:block th:unless="${#lists.isEmpty(renglones)}">
+
+    <!--/*
+      CADA RENGLON ES UN <form>, Y EL <form> ES EL .carrito-item.
+
+      POR QUE NO UN <div> CON UN <form> ADENTRO: .carrito-item es una
+      grilla de tres columnas (estilos.css:254). Meter un envoltorio
+      en el medio habria roto la grilla y obligado a tocar el CSS. Un
+      <form> con esa clase ocupa el mismo lugar en el arbol y toma el
+      mismo estilo, porque el selector es .carrito-item y no
+      div.carrito-item: no hubo que cambiar nada.
+
+      POR QUE UN FORMULARIO Y NO BOTONES CON JAVASCRIPT: asi los
+      botones de cantidad funcionan sin HTMX -el formulario se envia y
+      la pagina vuelve con el carrito actualizado- y el token CSRF lo
+      pone Thymeleaf solo. Con HTMX andando, hx-post se adelanta al
+      envio y cambia nada mas que el panel.
+    */-->
+    <form th:each="r : ${renglones}" class="carrito-item"
+          method="post" th:action="@{/tienda/carrito/{id}(id=${r.vino.id})}">
+
+      <div class="carrito-item__foto">
+        <img th:src="@{${r.vino.imagen}}" th:alt="${r.vino.nombre}" loading="lazy">
+      </div>
+
+      <div>
+        <!--/* El nombre lleva a la ficha: era lo unico que el carrito viejo no ofrecia. */-->
+        <div class="carrito-item__nombre">
+          <a th:href="@{/vinos/{id}(id=${r.vino.id})}" href="/vinos/1"
+             th:text="${r.vino.nombre}">Nombre</a>
+        </div>
+        <div class="carrito-item__precio"
+             th:text="'$ ' + ${#numbers.formatInteger(r.vino.precio, 1, 'POINT')} + ' c/u'">$ 40.000 c/u</div>
+
+        <!--/*
+          EL SELECTOR DE CANTIDAD. Los tres controles siguen siendo
+          hijos directos de .selector-cantidad, porque el CSS los
+          selecciona por etiqueta (.selector-cantidad button,
+          .selector-cantidad input): cualquier envoltorio los habria
+          dejado sin estilo.
+
+          Los botones mandan la cantidad YA RESUELTA: el servidor no
+          recibe "sumale uno" sino el numero final. hx-vals lleva ese
+          numero cuando HTMX intercepta; name/value lo lleva cuando el
+          formulario se envia por su cuenta. El mismo boton sirve para
+          los dos caminos.
+        */-->
+        <div class="selector-cantidad" style="margin-top:8px">
+          <button type="submit" name="cantidad" th:value="${r.cantidad - 1}"
+                  th:aria-label="'Quitar una botella de ' + ${r.vino.nombre}"
+                  th:attr="hx-post=@{/tienda/carrito/{id}(id=${r.vino.id})},
+                           hx-vals=|{&quot;cantidad&quot;: ${r.cantidad - 1}}|"
+                  hx-target="#panelCarrito" hx-swap="outerHTML">−</button>
+
+          <input type="number" name="cantidad" th:value="${r.cantidad}" min="0"
+                 th:aria-label="'Cantidad de ' + ${r.vino.nombre}"
+                 th:attr="hx-post=@{/tienda/carrito/{id}(id=${r.vino.id})}"
+                 hx-trigger="change" hx-target="#panelCarrito" hx-swap="outerHTML">
+
+          <button type="submit" name="cantidad" th:value="${r.cantidad + 1}"
+                  th:aria-label="'Agregar una botella de ' + ${r.vino.nombre}"
+                  th:attr="hx-post=@{/tienda/carrito/{id}(id=${r.vino.id})},
+                           hx-vals=|{&quot;cantidad&quot;: ${r.cantidad + 1}}|"
+                  hx-target="#panelCarrito" hx-swap="outerHTML">+</button>
+        </div>
+      </div>
+
+      <div style="text-align:right">
+        <div style="font-weight:700;margin-bottom:8px"
+             th:text="'$ ' + ${#numbers.formatInteger(r.importe, 1, 'POINT')}">$ 80.000</div>
+
+        <!--/*
+          QUITAR ES UN DELETE DE VERDAD. hx-delete manda el metodo HTTP
+          que significa "borra esto", con el token CSRF que declara el
+          <body> en hx-headers.
+
+          hx-confirm pregunta antes: es el confirm() del navegador, el
+          mismo que programaba confirmarBaja en tienda.js:247, pero
+          declarado como atributo en vez de escrito.
+
+          SIN JAVASCRIPT el boton es un submit del mismo formulario con
+          cantidad=0, y CarritoSesion.cambiarCantidad entiende el cero
+          como "quitalo". Los dos caminos hacen lo mismo.
+        */-->
+        <button type="submit" name="cantidad" value="0" class="btn btn--peligro btn--chico"
+                th:aria-label="'Quitar ' + ${r.vino.nombre} + ' del carrito'"
+                th:attr="hx-delete=@{/tienda/carrito/{id}(id=${r.vino.id})},
+                         hx-confirm='¿Quitar ' + ${r.vino.nombre} + ' del carrito?'"
+                hx-target="#panelCarrito" hx-swap="outerHTML">Quitar</button>
+      </div>
+    </form>
+
+    <!--/*
+      EL DESGLOSE. El cupon se aplica en el checkout, pero si ya hay
+      uno puesto se muestra aca con su boton de quitar, y lo que se
+      redibuja al quitarlo es este panel.
+    */-->
+    <div th:replace="~{tienda/cuentas :: desglose(true, '#panelCarrito')}"></div>
+
+    <a class="btn btn--primario btn--bloque" style="margin-top:20px"
+       th:href="@{/tienda/pagar}" href="/tienda/pagar">Finalizar compra</a>
+  </th:block>
+
+</div>
+
+
+<!--/* ============================================================
+     EL PANEL + LA BURBUJA DEL ENCABEZADO
+     ============================================================
+     Lo que devuelven las escrituras: dos pedazos de pantalla en una
+     sola respuesta. El panel va a su lugar y la burbuja viaja fuera
+     de banda hasta el encabezado. Ver burbujaCarrito en comunes.html.
+     ============================================================ */-->
+<th:block th:fragment="panelConBurbuja">
+  <div th:replace="~{tienda/fragmentos :: panel}"></div>
+  <span th:replace="~{fragmentos/comunes :: burbujaCarrito(true)}"></span>
+</th:block>
+
+
+<!--/* ============================================================
+     LA RESPUESTA DE "AGREGAR AL CARRITO"
+     ============================================================
+     Dos pedazos de pantalla en una sola respuesta: el boton de la
+     tarjeta que se toco, ahora en estado "Agregado", y la burbuja del
+     encabezado, que viaja fuera de banda.
+
+     Es lo que antes hacian dos lineas de tienda.js:319 (un toast en
+     una esquina y actualizarBadgeCarrito), con una diferencia: el
+     numero de la burbuja lo cuenta el servidor sobre el carrito de la
+     sesion, no el navegador sobre su localStorage.
+
+     SI EL VINO NO SE PUDO AGREGAR (se quedo sin stock entre que se
+     dibujo la tarjeta y se toco el boton), 'agregado' viene en false
+     y el boton vuelve como estaba, con el aviso al lado.
+     ============================================================ */-->
+<th:block th:fragment="compraConBurbuja">
+  <form th:replace="~{fragmentos/vino :: compra(${vino}, ${agregado})}"></form>
+  <span th:replace="~{fragmentos/comunes :: burbujaCarrito(true)}"></span>
+</th:block>
+
+
+<!--/* ============================================================
+     EL RESUMEN DEL PEDIDO (columna derecha del checkout)
+     ============================================================
+     Reemplaza a panelResumen() de js/tienda.js:691, que armaba la
+     columna entera con crear() y la redibujaba sola llamando a
+     repintar() cada vez que se tocaba el cupon.
+
+     Aca lo redibuja el servidor: el boton "Aplicar" manda el codigo,
+     el servidor contesta esta misma columna con el descuento ya
+     calculado y HTMX la reemplaza. La diferencia que importa no es de
+     tecnica: antes el descuento lo calculaba y lo informaba el
+     navegador, ahora lo decide el servidor.
+     ============================================================ */-->
+<aside th:fragment="resumenDelPedido" id="resumenDelPedido" class="pago__resumen">
+
+  <h3 class="resumen__titulo">Tu pedido</h3>
+
+  <ul class="resumen__items">
+    <li th:each="r : ${renglones}">
+      <span class="resumen__cantidad" th:text="${r.cantidad} + '×'">2×</span>
+      <span class="resumen__nombre" th:text="${r.vino.nombre}">Nombre</span>
+      <span class="resumen__importe"
+            th:text="'$ ' + ${#numbers.formatInteger(r.importe, 1, 'POINT')}">$ 80.000</span>
+    </li>
+  </ul>
+
+  <!--/*
+    ============================================================
+     EL CUPON
+    ============================================================
+     LOS CONTROLES ESTAN ACA PERO PERTENECEN A OTRO FORMULARIO. El
+     atributo form="formCupon" de HTML asocia un campo o un boton a un
+     formulario en el que no esta anidado. Hace falta porque los
+     formularios no se pueden meter uno dentro de otro, y esto esta
+     adentro del formulario del checkout.
+
+     Sin ese atributo habria dos opciones, las dos peores: aplicar el
+     cupon con JavaScript (y entonces sin JavaScript no hay cupon), o
+     que el boton "Aplicar" enviara el checkout entero a medio
+     completar, que es exactamente lo que tenia que evitar a mano el
+     listener de Enter de tienda.js:701.
+
+     Con HTMX, hx-include manda SOLO la cajita del codigo y reemplaza
+     esta columna. Sin HTMX, el formulario de arriba se envia y la
+     pagina vuelve con el cupon puesto.
+  */-->
+  <div class="cupon">
+    <label for="codigoCupon">¿Tenés un código promocional?</label>
+    <div class="campo-con-boton">
+      <input type="text" id="codigoCupon" name="codigo" form="formCupon"
+             autocomplete="off" placeholder="Ingresá tu código"
+             aria-label="Código promocional"
+             th:value="${codigoTecleado}">
+      <button type="submit" form="formCupon" class="btn btn--fantasma btn--chico"
+              th:attr="hx-post=@{/tienda/cupon}"
+              hx-include="#codigoCupon"
+              hx-target="#resumenDelPedido" hx-swap="outerHTML">Aplicar</button>
+    </div>
+
+    <!--/*
+      EL ESTADO DEL CUPON. Tres casos, decididos en el servidor:
+      vacio (no se escribio nada), aplicado, o un codigo que no
+      existe. aria-live="polite" se conserva del original: es lo que
+      anuncia el resultado a quien no ve cambiar el renglon del
+      descuento.
+    */-->
+    <!--/*
+      LA CLASE Y EL TEXTO LOS DECIDE EL SERVIDOR, y no se arman aca
+      con un condicional. No es gusto: Thymeleaf usa __algo__ como
+      sintaxis de preprocesado, asi que una expresion que contenga dos
+      veces un guion bajo doble -y "cupon__estado--ok" junto con
+      "cupon__estado--error" los tiene- se rompe al parsear. El error
+      era "Could not parse as expression: estado--ok'", y cortaba la
+      pagina a la mitad.
+
+      Ademas queda mejor: decidir si un cupon existe es logica, y la
+      logica va en el servidor.
+    */-->
+    <p class="cupon__estado" aria-live="polite"
+       th:classappend="${claseDelCupon}"
+       th:text="${mensajeDelCupon}"></p>
+  </div>
+
+  <div class="resumen__cuentas">
+    <div th:replace="~{tienda/cuentas :: desglose(true, '#resumenDelPedido')}"></div>
+  </div>
+
+  <!--/*
+    EL BOTON DICE CUANTO SE VA A PAGAR, igual que antes
+    (tienda.js:744). Es el unico numero de la pantalla que la persona
+    mira antes de apretar, asi que tiene que ser el mismo que se
+    cobra: sale de ${cuentas}, que es lo que va a guardar el servidor.
+  */-->
+  <button type="submit" class="btn btn--primario btn--bloque"
+          th:text="'Pagar $ ' + ${#numbers.formatInteger(cuentas.total, 1, 'POINT')}">Pagar</button>
+
+  <p class="resumen__aviso">
+    Al confirmar, el pedido queda registrado y te escribimos para coordinar la entrega.
+  </p>
+</aside>
+
+
+<!--/* ============================================================
+     LOS BLOQUES DEL MEDIO DE PAGO
+     ============================================================
+     Antes esto era un onchange que ponia hidden=true o false sobre
+     dos bloques que SIEMPRE estaban en el HTML (tienda.js:468).
+     Ahora el bloque que no corresponde no existe: pedirle el numero
+     de tarjeta a quien paga por transferencia no tiene sentido, y
+     mandarselo escondido al navegador tampoco.
+
+     Los radios lo piden con hx-get y hx-include="closest form", asi
+     que lo que se haya tipeado en la tarjeta vuelve escrito: el
+     servidor lo recibe y lo vuelve a poner con th:field.
+
+     SIN JAVASCRIPT se ven los dos bloques, que es lo razonable: la
+     persona completa el que eligio y el servidor valida solo ese.
+     ============================================================ */-->
+<th:block th:fragment="bloquesDePago">
+  <!--/*
+    EL th:if VA EN UN th:block QUE ENVUELVE, no en la misma etiqueta
+    que el th:replace: th:replace tiene mas precedencia, asi que
+    juntos el th:if no se evalua y se dibujaban LOS DOS bloques, el de
+    la tarjeta y el de la transferencia, uno abajo del otro.
+  */-->
+  <th:block th:if="${compra.medioPago?.name() == 'TARJETA'}">
+    <div th:replace="~{tienda/fragmentos :: tarjetaDePago}"></div>
+  </th:block>
+  <th:block th:if="${compra.medioPago?.name() == 'TRANSFERENCIA'}">
+    <div th:replace="~{tienda/fragmentos :: transferencia}"></div>
+  </th:block>
+</th:block>
+
+
+<!--/* ============================================================
+     LA TARJETA
+     ============================================================
+     Reemplaza a bloqueTarjeta() de js/tienda.js:538.
+
+     QUE SE MUDO AL SERVIDOR: el marcado. Los tres campos, la tarjeta
+     dibujada y los rotulos ahora vienen hechos.
+
+     QUE SIGUE SIENDO JAVASCRIPT, Y POR QUE NO ES UNA CONTRADICCION:
+     la vista previa que se completa mientras se escribe, el formateo
+     en grupos de cuatro, la barra del vencimiento y el boton que
+     inventa un numero de prueba. Nada de eso es dibujar datos del
+     servidor: es reaccionar a cada tecla, y una vuelta al servidor
+     por tecla seria absurda. Vive en js/tienda-tarjeta.js, que si no
+     carga deja los campos funcionando igual, solo que sin ayuda.
+
+     EL NUMERO AHORA SI VIAJA AL SERVIDOR. Antes no. Es la unica cosa
+     de esta migracion que empeora, y esta explicada en DatosDeCompra.
+     ============================================================ */-->
+<div th:fragment="tarjetaDePago" class="tarjeta-pago" id="bloqueTarjeta"
+     th:object="${compra}">
+
+  <!--/*
+    LA TARJETA DIBUJADA es decoracion: aria-hidden="true" para que un
+    lector de pantalla no lea dos veces los mismos datos, que ya estan
+    en los campos de al lado. Se conserva del original.
+  */-->
+  <div class="plastico" aria-hidden="true">
+    <div class="plastico__chip"></div>
+    <div class="plastico__numero">•••• •••• •••• ••••</div>
+    <div class="plastico__pie">
+      <div><span class="plastico__rotulo">Titular</span>
+           <div class="plastico__dato">NOMBRE DEL TITULAR</div></div>
+      <div><span class="plastico__rotulo">Vence</span>
+           <div class="plastico__dato">MM/AA</div></div>
+    </div>
+  </div>
+
+  <div class="tarjeta-pago__campos">
+    <div class="form-grupo">
+      <label for="tarjetaNumero">Número de tarjeta</label>
+      <div class="campo-con-boton">
+        <input type="text" id="tarjetaNumero" th:field="*{tarjetaNumero}"
+               inputmode="numeric" autocomplete="off"
+               placeholder="0000 0000 0000 0000" maxlength="19">
+        <!--/*
+          POR QUE EXISTE ESTE BOTON: es un trabajo practico, no hay
+          pasarela de pago. Para probar la compra hace falta un numero
+          que pase la validacion de Luhn, y pedirle a quien prueba que
+          se acuerde de uno -o que use el suyo real- seria peor.
+        */-->
+        <button type="button" class="btn btn--fantasma btn--chico generar"
+                id="generarTarjeta">Generar número de tarjeta</button>
+      </div>
+      <span class="form-error" th:errors="*{tarjetaNumero}" aria-live="polite"></span>
+    </div>
+
+    <p class="pago__ayuda">
+      No hay cobro real: el botón arma un número de prueba válido junto con el
+      vencimiento y el código.
+    </p>
+
+    <div class="form-fila">
+      <div class="form-grupo">
+        <label for="tarjetaVence">Vencimiento</label>
+        <input type="text" id="tarjetaVence" th:field="*{tarjetaVence}"
+               inputmode="numeric" autocomplete="off" placeholder="MM/AA" maxlength="5">
+        <span class="form-error" th:errors="*{tarjetaVence}" aria-live="polite"></span>
+      </div>
+      <div class="form-grupo">
+        <label for="tarjetaCvv">Código de seguridad</label>
+        <input type="text" id="tarjetaCvv" th:field="*{tarjetaCvv}"
+               inputmode="numeric" autocomplete="off" placeholder="123" maxlength="4">
+        <span class="form-error" th:errors="*{tarjetaCvv}" aria-live="polite"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!--/* ============================================================
+     LA TRANSFERENCIA
+     ============================================================
+     Reemplaza a bloqueTransferencia() de js/modules/transferencia.js.
+     Los datos salen de DatosBancarios, del lado del servidor.
+
+     SE MUESTRA ANTES DE CONFIRMAR Y NO SOLO DESPUES: quien paga por
+     transferencia quiere ver a donde va la plata antes de
+     comprometerse. Esconder el CVU hasta despues de confirmar obliga
+     a decidir a ciegas. Los datos se repiten en la confirmacion y en
+     el correo, porque nadie transfiere en el mismo segundo en que
+     compra.
+     ============================================================ */-->
+<div th:fragment="transferencia" class="banco" id="bloqueTransferencia">
+
+  <p th:if="${datosBancarios.ejemplo}" class="banco__aviso">
+    ⚠ Datos de ejemplo: todavía no son la cuenta real de la bodega.
+  </p>
+
+  <h4 class="banco__titulo">Datos para transferir</h4>
+
+  <!--/*
+    EL ALIAS VA PRIMERO: son cuatro palabras contra veintidos digitos,
+    y es lo que casi todo el mundo usa para transferir. El CVU queda
+    de respaldo para quien prefiera pegarlo.
+
+    EL BOTON DE COPIAR lo agrega js/tienda-tarjeta.js si hay
+    JavaScript: el portapapeles solo se toca desde el navegador. Sin
+    el, el valor esta escrito y se selecciona a mano, que es lo que ya
+    hacia el respaldo de transferencia.js:51.
+  */-->
+  <div class="banco__fila">
+    <span class="banco__rotulo">Alias</span>
+    <span class="banco__valor" th:text="${datosBancarios.alias}">tour.saxo.suma.mp</span>
+  </div>
+  <div class="banco__fila">
+    <span class="banco__rotulo">CVU</span>
+    <span class="banco__valor" th:text="${datosBancarios.cvu}">0000003100019063106767</span>
+  </div>
+  <div class="banco__fila">
+    <span class="banco__rotulo">Titular</span>
+    <span class="banco__valor" th:text="${datosBancarios.titular}">ALBA EN LOS ANDES SA</span>
+  </div>
+  <div th:if="${datosBancarios.hayCuit}" class="banco__fila">
+    <span class="banco__rotulo">CUIT</span>
+    <span class="banco__valor" th:text="${datosBancarios.cuit}"></span>
+  </div>
+
+  <!--/*
+    EL QR. Lo dibuja la libreria js/vendor/qrcode.js en el navegador;
+    el servidor solo dice que texto tiene que llevar, en data-qr.
+
+    QUE ES Y QUE NO ES, PORQUE IMPORTA: este QR lleva TEXTO, el alias
+    y nada mas. Quien lo escanea ve "tour.saxo.suma.mp" y lo copia. NO
+    abre ninguna billetera, NO carga el monto y NO cobra. Los QR que
+    cobran de verdad son los interoperables (Transferencias 3.0): los
+    emite un banco o un proveedor de pagos contra la cuenta, con un
+    formato firmado que no se puede fabricar desde afuera. Por eso el
+    pie dice "escaneá para copiar el alias" y no "pagá con QR".
+
+    Si la libreria no carga, la caja queda vacia y el alias sigue
+    escrito arriba.
+  */-->
+  <div class="banco__qr-caja">
+    <div class="banco__qr" th:attr="data-qr=${datosBancarios.alias}"></div>
+    <p class="banco__qr-pie">
+      <strong>Escaneá para copiar el alias. </strong>
+      No es un QR de pago: no abre la billetera ni carga el monto.
+    </p>
+  </div>
+
+  <p class="banco__paso">
+    <strong>Después de transferir: </strong>envianos el comprobante a
+    <a th:href="'mailto:' + ${datosBancarios.contacto}"
+       th:text="${datosBancarios.contacto}">albaenlosandes@gmail.com</a>
+    con el número de pedido. Lo revisamos y te confirmamos el pago.
+  </p>
+  <p class="banco__demora">
+    Tu pedido queda reservado. Preparamos el envío cuando vemos la transferencia acreditada.
+  </p>
+</div>
+
+</body>
+</html>

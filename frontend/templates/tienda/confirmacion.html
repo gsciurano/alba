@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  ============================================================
+   PEDIDO CONFIRMADO
+  ============================================================
+   Reemplaza a mostrarConfirmacion() de js/tienda.js:860.
+
+   LO QUE CAMBIA, Y ES EL ARREGLO MAS IMPORTANTE DE ESTA ETAPA.
+   La confirmacion vieja mezclaba dos fuentes: el numero de pedido y
+   el total de los vinos venian del servidor, pero el envio, el 21% y
+   el descuento los ponia el navegador, porque la tabla 'pedidos' no
+   tenia columnas para guardarlos. Resultado: esta pantalla mostraba
+   un total y el comprobante que llegaba por correo mostraba otro, el
+   de la base.
+
+   Ahora los cinco importes son las cinco columnas del pedido
+   guardado. La pantalla, el correo y la base dicen lo mismo porque
+   leen lo mismo.
+
+   TIENE DIRECCION PROPIA, /tienda/pedido/27, a la que se llega por
+   redireccion despues del POST. Dos consecuencias: recargar no vuelve
+   a comprar, y el numero de pedido se puede volver a mirar sin
+   depender de no haber cerrado un modal.
+*/-->
+<head th:replace="~{fragmentos/comunes :: cabeza('Pedido confirmado — Alba en los Andes', 'Tu pedido quedó registrado en Alba en los Andes.')}">
+  <title>Pedido confirmado — Alba en los Andes</title>
+</head>
+<body>
+
+<header th:replace="~{fragmentos/comunes :: encabezado('tienda')}"></header>
+
+<main id="contenido">
+  <section class="seccion">
+    <div class="seccion__interior" style="max-width:640px">
+      <div class="carrito-panel confirmacion">
+
+        <div class="confirmacion__tilde" aria-hidden="true">✓</div>
+        <h1>¡Pedido confirmado!</h1>
+        <p class="confirmacion__numero" th:text="'#' + ${pedido.idPedido}">#27</p>
+        <p class="pago__nota">Guardá este número para seguir tu pedido.</p>
+
+        <!--/*
+          EL DESGLOSE, LEIDO DE LA BASE. No se usa el fragmento
+          compartido de tienda/cuentas porque ese lee ${cuentas}, que
+          son las cuentas de un carrito; aca el carrito ya no existe y
+          lo que hay es un pedido guardado. Los numeros son los
+          mismos, la fuente no.
+        */-->
+        <div class="carrito-resumen">
+          <div class="carrito-resumen__fila">
+            <span th:text="'Vinos (' + ${botellas} + ' botella' + (${botellas} == 1 ? '' : 's') + ')'">
+              Vinos (2 botellas)</span>
+            <span th:text="'$ ' + ${#numbers.formatInteger(pedido.subtotal, 1, 'POINT')}">$ 30.000</span>
+          </div>
+
+          <div th:if="${pedido.descuento != null and pedido.descuento.signum() > 0}"
+               class="carrito-resumen__fila resumen__descuento">
+            <span th:text="'Descuento ' + ${pedido.cupon}">Descuento ALBA10</span>
+            <span th:text="'− $ ' + ${#numbers.formatInteger(pedido.descuento, 1, 'POINT')}">− $ 3.000</span>
+          </div>
+
+          <div class="carrito-resumen__fila">
+            <span>Envío</span>
+            <span th:text="'$ ' + ${#numbers.formatInteger(pedido.envio, 1, 'POINT')}">$ 2.500</span>
+          </div>
+          <div class="carrito-resumen__fila">
+            <span>Impuestos (21%)</span>
+            <span th:text="'$ ' + ${#numbers.formatInteger(pedido.impuestos, 1, 'POINT')}">$ 6.300</span>
+          </div>
+          <div class="carrito-resumen__total">
+            <span>Total</span>
+            <span th:text="'$ ' + ${#numbers.formatInteger(pedido.total, 1, 'POINT')}">$ 38.800</span>
+          </div>
+        </div>
+
+        <div class="confirmacion__datos">
+          <!--/*
+            LA DIRECCION Y LOS ULTIMOS CUATRO DIGITOS SON DE UN SOLO
+            USO: viajaron como atributos flash desde el POST y no
+            estan en la base. La tabla 'pedidos' no tiene columna de
+            direccion de entrega -limitacion que ya existia- y el
+            numero de tarjeta se descarta a proposito.
+
+            Si alguien recarga esta pagina, los dos renglones no
+            aparecen. Es preferible omitirlos a inventarlos.
+          */-->
+          <p th:if="${direccion != null}" th:text="'Envío a ' + ${direccion}">Envío a ...</p>
+          <p th:text="'Te escribimos a ' + ${pedido.usuario.email}">Te escribimos a ...</p>
+          <p th:if="${ultimosCuatro != null and !ultimosCuatro.isEmpty()}"
+             th:text="'Pagado con tarjeta terminada en ' + ${ultimosCuatro}">Pagado con tarjeta ...</p>
+        </div>
+
+        <!--/*
+          SI PAGO POR TRANSFERENCIA, LOS DATOS SE REPITEN ACA. Nadie
+          transfiere en el mismo segundo en que compra: quien vuelve a
+          esta pagina manana tiene que encontrar el alias sin tener
+          que buscar el mail.
+
+          El pedido nace con pago_confirmado = false y lo tilda un
+          administrador cuando ve la plata, que es de donde sale el
+          "esperando comprobante" del panel.
+        */-->
+        <!--/* th:if envolviendo, no en la misma etiqueta: ver la nota
+             en tienda/fragmentos.html sobre la precedencia. */-->
+        <th:block th:if="${pedido.medioPago.name() == 'TRANSFERENCIA'}">
+          <div th:replace="~{tienda/fragmentos :: transferencia}"></div>
+        </th:block>
+
+        <a class="btn btn--primario" style="margin-top:24px"
+           th:href="@{/tienda}" href="/tienda">Seguir comprando</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer th:replace="~{fragmentos/comunes :: pie}"></footer>
+
+<!--/* El QR del alias, solo si se mostro el bloque de transferencia. */-->
+<script th:if="${pedido.medioPago.name() == 'TRANSFERENCIA'}"
+        th:src="@{/js/vendor/qrcode.js}" src="/js/vendor/qrcode.js" defer></script>
+<script th:if="${pedido.medioPago.name() == 'TRANSFERENCIA'}"
+        th:src="@{/js/tienda-tarjeta.js}" src="/js/tienda-tarjeta.js" defer></script>
+
+</body>
+</html>

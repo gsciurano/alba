@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Dibujo de respaldo para un vino sin fotografia.
+
+  Es el mismo que generaba util.js:42 (placeholderVino) como data URI en
+  tiempo de ejecucion. Ahora es un archivo: el servidor ya sabe, al armar
+  la pagina, si la foto existe, asi que no hace falta que el navegador lo
+  descubra con un evento 'error' y lo dibuje a mano.
+
+  La unica diferencia es que no lleva el nombre del vino escrito adentro:
+  un archivo estatico es igual para todos. El nombre esta al lado, en la
+  tarjeta, que es donde se lee igual.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="520" viewBox="0 0 400 520"
+     role="img" aria-label="Vino sin fotografía">
+  <rect width="400" height="520" fill="#2a211c"/>
+  <path d="M185 110 h30 v70 q0 40 20 60 v150 q0 15 -15 15 h-40 q-15 0 -15 -15 v-150 q20 -20 20 -60 z"
+        fill="none" stroke="#b08d57" stroke-width="3"/>
+  <text x="200" y="478" fill="#8a7256" font-family="Arial, sans-serif" font-size="13"
+        text-anchor="middle">sin fotografia</text>
+</svg>

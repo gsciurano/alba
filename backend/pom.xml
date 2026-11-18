@@ -35,6 +35,47 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
+        <!--
+            Thymeleaf: motor de plantillas del lado del servidor.
+
+            Desde esta etapa el sitio web ya no se sirve aparte con
+            'python3 -m http.server': lo sirve este mismo Spring Boot en el
+            puerto 8080, renderizando HTML a partir de las plantillas de
+            src/main/resources/templates/.
+
+            Spring Boot lo autoconfigura solo: prefijo classpath:/templates/,
+            sufijo .html, codificacion UTF-8. No hace falta ningun XML.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+
+        <!--
+            Spring Security: sesion de servidor y proteccion de rutas.
+
+            QUE RESUELVE, Y POR QUE SE SUMA AHORA. Hasta esta etapa el
+            servidor contestaba quien era cada persona y se olvidaba al
+            instante: el rol quedaba guardado en el navegador y los
+            endpoints de administracion estaban abiertos a cualquiera.
+
+            Con una sesion de verdad el servidor sabe quien pide cada
+            pagina, y entonces puede decidir QUE BOTONES EXISTEN en el
+            HTML que devuelve, en vez de dibujarlos y esconderlos. Esa es
+            la base del modelo de hipermedia que usa el resto de la
+            migracion.
+
+            OJO CON /api/**: esos endpoints los consume tambien la
+            aplicacion de escritorio en Swing (paquete 'escritorio'), que
+            no es un navegador y no tiene sesion ni token CSRF. Quedan
+            explicitamente abiertos en SecurityConfig, igual que estaban
+            antes; la diferencia es que ahora esta escrito y a la vista.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
 
         <!-- Bean Validation: valida los datos que entran por la API (@NotBlank, @Positive...) -->
         <dependency>
@@ -57,6 +98,42 @@
     </dependencies>
 
     <build>
+        <!--
+            ============================================================
+             DE DONDE SALE LO QUE VA ADENTRO DEL JAR
+            ============================================================
+            El frontend NO vive adentro del backend: vive en la carpeta
+            frontend/ de la raiz del repositorio, al lado de backend/.
+            Son dos cosas distintas y se ven como dos cosas distintas.
+
+            Pero Spring sirve las plantillas y los archivos estaticos
+            DESDE EL CLASSPATH (ver application.properties), asi que al
+            compilar hay que copiarlos adentro. Eso es lo que hace el
+            segundo <resource> de aca: toma ../frontend y lo deja en el
+            jar bajo la carpeta 'frontend', que es exactamente donde
+            estaba antes. Por eso la configuracion de Spring no cambio.
+
+            CONSECUENCIA PRACTICA: un cambio en una plantilla o en el
+            CSS se ve despues de volver a arrancar (./arrancar.sh), que
+            es lo que ya habia que hacer con los cambios de Java.
+
+            El primer <resource> es el de siempre: lo que de verdad es
+            del backend (application.properties y datos/).
+        -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>${project.basedir}/../frontend</directory>
+                <targetPath>frontend</targetPath>
+                <excludes>
+                    <!-- Documentacion: se lee en el repositorio, no hace falta en el jar. -->
+                    <exclude>README.md</exclude>
+                </excludes>
+            </resource>
+        </resources>
+
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

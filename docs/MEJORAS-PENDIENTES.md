@@ -4,14 +4,14 @@ Un *mini prompt* por tema, para ir trabajándolos de a uno. Cada uno es
 autocontenido: se puede copiar y pegar tal cual sin tener que explicar de nuevo
 el proyecto.
 
-**Antes de empezar cualquiera**, conviene arrancar los dos servidores:
+**Antes de empezar cualquiera**, arrancar el servidor (es uno solo: sirve
+también el sitio, en http://localhost:8080):
 
 ```bash
-cd ~/Downloads/gestor-inventario/backend && ./mvnw spring-boot:run
+cd ~/Downloads/gestor-inventario/backend && ./arrancar.sh
 ```
-```bash
-cd ~/Downloads/gestor-inventario/frontend && python3 -m http.server 8099
-```
+
+Para saber dónde está cada archivo: [`ESTRUCTURA.md`](ESTRUCTURA.md).
 
 ---
 
@@ -23,7 +23,7 @@ primero lo que desbloquea a los demás, al final lo que depende de cosas externa
 | # | Tema | Dificultad | ¿Necesita algo de afuera? |
 |---|---|---|---|
 | 1 | Base de datos compartida | Media | Sí — servidor o cuenta en la nube |
-| 2 | Seguridad real (Spring Security) | Alta | No |
+| 2 | Seguridad real (Spring Security) | Alta | No — **en curso**, falta el hash BCrypt |
 | ~~3~~ | ~~Validación de email y contraseña~~ **HECHO** | Baja | No |
 | ~~4~~ | ~~Ir a Inicio al iniciar sesión~~ **HECHO** | Muy baja | No |
 | ~~5~~ | ~~Perfil del usuario~~ **HECHO** | Media | No |
@@ -72,6 +72,22 @@ base compartida, y dejá en el README cómo se conecta cada uno.
 
 # 2 · Seguridad real
 
+> **Estado al 12 de noviembre de 2026 — en curso.**
+>
+> Ya está hecho: Spring Security en el `pom.xml`, sesión de verdad con cookie y
+> token CSRF, el panel cerrado por rol en el servidor (`SecurityConfig`) y no
+> por una línea de JavaScript, y el ingreso, el alta y el botón de Google
+> abriendo esa sesión (`IngresoController`).
+>
+> **Falta el punto 1 de este mismo prompt: las contraseñas siguen en texto
+> plano.** `UsuarioService.registrar()` guarda lo que llega tal cual y lo dice
+> en un comentario. Es el trabajo que queda de esta etapa, y arrastra una
+> migración de las filas que ya están en la base.
+>
+> `/api/**` queda abierto a propósito, porque lo consume la aplicación de
+> escritorio en Swing; está explicado y con el camino para cerrarlo en el
+> comentario largo de `SecurityConfig`.
+
 **Qué pasa hoy:** el `pom.xml` **no tiene Spring Security**. Las contraseñas se
 guardan en texto plano (la columna se llama `password_hash` pero no guarda un
 hash). Los endpoints de administración están abiertos: cualquiera que llame a la
@@ -103,7 +119,7 @@ que con credenciales de ADMIN funciona.
 
 # 3 · Validación de email y contraseña — **HECHO**
 
-Las reglas viven en `frontend/js/modules/validacion.js` (un solo lugar, usado
+Las reglas viven en `UsuarioService.REQUISITOS_PASSWORD` (un solo lugar, usado
 por el registro, por Mi cuenta → Seguridad y por el alta de usuarios del panel)
 y en `UsuarioService`, que es el que de verdad protege la base: lo del
 navegador se saltea con cualquier cliente HTTP.

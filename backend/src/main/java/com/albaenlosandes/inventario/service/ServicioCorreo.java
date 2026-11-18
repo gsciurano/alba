@@ -48,10 +48,19 @@ public class ServicioCorreo {
             DateTimeFormatter.ofPattern("dd/MM/yyyy 'a las' HH:mm");
 
     private final JavaMailSender correo;
+    private final TransporteApiBrevo api;
 
     @Value("${alba.correo.remitente}")   private String remitente;
     @Value("${alba.correo.nombre}")      private String nombreRemitente;
     @Value("${alba.correo.responder-a}") private String responderA;
+    /**
+     * La casilla a la que el cliente manda el comprobante de la
+     * transferencia. NO es responderA: esa tiene que ser la direccion
+     * verificada en Brevo, y esta es solo texto que se imprime en el
+     * correo, asi que puede ser la casilla institucional de la bodega
+     * aunque todavia no este dada de alta como remitente.
+     */
+    @Value("${alba.correo.pagos}")      private String correoPagos;
     @Value("${alba.correo.activo}")      private boolean activo;
     @Value("${alba.correo.copia:}")     private String copiaBodega;
 
@@ -66,8 +75,9 @@ public class ServicioCorreo {
     @Value("${spring.mail.properties.mail.smtp.auth:false}") private boolean smtpAuth;
     @Value("${spring.mail.properties.mail.smtp.starttls.enable:false}") private boolean smtpTls;
 
-    public ServicioCorreo(JavaMailSender correo) {
+    public ServicioCorreo(JavaMailSender correo, TransporteApiBrevo api) {
         this.correo = correo;
+        this.api = api;
     }
 
     /**
@@ -84,6 +94,19 @@ public class ServicioCorreo {
     public void avisarComoQuedoElCorreo() {
         if (!activo) {
             log.warn("CORREO APAGADO (alba.correo.activo=false): no se envia ningun comprobante.");
+            return;
+        }
+        /*
+         * Si hay clave de API, los correos NO pasan por SMTP y todos
+         * los avisos de abajo (puerto, usuario, TLS) no aplican: avisar
+         * de un SMTP mal configurado cuando no se usa solo confunde.
+         */
+        if (api.activo()) {
+            log.info("Correo por la API HTTP de Brevo (puerto 443) | remitente {} <{}> | copia a {}",
+                     nombreRemitente, remitente,
+                     (copiaBodega == null || copiaBodega.isBlank()) ? "(nadie)" : copiaBodega);
+            log.info("Se usa la API y no SMTP porque alba.correo.api-key tiene valor. "
+                   + "Para volver a SMTP, arrancar sin BREVO_API_KEY.");
             return;
         }
         boolean esLocal = "localhost".equalsIgnoreCase(host) || "127.0.0.1".equals(host);
@@ -152,7 +175,15 @@ public class ServicioCorreo {
                      pedido.getIdPedido());
             return;
         }
+        String asunto = "Tu compra en Alba en los Andes \u2014 pedido #" + pedido.getIdPedido();
         try {
+            if (api.activo()) {
+                api.enviar(remitente, nombreRemitente, responderA, destino, copiaBodega,
+                           asunto, cuerpoTexto(pedido), cuerpoHtml(pedido));
+                log.info("Comprobante del pedido #{} enviado a {} por la API de Brevo",
+                         pedido.getIdPedido(), destino);
+                return;
+            }
             MimeMessage mensaje = correo.createMimeMessage();
             // true = multiparte; UTF-8 para que los acentos y la enie lleguen bien
             MimeMessageHelper ayuda = new MimeMessageHelper(mensaje, true, "UTF-8");
@@ -175,7 +206,7 @@ public class ServicioCorreo {
             if (copiaBodega != null && !copiaBodega.isBlank()) {
                 ayuda.setBcc(copiaBodega.trim());
             }
-            ayuda.setSubject("Tu compra en Alba en los Andes — pedido #" + pedido.getIdPedido());
+            ayuda.setSubject(asunto);
             // Dos versiones del mismo mensaje: el cliente de correo elige.
             // La de texto plano no es un descarte, es para quien tiene el
             // HTML desactivado y para que no lo tomen por spam.
@@ -189,6 +220,127 @@ public class ServicioCorreo {
             log.error("No se pudo enviar el comprobante del pedido #{} a {}: {}",
                       pedido.getIdPedido(), destino, e.getMessage());
         }
+    }
+
+    // ==================================================================
+    //  CODIGO DE RECUPERO DE CONTRASENA
+    // ==================================================================
+
+    /**
+     * Manda los seis numeros que pide el paso 3 del recupero.
+     *
+     * TRES DIFERENCIAS A PROPOSITO CON enviarComprobante():
+     *
+     * 1. NO ES @Async, Y SI FALLA, LANZA. El comprobante se manda
+     *    despues de una venta que ya esta hecha: si no sale, se registra
+     *    y la vida sigue. Este mail ES el tramite. Si no sale y nadie se
+     *    entera, la persona se queda mirando una pantalla esperando un
+     *    codigo que no existe. ServicioRecupero atrapa la excepcion,
+     *    tira el intento y lo dice en pantalla.
+     *
+     * 2. NO LLEVA COPIA OCULTA A LA BODEGA. La copia tiene sentido para
+     *    juntar las ventas en un buzon. Un codigo que abre una cuenta no
+     *    se le manda a nadie mas que a su duenio.
+     *
+     * 3. NO RESPETA alba.correo.activo. Ese interruptor existe para
+     *    apagar los comprobantes en una demo sin desarmar nada. Si
+     *    apagara tambien esto, el recupero quedaria roto en silencio: es
+     *    preferible que falle fuerte y se entienda por que.
+     */
+    public void enviarCodigoRecupero(Usuario usuario, String codigo, long minutos) throws Exception {
+        // El codigo va en el asunto: se lee desde la lista de mensajes,
+        // sin tener que abrir nada.
+        String asunto = codigo + " es tu c\u00f3digo para recuperar la contrase\u00f1a";
+        // Sin copia oculta: un codigo que abre una cuenta no se le manda
+        // a nadie mas que a su duenio (ver el comentario de arriba).
+        if (api.activo()) {
+            api.enviar(remitente, nombreRemitente, responderA, usuario.getEmail(), null,
+                       asunto, textoCodigo(usuario, codigo, minutos),
+                       htmlCodigo(usuario, codigo, minutos));
+            log.info("Codigo de recupero enviado a {} por la API de Brevo", usuario.getEmail());
+            return;
+        }
+        MimeMessage mensaje = correo.createMimeMessage();
+        MimeMessageHelper ayuda = new MimeMessageHelper(mensaje, true, "UTF-8");
+        ayuda.setFrom(remitente, nombreRemitente);
+        ayuda.setReplyTo(responderA, nombreRemitente);
+        ayuda.setTo(usuario.getEmail());
+        ayuda.setSubject(asunto);
+        ayuda.setText(textoCodigo(usuario, codigo, minutos),
+                      htmlCodigo(usuario, codigo, minutos));
+        correo.send(mensaje);
+        log.info("Codigo de recupero enviado a {}", usuario.getEmail());
+    }
+
+    private String htmlCodigo(Usuario u, String codigo, long minutos) {
+        return """
+            <!doctype html>
+            <html lang="es"><body style="margin:0;padding:0;background:#f4f6f7">
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%%"
+                     style="background:#f4f6f7;padding:28px 12px">
+                <tr><td align="center">
+                  <table role="presentation" cellpadding="0" cellspacing="0" width="600"
+                         style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;
+                                font-family:Helvetica,Arial,sans-serif;color:#1f2d33">
+
+                    <tr><td style="background:#0b2c38;padding:28px 32px;text-align:center">
+                      <p style="margin:0;color:#ffffff;font-size:19px;letter-spacing:2.6px;
+                                text-transform:uppercase">Alba en los Andes</p>
+                      <p style="margin:6px 0 0;color:#8fadb7;font-size:12px;letter-spacing:1.6px;
+                                text-transform:uppercase">Valle de Uco &middot; Mendoza</p>
+                    </td></tr>
+
+                    <tr><td style="padding:32px">
+                      <h1 style="margin:0 0 6px;font-size:23px">Hola, %s</h1>
+                      <p style="margin:0 0 24px;color:#5a6670;font-size:15px;line-height:1.7">
+                        Pediste recuperar la contraseña de tu cuenta. Escribí este código
+                        en la pantalla donde lo estás esperando.
+                      </p>
+
+                      <p style="margin:0;padding:22px;background:#f4f6f7;border-radius:10px;
+                                text-align:center;font-family:monospace;font-size:34px;
+                                letter-spacing:9px;font-weight:700;color:#0b2c38">%s</p>
+
+                      <p style="margin:22px 0 0;color:#5a6670;font-size:14px;line-height:1.7">
+                        Vence en %d minutos y sirve una sola vez.
+                      </p>
+                      <p style="margin:18px 0 0;padding:14px 18px;background:#fbf0db;border-radius:8px;
+                                color:#6b4d0c;font-size:14px;line-height:1.7">
+                        <strong>Si no fuiste vos</strong>, no hagas nada: sin este código nadie puede
+                        cambiar tu contraseña. Tu cuenta sigue como está.
+                      </p>
+                    </td></tr>
+
+                    <tr><td style="background:#0b2c38;padding:20px 32px;text-align:center">
+                      <p style="margin:0;color:#8fadb7;font-size:12px;line-height:1.7">
+                        No respondas con tu contraseña: nadie de la bodega te la va a pedir.
+                      </p>
+                    </td></tr>
+
+                  </table>
+                </td></tr>
+              </table>
+            </body></html>
+            """.formatted(u.getNombre(), codigo, minutos);
+    }
+
+    private String textoCodigo(Usuario u, String codigo, long minutos) {
+        return """
+            ALBA EN LOS ANDES
+
+            Hola, %s.
+
+            Pediste recuperar la contraseña de tu cuenta. Tu código es:
+
+                %s
+
+            Vence en %d minutos y sirve una sola vez.
+
+            Si no fuiste vos, no hagas nada: sin este código nadie puede cambiar
+            tu contraseña.
+
+            No respondas con tu contraseña: nadie de la bodega te la va a pedir.
+            """.formatted(u.getNombre(), codigo, minutos);
     }
 
     // ==================================================================
@@ -243,7 +395,7 @@ public class ServicioCorreo {
               </p>
             </div>
             """.formatted(bancoAlias, bancoCvu, bancoTitular,
-                          responderA, responderA, p.getIdPedido())
+                          correoPagos, correoPagos, p.getIdPedido())
             : """
             <p style="margin:24px 0;padding:14px 18px;background:#e1f1e8;border-radius:8px;color:#1e7a54">
               <strong>Pago registrado.</strong> Ya estamos preparando tu pedido.
@@ -331,7 +483,7 @@ public class ServicioCorreo {
             t.append("  Alias:   ").append(bancoAlias).append("\n");
             t.append("  CVU:     ").append(bancoCvu).append("\n");
             t.append("  Titular: ").append(bancoTitular).append("\n");
-            t.append("Después enviá el comprobante a ").append(responderA)
+            t.append("Después enviá el comprobante a ").append(correoPagos)
              .append(" indicando el pedido #").append(p.getIdPedido()).append(".\n");
             t.append("Tu pedido queda reservado hasta que veamos el dinero acreditado.\n\n");
         } else {

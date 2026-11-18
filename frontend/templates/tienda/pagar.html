@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  ============================================================
+   FINALIZAR COMPRA
+  ============================================================
+   Reemplaza a abrirCheckout() de js/tienda.js:444, que era la
+   pantalla mas larga del sitio y la armaba entera con crear().
+
+   ES UNA PAGINA Y NO UN MODAL. El checkout viejo era modal--ancho
+   (980px) y cargaba con todo lo que eso implica: el boton Atras
+   sacaba del sitio, no se podia volver, y cerrarlo sin querer
+   significaba rehacer los cuatro campos. Ahora tiene direccion
+   propia, /tienda/pagar.
+
+   LAS DOS COLUMNAS NO CAMBIAN: a la izquierda lo que hay que
+   completar, numerado en tres pasos; a la derecha el resumen, que
+   queda a la vista con el detalle, el cupon y el total. En pantalla
+   angosta se apilan solas, con el mismo CSS de antes (.pago,
+   .pago__columna, .pago__resumen). No se toco un selector.
+*/-->
+<head th:replace="~{fragmentos/comunes :: cabeza('Finalizar compra — Alba en los Andes', 'Confirmá tu pedido de vinos de Alba en los Andes.')}">
+  <title>Finalizar compra — Alba en los Andes</title>
+</head>
+<body th:attr="hx-headers=|{&quot;${_csrf.headerName}&quot;: &quot;${_csrf.token}&quot;}|">
+
+<header th:replace="~{fragmentos/comunes :: encabezado('tienda')}"></header>
+
+<main id="contenido">
+  <section class="seccion">
+    <div class="seccion__interior">
+
+      <!--/*
+        EL FORMULARIO DEL CUPON, VACIO Y APARTE.
+
+        Esta aca, fuera del formulario del checkout, porque los
+        formularios no se pueden anidar. Los controles del cupon viven
+        en la columna derecha y se asocian a este con el atributo
+        form="formCupon" de HTML. Ver la nota larga en
+        tienda/fragmentos.html.
+
+        Thymeleaf le mete el token CSRF al generarlo, que es lo unico
+        que tiene adentro.
+      */-->
+      <form id="formCupon" method="post" th:action="@{/tienda/cupon}"></form>
+
+      <!--/*
+        EL AVISO DE QUE EL SERVIDOR RECHAZO LA COMPRA: sin stock, vino
+        dado de baja, un administrador intentando comprar. El texto es
+        el que escribio el servicio que dijo que no.
+
+        role="alert" lo anuncia apenas aparece. Antes era un toast()
+        en una esquina, que se iba a los tres segundos.
+      */-->
+      <p th:if="${aviso != null}" class="form-error" role="alert"
+         style="margin-bottom:18px" th:text="${aviso}">Mensaje</p>
+
+      <form class="pago" id="formCheckout" method="post"
+            th:action="@{/tienda/pagar}" th:object="${compra}">
+
+        <!--/* ================= COLUMNA IZQUIERDA ================= */-->
+        <div class="pago__columna">
+
+          <header class="pago__encabezado">
+            <h2>Finalizar compra</h2>
+            <!--/*
+              QUIEN ESTA COMPRANDO LO SABE EL SERVIDOR. Antes esto lo
+              decidia el navegador leyendo la sesion del localStorage
+              (tienda.js:450); ahora sale de la sesion de Spring
+              Security, que el cliente no puede editar.
+            */-->
+            <p th:if="${usuario != null}" class="pago__nota"
+               th:text="'Comprando como ' + ${usuario.nombre} + ' ' + ${usuario.apellido} + '.'">
+              Comprando como Juan Pérez.</p>
+            <p th:if="${usuario == null}" class="pago__nota">
+              ¿Ya tenés cuenta?
+              <a th:href="@{/cuenta}" href="/cuenta">Ingresá</a>
+              y tus datos se completan solos.
+            </p>
+          </header>
+
+          <!--/* ---------- paso 01 ---------- */-->
+          <section class="pago__bloque">
+            <h3 class="pago__titulo"><span class="pago__paso">01</span>Tus datos</h3>
+
+            <div class="form-fila">
+              <div class="form-grupo">
+                <label for="nombre">Nombre y apellido</label>
+                <!--/*
+                  th:field pone el name, el id y el value de una sola
+                  vez, y th:errors escribe el mensaje del servidor. Es
+                  lo que reemplaza a marcar() de tienda.js:793, que
+                  agregaba la clase .invalido y el texto a mano campo
+                  por campo: con quince campos, olvidarse de uno era
+                  cuestion de tiempo.
+
+                  th:errorclass agrega .invalido solo si ese campo
+                  fallo, que es la misma clase que usaba el CSS.
+                */-->
+                <input type="text" id="nombre" th:field="*{nombre}"
+                       th:errorclass="invalido" autocomplete="name">
+                <span class="form-error" th:errors="*{nombre}" aria-live="polite"></span>
+              </div>
+              <div class="form-grupo">
+                <label for="email">Email</label>
+                <input type="email" id="email" th:field="*{email}"
+                       th:errorclass="invalido" autocomplete="email">
+                <span class="form-error" th:errors="*{email}" aria-live="polite"></span>
+              </div>
+            </div>
+
+            <div class="form-grupo">
+              <label for="telefono">Teléfono</label>
+              <input type="tel" id="telefono" th:field="*{telefono}"
+                     th:errorclass="invalido" placeholder="11 5555 5555" autocomplete="tel">
+              <span class="form-error" th:errors="*{telefono}" aria-live="polite"></span>
+            </div>
+          </section>
+
+          <!--/* ---------- paso 02 ---------- */-->
+          <section class="pago__bloque">
+            <h3 class="pago__titulo"><span class="pago__paso">02</span>Entrega</h3>
+            <div class="form-grupo">
+              <label for="direccion">Dirección de entrega</label>
+              <input type="text" id="direccion" th:field="*{direccion}"
+                     th:errorclass="invalido"
+                     placeholder="Calle, número, piso y localidad" autocomplete="street-address">
+              <span class="form-error" th:errors="*{direccion}" aria-live="polite"></span>
+            </div>
+            <p class="pago__ayuda">Enviamos a todo el país en 3 a 7 días hábiles.</p>
+          </section>
+
+          <!--/* ---------- paso 03 ---------- */-->
+          <section class="pago__bloque">
+            <h3 class="pago__titulo"><span class="pago__paso">03</span>Pago</h3>
+
+            <!--/*
+              LOS MEDIOS DE PAGO, como fichas elegibles.
+
+              EFECTIVO NO ESTA, y no por olvido: la bodega dejo de
+              cobrar contra entrega. El valor sigue existiendo en el
+              enum y en la base porque hay pedidos viejos pagados asi
+              y tienen que poder leerse; lo que no se puede es elegirlo
+              en una compra nueva. PedidoService tambien lo rechaza,
+              porque sacar la ficha de la pantalla no impide que
+              alguien mande el formulario a mano.
+
+              AL CAMBIAR DE FICHA se pide al servidor el bloque que
+              corresponde, en vez de esconder el otro con hidden=true
+              como hacia tienda.js:468. Lo que no corresponde deja de
+              existir, en lugar de viajar escondido.
+
+              hx-include="closest form" manda lo que ya se tipeo, asi
+              que cambiar de ficha y volver no borra el numero de
+              tarjeta a medio escribir.
+            */-->
+            <div class="medios"
+                 th:attr="hx-get=@{/tienda/medios}"
+                 hx-include="closest form"
+                 hx-target="#bloquesDePago" hx-swap="innerHTML"
+                 hx-trigger="change">
+
+              <label class="medio" for="medio-TARJETA">
+                <input type="radio" id="medio-TARJETA" th:field="*{medioPago}" value="TARJETA">
+                <span class="medio__titulo">Tarjeta</span>
+                <span class="medio__detalle">Crédito o débito</span>
+              </label>
+
+              <label class="medio" for="medio-TRANSFERENCIA">
+                <input type="radio" id="medio-TRANSFERENCIA" th:field="*{medioPago}" value="TRANSFERENCIA">
+                <span class="medio__titulo">Transferencia</span>
+                <span class="medio__detalle">Te pasamos el CBU</span>
+              </label>
+            </div>
+
+            <!--/*
+              th:insert Y NO th:replace, y la diferencia importa:
+              th:replace borra esta etiqueta y deja en su lugar el
+              fragmento, asi que el id="bloquesDePago" desaparecia del
+              HTML. Los radios apuntan ahi con hx-target, y HTMX no
+              encontraba el blanco: cambiar de medio de pago tiraba
+              htmx:targetError en la consola y no pasaba nada.
+
+              th:insert conserva el <div> y mete el fragmento adentro,
+              que es lo que hace falta cuando la etiqueta existe para
+              ser un blanco.
+            */-->
+            <div id="bloquesDePago" th:insert="~{tienda/fragmentos :: bloquesDePago}"></div>
+          </section>
+        </div>
+
+        <!--/* ================= COLUMNA DERECHA ================= */-->
+        <div th:replace="~{tienda/fragmentos :: resumenDelPedido}"></div>
+      </form>
+
+    </div>
+  </section>
+</main>
+
+<footer th:replace="~{fragmentos/comunes :: pie}"></footer>
+
+<!--/*
+  LO QUE SIGUE SIENDO JAVASCRIPT, Y POR QUE.
+
+  qrcode.js dibuja el QR del alias y tienda-tarjeta.js maneja la
+  vista previa de la tarjeta, el formateo mientras se escribe, el
+  boton que genera un numero de prueba y los botones de copiar.
+
+  Ninguna de esas cosas es dibujar datos que tiene el servidor: son
+  reacciones a cada tecla, acceso al portapapeles y pintura de un
+  codigo de barras. Una vuelta al servidor por tecla seria absurda, y
+  el portapapeles no se puede tocar desde afuera del navegador.
+
+  Esa es la linea de toda la migracion: al servidor lo que el
+  servidor sabe, al navegador lo que solo el navegador puede hacer.
+
+  'defer' para que no bloqueen el dibujado, y los dos archivos estan
+  escritos para no romper nada si no cargan.
+*/-->
+<script th:src="@{/js/vendor/qrcode.js}" src="/js/vendor/qrcode.js" defer></script>
+<script th:src="@{/js/tienda-tarjeta.js}" src="/js/tienda-tarjeta.js" defer></script>
+
+</body>
+</html>

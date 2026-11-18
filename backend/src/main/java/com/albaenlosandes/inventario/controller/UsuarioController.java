@@ -2,6 +2,7 @@ package com.albaenlosandes.inventario.controller;
 
 import com.albaenlosandes.inventario.model.Usuario;
 import com.albaenlosandes.inventario.service.ServicioGoogle;
+import com.albaenlosandes.inventario.service.ServicioRecupero;
 import com.albaenlosandes.inventario.service.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -34,11 +35,14 @@ public class UsuarioController {
 
     private final UsuarioService service;
     private final ServicioGoogle google;
+    private final ServicioRecupero recupero;
 
     /** Inyeccion por constructor: Spring pasa el servicio al crear el bean. */
-    public UsuarioController(UsuarioService service, ServicioGoogle google) {
+    public UsuarioController(UsuarioService service, ServicioGoogle google,
+                             ServicioRecupero recupero) {
         this.service = service;
         this.google = google;
+        this.recupero = recupero;
     }
 
     /** GET /api/usuarios -> los usuarios DE ALTA, sin su contrasena */
@@ -196,6 +200,87 @@ public class UsuarioController {
     public void cambiarPassword(@PathVariable Integer id,
                                 @RequestBody Map<String, String> cuerpo) {
         service.cambiarPassword(id, cuerpo.get("actual"), cuerpo.get("nueva"));
+    }
+
+    /**
+     * ==================================================================
+     *  RECUPERO DE CONTRASENA — cuatro pedidos, uno por paso
+     * ==================================================================
+     *
+     * El detalle de por que son cuatro y que prueba cada uno esta en
+     * ServicioRecupero. Aca solo interesa como se encadenan: el paso 1
+     * devuelve un TOKEN y los tres siguientes lo mandan de vuelta. El
+     * token es lo que ata los cuatro pedidos a un mismo recupero, porque
+     * HTTP no recuerda nada entre uno y otro.
+     *
+     * POR QUE CUATRO ENDPOINTS Y NO UNO SOLO QUE RECIBA TODO JUNTO: la
+     * pantalla necesita contestarle a la persona en cada paso —que los
+     * digitos no coinciden, que le quedan dos intentos, que el codigo ya
+     * salio— y eso solo se puede si cada paso tiene su ida y vuelta.
+     * Juntarlos obligaria a pedir el codigo del mail antes de saber si
+     * los digitos estaban bien.
+     *
+     * Los rechazos salen como 400 con su mensaje, via
+     * GlobalExceptionHandler, igual que el resto de la API.
+     */
+
+    /**
+     * POST /api/usuarios/recupero/inicio
+     * Cuerpo:    { "email": "juan@mail.com" }
+     * Respuesta: { "token": "...", "telefonoParcial": "261 5•• ••34", "faltan": 4 }
+     *
+     * 'faltan' es cuantos digitos tapo el servidor: con ese numero la
+     * pantalla dibuja la cantidad justa de casilleros.
+     */
+    @PostMapping("/recupero/inicio")
+    public ServicioRecupero.Inicio recuperoInicio(@RequestBody Map<String, String> cuerpo) {
+        return recupero.iniciar(cuerpo.get("email"));
+    }
+
+    /**
+     * POST /api/usuarios/recupero/telefono
+     * Cuerpo:    { "token": "...", "digitos": "5512" }
+     * Respuesta: { "emailParcial": "ju•••@mail.com" }
+     *
+     * Si los digitos estan bien, el servidor manda el codigo por mail
+     * ANTES de contestar. Por eso este pedido tarda mas que los otros:
+     * esta esperando al servidor de correo.
+     */
+    @PostMapping("/recupero/telefono")
+    public ServicioRecupero.Enviado recuperoTelefono(@RequestBody Map<String, String> cuerpo) {
+        return recupero.confirmarTelefono(cuerpo.get("token"), cuerpo.get("digitos"));
+    }
+
+    /**
+     * POST /api/usuarios/recupero/codigo
+     * Cuerpo: { "token": "...", "codigo": "481902" }
+     *
+     * 204: el codigo era el correcto y el token queda habilitado para el
+     * ultimo paso. No devuelve nada porque no hay nada que mostrar: lo
+     * unico que cambio es el permiso, y ese lo guarda el servidor.
+     */
+    @PostMapping("/recupero/codigo")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void recuperoCodigo(@RequestBody Map<String, String> cuerpo) {
+        recupero.confirmarCodigo(cuerpo.get("token"), cuerpo.get("codigo"));
+    }
+
+    /**
+     * POST /api/usuarios/recupero/password
+     * Cuerpo: { "token": "...", "nueva": "OtraClave1" }
+     *
+     * 204 y el token se quema: sirve una sola vez. Despues de esto la
+     * persona ingresa normalmente con la contrasena nueva.
+     *
+     * NO DEVUELVE EL USUARIO NI LO DEJA INGRESADO a proposito. Que
+     * cambiar la contrasena te meta adentro de la cuenta de una es
+     * comodo y es justo lo que no conviene: obliga a escribirla una vez
+     * mas, que es cuando uno se da cuenta de si se acuerda.
+     */
+    @PostMapping("/recupero/password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void recuperoPassword(@RequestBody Map<String, String> cuerpo) {
+        recupero.cambiarPassword(cuerpo.get("token"), cuerpo.get("nueva"));
     }
 
     /**

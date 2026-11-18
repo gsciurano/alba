@@ -1,0 +1,1231 @@
+/* ============================================================
+   sitio.css — encabezado, pie y secciones de las paginas publicas
+   ============================================================
+   Convive con estilos.css, que aporta la paleta y los componentes
+   compartidos (botones, tarjetas de vino, formularios, modal).
+
+   La estructura visual sigue la del sitio real de la bodega: banda
+   oscura arriba con el sello centrado, menu en mayusculas debajo, y el
+   contenido en secciones anchas que alternan fondo blanco y gris claro.
+   ============================================================ */
+
+/* ============================================================
+   ENCABEZADO
+   ============================================================ */
+.sitio-cabecera {
+  background: var(--vino);
+  color: #fff;
+  position: sticky; top: 0; z-index: 50;
+}
+
+/* ---- cinta fina de arriba ---- */
+.cinta {
+  background: rgba(0, 0, 0, .22);
+  font-size: 13.5px;
+}
+.cinta__interior {
+  max-width: var(--ancho-max); margin: 0 auto; padding: 8px 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.cinta__dato { color: #a9c2cb; letter-spacing: .4px; }
+.cinta__cuenta { display: flex; align-items: center; gap: 6px; }
+.cinta__enlace {
+  display: inline-flex; align-items: center; gap: 7px;
+  color: #d6e4e9; text-decoration: none; padding: 5px 10px; border-radius: 6px;
+  font-size: 13.5px; transition: background .15s, color .15s;
+}
+.cinta__enlace svg { width: 15px; height: 15px; }
+.cinta__enlace:hover { color: #fff; background: rgba(255, 255, 255, .1); }
+.cinta__enlace--boton { background: none; border: none; font-family: inherit; cursor: pointer; }
+/* El nombre de quien esta adentro, en mayusculas, como el resto de la barra. */
+.cinta__usuario { text-transform: uppercase; letter-spacing: .8px; }
+/*
+   "/ Crear cuenta" desaparece en pantallas chicas. Ahi la cinta compite
+   por el ancho con la ubicacion de la bodega, y "Ingresar" solo se
+   entiende igual: la pagina a la que lleva tiene las dos solapas.
+*/
+@media (max-width: 560px) { .cinta__opcional { display: none; } }
+
+/* ---- marca y menu ---- */
+.sitio-cabecera__fila {
+  max-width: var(--ancho-max); margin: 0 auto;
+  padding: 16px 24px; display: flex; align-items: center; gap: 28px;
+}
+.sitio-marca {
+  display: flex; align-items: center; gap: 13px;
+  color: #fff; text-decoration: none; flex-shrink: 0;
+}
+.sitio-marca__texto {
+  font-family: var(--fuente-titulo);
+  font-size: 19px; letter-spacing: 2.6px; text-transform: uppercase; line-height: 1;
+}
+.sello { display: block; }
+
+.sitio-nav { display: flex; gap: 4px; flex: 1; justify-content: center; flex-wrap: wrap; }
+.sitio-nav__item {
+  color: #c3d6dc; text-decoration: none;
+  padding: 9px 15px; border-radius: 6px;
+  font-size: 13px; letter-spacing: 1.7px; text-transform: uppercase;
+  transition: color .15s, background .15s;
+}
+.sitio-nav__item:hover { color: #fff; background: rgba(255, 255, 255, .09); }
+.sitio-nav__item.activo { color: #fff; background: rgba(255, 255, 255, .14); }
+
+.sitio-carrito {
+  position: relative; flex-shrink: 0;
+  background: none; border: 1px solid rgba(255, 255, 255, .28);
+  color: #fff; border-radius: 8px; padding: 9px 12px; cursor: pointer;
+  display: inline-flex; align-items: center;
+}
+.sitio-carrito:hover { border-color: rgba(255, 255, 255, .6); }
+.sitio-carrito svg { width: 19px; height: 19px; }
+.sitio-carrito__cuenta {
+  position: absolute; top: -7px; right: -7px;
+  background: var(--oro); color: #fff;
+  min-width: 20px; height: 20px; border-radius: 10px;
+  font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; padding: 0 5px;
+}
+
+/* ============================================================
+   PORTADA (la franja grande con foto)
+   ============================================================ */
+.portada {
+  position: relative; min-height: 460px;
+  display: flex; align-items: center;
+  background: var(--vino) center/cover no-repeat;
+  color: #fff; overflow: hidden;
+}
+.portada--alta { min-height: 600px; }
+/* Velo oscuro: sin el, el texto blanco no se lee sobre una foto clara. */
+.portada::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(5, 26, 34, .82) 0%, rgba(5, 26, 34, .45) 70%);
+}
+.portada__interior {
+  position: relative; z-index: 1;
+  max-width: var(--ancho-max); margin: 0 auto; padding: 70px 24px; width: 100%;
+}
+.portada__encima {
+  font-size: 13px; letter-spacing: 3.4px; text-transform: uppercase;
+  color: #9dc0cb; margin-bottom: 16px;
+}
+.portada__titulo {
+  font-family: var(--fuente-titulo); font-weight: 400;
+  font-size: clamp(38px, 6vw, 68px); line-height: 1.08; margin: 0; max-width: 16ch;
+}
+.portada__bajada {
+  margin-top: 20px; max-width: 54ch; font-size: 17.5px;
+  line-height: 1.75; color: #dbe8ec;
+}
+.portada__acciones { margin-top: 32px; display: flex; gap: 14px; flex-wrap: wrap; }
+
+/*
+   Boton secundario SOBRE FONDO OSCURO. El .btn--fantasma normal usa el
+   color del texto, que sobre la portada queda casi invisible.
+*/
+.btn--claro {
+  border: 1px solid rgba(255, 255, 255, .55);
+  color: #fff; background: transparent;
+}
+.btn--claro:hover { border-color: #fff; background: rgba(255, 255, 255, .13); }
+
+/* Tarjeta de solo lectura: sin cursor de mano ni efecto al pasar por encima. */
+.tarjeta--quieta { cursor: default; }
+
+/* portada corta, para las paginas internas */
+.portada-chica {
+  background: linear-gradient(140deg, #0b2c38 0%, #124455 60%, #0b2c38 100%);
+  color: #fff; text-align: center; padding: 64px 24px;
+}
+.portada-chica h1 {
+  font-family: var(--fuente-titulo); font-weight: 400;
+  font-size: clamp(32px, 4.5vw, 48px); margin: 0;
+  letter-spacing: 2px; text-transform: uppercase;
+}
+.portada-chica p { margin-top: 12px; color: #bcd3da; font-size: 16.5px; }
+
+/* ============================================================
+   SECCIONES DE CONTENIDO
+   ============================================================ */
+.seccion { padding: 76px 24px; }
+.seccion--gris { background: var(--fondo-alt); }
+.seccion__interior { max-width: var(--ancho-max); margin: 0 auto; }
+
+.seccion__titulo {
+  font-family: var(--fuente-titulo); font-weight: 400;
+  font-size: clamp(27px, 3.4vw, 38px); color: var(--vino);
+  letter-spacing: 2.4px; text-transform: uppercase; margin: 0 0 10px;
+}
+.seccion__titulo::after {
+  content: ""; display: block; width: 54px; height: 2px;
+  background: var(--oro); border-radius: 2px; margin: 18px auto 0;
+}
+/*
+   En las secciones a dos columnas el titulo va alineado con los
+   parrafos que tiene debajo: centrarlo sobre un texto alineado a la
+   izquierda parte la columna en dos.
+*/
+.par__texto .seccion__titulo { text-align: left; }
+.par__texto .seccion__titulo::after { margin-left: 0; }
+
+/*
+   Antetitulo: la linea chica en mayusculas que va ARRIBA del titulo
+   ("La compania", "El proyecto"). Da jerarquia sin sumar otro h2.
+*/
+.antetitulo {
+  font-size: 12.5px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--oro-claro); margin-bottom: 10px;
+}
+
+.seccion__bajada {
+  color: var(--texto-tenue); font-size: 17px; max-width: 62ch;
+  line-height: 1.8; margin-bottom: 36px;
+}
+.seccion--centrada { text-align: center; }
+.seccion--centrada .seccion__bajada { margin-left: auto; margin-right: auto; }
+
+/* dos columnas: texto de un lado, foto del otro */
+.par { display: grid; grid-template-columns: 1fr 1fr; gap: 54px; align-items: center; }
+.par--invertido .par__foto { order: -1; }
+.par__texto p { color: var(--texto-tenue); font-size: 16.5px; line-height: 1.85; margin-bottom: 16px; }
+.par__foto {
+  border-radius: var(--radio); overflow: hidden;
+  background: var(--foto-fondo); min-height: 330px;
+  background-size: cover; background-position: center;
+  box-shadow: var(--sombra-s);
+}
+
+/* ============================================================
+   PAGINA "NUESTROS VINOS" — fichas anchas por linea
+   ============================================================ */
+.linea--separada { margin-top: 66px; padding-top: 56px; border-top: 1px solid var(--borde); }
+.linea__encabezado { margin-bottom: 30px; }
+.linea__vinos { display: grid; gap: 20px; }
+
+.ficha {
+  display: grid; grid-template-columns: 150px 1fr; gap: 26px; align-items: center;
+  background: var(--superficie); border: 1px solid var(--borde);
+  border-radius: var(--radio); padding: 22px;
+}
+.ficha__foto {
+  background: var(--foto-fondo); border-radius: var(--radio-s);
+  height: 180px; display: flex; align-items: center; justify-content: center;
+}
+.ficha__foto img { max-width: 100%; max-height: 160px; object-fit: contain; }
+.ficha__texto h3 {
+  font-family: var(--fuente-titulo); font-weight: 400;
+  font-size: 23px; color: var(--vino); margin: 0 0 6px;
+}
+.ficha__meta {
+  color: var(--oro-claro); font-size: 14px;
+  letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px;
+}
+.ficha__notas { color: var(--texto-tenue); line-height: 1.8; margin-bottom: 16px; max-width: 72ch; }
+
+@media (max-width: 680px) {
+  .ficha { grid-template-columns: 1fr; }
+  .ficha__foto { height: 220px; }
+}
+
+/* ============================================================
+   PIE
+   ============================================================ */
+.sitio-pie { background: var(--vino); color: #c3d6dc; margin-top: 70px; }
+.sitio-pie__interior {
+  max-width: var(--ancho-max); margin: 0 auto; padding: 56px 24px 36px;
+  display: grid; grid-template-columns: 1.6fr .95fr 1.2fr 1fr minmax(216px, 1.7fr) 1.3fr; gap: 30px;
+}
+/*
+   El logo completo del pie. Se le da el ancho y la altura va sola
+   (height:auto) para que no se deforme; width/height en el HTML guardan
+   la proporcion mientras la imagen carga y evitan que el pie salte.
+*/
+.sitio-pie__logo {
+  display: block; width: 190px; height: auto; max-width: 100%;
+  margin-bottom: 16px;
+}
+.sitio-pie p { font-size: 14.5px; line-height: 1.75; }
+.sitio-pie h3 {
+  color: #fff; font-size: 13px; letter-spacing: 1.8px; text-transform: uppercase;
+  margin-bottom: 15px; font-family: var(--fuente-texto); font-weight: 600;
+}
+.sitio-pie a {
+  display: block; color: #c3d6dc; text-decoration: none;
+  font-size: 14.5px; padding: 4px 0;
+}
+.sitio-pie a:hover { color: #fff; text-decoration: underline; }
+.sitio-pie__legal {
+  border-top: 1px solid rgba(255, 255, 255, .13);
+  max-width: var(--ancho-max); margin: 0 auto; padding: 20px 24px 28px;
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 16px; flex-wrap: wrap;
+  font-size: 13px; color: #8fadb7;
+}
+/* El numero de ley se ve como enlace, no como texto muerto. */
+.sitio-pie__legal a { display: inline; color: #a9c2cb; text-decoration: underline; }
+.sitio-pie__legal a:hover { color: #fff; }
+
+/* ============================================================
+   MI CUENTA — ingreso, registro y pedidos del cliente
+   ============================================================ */
+/* ---- ingreso con Google (debajo del formulario) ---- */
+.otro-ingreso { margin-top: 26px; }
+
+/*
+   El separador: una "o" chiquita en un circulo, con la linea pasando por
+   detras. Un solo caracter centrado se lee mejor que una frase larga, y
+   deja claro que lo de abajo es una alternativa a lo de arriba, no un
+   paso siguiente.
+*/
+.separador-o {
+  position: relative; text-align: center;
+  margin-bottom: 20px; line-height: 1;
+}
+.separador-o::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 50%;
+  height: 1px; background: var(--borde);
+}
+.separador-o span {
+  position: relative;            /* por encima de la linea */
+  display: inline-block;
+  background: var(--superficie);  /* tapa la linea justo detras del texto */
+  padding: 0 12px;
+  color: var(--texto-tenue); font-size: 12.5px;
+  text-transform: uppercase; letter-spacing: 1.6px;
+}
+
+.ingreso-google {
+  display: flex; justify-content: center;
+  /* Reserva el alto del boton para que la pagina no pegue un salto
+     cuando termina de cargar el script de Google. */
+  min-height: 44px;
+}
+/*
+   El boton lo dibuja Google adentro de un iframe y no se le puede tocar
+   el interior. Lo que si se puede es la caja: se estira al ancho del
+   formulario para que quede alineado con el boton "Ingresar" de arriba,
+   en vez de flotar mas angosto y descolgado.
+*/
+.ingreso-google > div { width: 100% !important; }
+.ingreso-google iframe { width: 100% !important; }
+
+.caja-cuenta {
+  max-width: 460px; margin: 0 auto;
+  background: var(--superficie); border: 1px solid var(--borde);
+  border-radius: var(--radio); overflow: hidden; box-shadow: var(--sombra-s);
+}
+/*
+   USUARIOS DE PRUEBA.
+   Caja aparte y con fondo propio para que se lea como lo que es: una
+   ayuda para la demostracion, no parte del formulario. Cuando el sitio
+   salga de la facultad, se borra este bloque entero y no queda nada
+   suelto dando vueltas.
+*/
+.usuarios-demo {
+  margin-top: 22px; padding: 14px 16px;
+  background: var(--superficie-2); border-radius: var(--radio-s);
+  border: 1px dashed var(--borde);
+}
+.usuarios-demo__titulo {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1.4px;
+  color: var(--texto-tenue); margin: 0 0 10px; font-weight: 600;
+}
+/* Rotulo de ancho fijo: los dos mails arrancan en la misma vertical. */
+.usuarios-demo__fila {
+  display: grid; grid-template-columns: 58px 1fr;
+  align-items: baseline; gap: 10px; padding: 3px 0;
+}
+.usuarios-demo__rol { font-size: 12px; color: var(--texto-tenue); }
+.usuarios-demo code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12.5px; color: var(--texto); word-break: break-all;
+}
+
+.solapas { display: flex; border-bottom: 1px solid var(--borde); }
+.solapa {
+  flex: 1; background: var(--fondo-alt); border: none; cursor: pointer;
+  padding: 16px; font-family: inherit; font-size: 15.5px; color: var(--texto-tenue);
+  border-bottom: 2px solid transparent;
+}
+/*
+   Las solapas pasaron de <button> a <a> al migrar: son dos direcciones
+   (/cuenta y /cuenta/registro) y no un boton que esconde un panel. Un
+   enlace no viene centrado ni sin subrayado como venia el boton, asi
+   que eso se agrega aca; el resto del estilo es el mismo.
+*/
+a.solapa { text-align: center; text-decoration: none; display: block; }
+
+.solapa.activo {
+  background: var(--superficie); color: var(--vino);
+  font-weight: 600; border-bottom-color: var(--oro);
+}
+.form-cuenta { padding: 28px; }
+.form-cuenta .form-fila-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* ------------------------------------------------------------
+   RECUPERO DE CONTRASENA
+   El enlace vive debajo del campo de contrasena, que es donde uno
+   se da cuenta de que no se la acuerda. Los cuatro pasos se dibujan
+   adentro del modal comun.
+   ------------------------------------------------------------ */
+.form-olvide { text-align: right; margin: -8px 0 14px; }
+
+/* Un boton que tiene que leerse como un enlace: no navega, abre el
+   modal, pero la persona espera que eso se vea como texto cliqueable. */
+.enlace-suave {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-family: inherit; font-size: 13.5px; color: var(--oro);
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.enlace-suave:hover { color: var(--vino); }
+
+/* El modal comun es ancho (820px) porque lo comparte con el checkout.
+   Para cuatro campos cortos eso queda desierto, asi que se achica. */
+.modal:has(.recupero) { max-width: 440px; }
+.recupero { max-width: 440px; margin: 0 auto; padding: 4px 28px 28px; }
+.recupero .form-cuenta { padding: 0; }
+
+.recupero__cabeza { margin-bottom: 22px; }
+.recupero__paso {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1.4px;
+  color: var(--texto-tenue); margin: 0 0 6px; font-weight: 600;
+}
+.recupero__titulo { font-size: 23px; margin: 0 0 8px; color: var(--texto); }
+.recupero__bajada { color: var(--texto-tenue); font-size: 14.5px; line-height: 1.6; margin: 0; }
+
+/* El telefono tapado: grande y monoespaciado para que los puntos se
+   cuenten de un vistazo y queden alineados con los numeros. */
+.recupero__telefono {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 22px; letter-spacing: 2px; text-align: center; color: var(--texto);
+  background: var(--fondo-alt); border-radius: var(--radio-s);
+  padding: 16px 12px; margin: 0 0 20px; word-break: break-all;
+}
+.recupero__rotulo {
+  display: block; text-align: center; font-size: 13.5px;
+  color: var(--texto-tenue); margin-bottom: 12px;
+}
+.recupero__ayuda {
+  font-size: 12.5px; color: var(--texto-tenue); line-height: 1.6;
+  margin: 16px 0 0; text-align: center;
+}
+
+/* ---- casilleros de a un numero ---- */
+.casilleros {
+  display: flex; gap: 8px; justify-content: center; margin-bottom: 14px;
+  /* Que no se desborden en un telefono angosto: seis casilleros de
+     46px no entran en una pantalla de 320px. */
+  flex-wrap: wrap;
+}
+.casillero {
+  width: 46px; height: 56px; text-align: center;
+  font-size: 23px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  background: var(--fondo); border: 1px solid var(--borde); color: var(--texto);
+  border-radius: var(--radio-s);
+}
+.casillero:focus {
+  outline: none; border-color: var(--oro);
+  box-shadow: 0 0 0 3px rgba(56,132,151,.18);
+}
+
+.nota-tenue { color: var(--texto-tenue); font-size: 14px; line-height: 1.7; }
+.nota-tenue a { color: var(--oro-claro); }
+
+.aviso-panel {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 18px; flex-wrap: wrap; margin-bottom: 30px;
+  background: var(--fondo-alt); border: 1px solid var(--borde);
+  border-radius: var(--radio); padding: 20px 24px;
+}
+.vacio-cuenta {
+  text-align: center; padding: 50px 20px; color: var(--texto-tenue);
+  border: 1px dashed var(--borde); border-radius: var(--radio);
+}
+.vacio-cuenta .btn { margin-top: 18px; }
+
+/* ---- tarjeta de un pedido ---- */
+.pedido {
+  background: var(--superficie); border: 1px solid var(--borde);
+  border-radius: var(--radio); padding: 22px; margin-bottom: 18px;
+}
+.pedido__cabeza {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 14px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.pedido__numero { font-weight: 700; color: var(--vino); font-size: 16.5px; }
+.pedido__items { list-style: none; padding: 0; margin: 0 0 14px; }
+.pedido__items li {
+  display: flex; justify-content: space-between; gap: 14px;
+  padding: 8px 0; border-bottom: 1px solid var(--borde); font-size: 15px;
+}
+.pedido__items li:last-child { border-bottom: none; }
+.reng__precio { color: var(--texto-tenue); white-space: nowrap; }
+.pedido__pie {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-top: 12px; border-top: 1px solid var(--borde); font-size: 16px;
+}
+.pedido__acciones { margin-top: 16px; }
+
+/* ---- estado del pedido o de la solicitud ---- */
+.marca-sol {
+  display: inline-block; padding: 4px 12px; border-radius: 7px;
+  font-size: 13.5px; font-weight: 600;
+}
+.marca-sol--confirmado, .marca-sol--en_revision { background: #e4eef3; color: #27616f; }
+.marca-sol--entregado,  .marca-sol--aprobada    { background: #e1f1e8; color: #1e7a54; }
+.marca-sol--cancelado,  .marca-sol--rechazada   { background: #fae7e6; color: #b3352e; }
+.marca-sol--pendiente                           { background: #fbf0db; color: #8a5e0a; }
+
+.solicitud-estado {
+  background: var(--fondo-alt); border-radius: var(--radio-s); padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
+}
+.solicitud-respuesta {
+  border-left: 3px solid var(--oro); padding-left: 12px;
+  font-size: 14.5px; line-height: 1.7; color: var(--texto); margin-top: 4px;
+}
+
+/* ---- preguntas frecuentes dentro del formulario de cancelacion ---- */
+.faq-caja { margin: 6px 0 16px; }
+.faq-caja__titulo {
+  font-size: 13px; letter-spacing: 1.1px; text-transform: uppercase;
+  color: var(--texto-tenue); margin-bottom: 10px;
+}
+.faq {
+  border: 1px solid var(--borde); border-radius: var(--radio-s);
+  margin-bottom: 8px; background: var(--fondo-alt);
+}
+.faq summary {
+  cursor: pointer; padding: 12px 14px; font-size: 14.5px;
+  font-weight: 600; color: var(--vino);
+}
+.faq p { padding: 0 14px 14px; font-size: 14.5px; line-height: 1.7; color: var(--texto-tenue); }
+
+.aviso-politica {
+  border-radius: var(--radio-s); padding: 13px 15px; margin-bottom: 16px;
+  font-size: 14.5px; line-height: 1.65;
+}
+.aviso-politica:empty { display: none; }
+.aviso-politica--directa  { background: #e1f1e8; color: #17603f; }
+.aviso-politica--revision { background: #fbf0db; color: #7a540c; }
+
+@media (max-width: 560px) {
+  .form-cuenta .form-fila-2 { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   MI CUENTA — EL PERFIL CON MENU LATERAL
+
+   Dos columnas: el menu de secciones a la izquierda y el panel de la
+   seccion abierta a la derecha. En pantallas chicas se apilan y el menu
+   pasa a ser una fila de solapas que se desliza, en vez de una lista
+   alta que empuje el contenido fuera de la vista.
+   ============================================================ */
+.perfil {
+  display: grid; grid-template-columns: 250px 1fr; gap: 32px;
+  align-items: start;
+}
+
+/* ---- el menu ---- */
+.perfil__menu {
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--superficie); border: 1px solid var(--borde);
+  border-radius: var(--radio); padding: 10px; overflow: hidden;
+  /* Acompania el scroll: el panel de la derecha puede ser mucho mas alto. */
+  position: sticky; top: 16px;
+}
+.perfil__item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 14px; border-radius: var(--radio-s);
+  color: var(--texto); font-size: 15px; text-decoration: none;
+  border-left: 3px solid transparent;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.perfil__item:hover { background: var(--superficie-2); color: var(--oro-claro); }
+.perfil__item.activo {
+  background: var(--superficie-2); color: var(--oro-claro);
+  border-left-color: var(--oro); font-weight: 600;
+}
+
+/* ---- el panel de la seccion abierta ---- */
+.perfil__panel {
+  background: var(--superficie); border: 1px solid var(--borde);
+  border-radius: var(--radio); padding: 30px 32px 34px; min-height: 320px;
+}
+.perfil__cabeza { margin-bottom: 24px; }
+.perfil__cabeza h2 {
+  font-family: var(--fuente-titulo); font-weight: 400; font-size: 25px;
+  color: var(--vino); margin-bottom: 6px;
+}
+.perfil__subtitulo {
+  font-family: var(--fuente-titulo); font-weight: 400; font-size: 19px;
+  color: var(--vino); margin: 30px 0 4px;
+}
+.perfil__form { max-width: 520px; }
+.perfil__form .form-fila-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.perfil__acciones {
+  display: flex; gap: 12px; flex-wrap: wrap;
+  margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--borde);
+}
+
+/* Las tarjetas de pedido dentro del panel ya tienen su propio marco: el
+   del panel alcanza, asi que no se encajonan dos veces. */
+.perfil__panel .pedido { border-left: 3px solid var(--oro); }
+.perfil__panel .vacio-cuenta { padding: 30px 0; }
+
+/* ---- preferencias de vino ---- */
+.perfil__grupo { border: none; padding: 0; margin: 0 0 24px; }
+.perfil__grupo legend {
+  font-size: 12px; letter-spacing: 1.6px; text-transform: uppercase;
+  color: var(--texto-tenue); margin-bottom: 12px; padding: 0;
+}
+/*
+   Las tildes van en pastillas, igual que los medios de pago del checkout:
+   la casilla real queda oculta pero sigue siendo la que recibe el click,
+   el foco y el teclado. Lo que se ve es la pastilla.
+*/
+.tildes { display: flex; flex-wrap: wrap; gap: 9px; }
+.tilde {
+  position: relative; cursor: pointer;
+  padding: 9px 16px; border: 1px solid var(--borde); border-radius: 999px;
+  font-size: 14.5px; transition: border-color .15s, background .15s, color .15s;
+}
+.tilde:hover { border-color: var(--oro); }
+.tilde input { position: absolute; opacity: 0; pointer-events: none; }
+.tilde:has(input:checked) {
+  border-color: var(--oro); background: var(--superficie-2); color: var(--oro-claro);
+  font-weight: 600;
+}
+.tilde:has(input:focus-visible) { outline: 2px solid var(--oro); outline-offset: 2px; }
+
+.perfil__sugeridos { margin-top: 10px; }
+.perfil__sugeridos .vino-hermanos { grid-template-columns: repeat(2, 1fr); margin-top: 16px; }
+
+/* ---- solicitudes de cancelacion ---- */
+.solicitud-motivo { font-size: 15px; margin-bottom: 8px; }
+
+@media (max-width: 900px) {
+  .perfil { grid-template-columns: 1fr; gap: 20px; }
+  /*
+     Apilado, el menu deja de seguir el scroll y se vuelve una fila: una
+     lista vertical de cinco renglones dejaria el contenido abajo del
+     pliegue en cualquier telefono.
+  */
+  .perfil__menu {
+    position: static; flex-direction: row; gap: 6px;
+    overflow-x: auto; padding: 8px;
+  }
+  .perfil__item {
+    border-left: none; border-bottom: 3px solid transparent;
+    white-space: nowrap; padding: 10px 12px; font-size: 14px;
+  }
+  .perfil__item.activo { border-left-color: transparent; border-bottom-color: var(--oro); }
+  .perfil__panel { padding: 24px 20px 28px; }
+  .perfil__sugeridos .vino-hermanos { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .perfil__form .form-fila-2 { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   AVISOS
+   ============================================================ */
+.aviso-grande {
+  text-align: center; padding: 76px 24px; max-width: 560px; margin: 0 auto;
+}
+.aviso-grande h2 { font-size: 23px; color: var(--vino); margin-bottom: 12px; }
+.aviso-grande p { color: var(--texto-tenue); margin-bottom: 8px; line-height: 1.7; }
+.aviso-grande__pista { font-size: 14px; }
+.aviso-grande .btn { margin-top: 18px; }
+
+/* ============================================================
+   PANTALLAS CHICAS
+   ============================================================ */
+@media (max-width: 1000px) {
+  .par, .par--invertido { grid-template-columns: 1fr; gap: 30px; }
+  .par--invertido .par__foto { order: 0; }
+  .sitio-pie__interior { grid-template-columns: 1fr 1fr; gap: 32px 28px; }
+}
+/* Con seis columnas el pie se aprieta antes que el resto de la pagina:
+   a partir de aca pasa a tres, y la columna del logo ocupa el renglon
+   entero para que el texto de abajo no quede en una tira de 80px. */
+@media (max-width: 1240px) and (min-width: 1001px) {
+  .sitio-pie__interior { grid-template-columns: repeat(3, 1fr); gap: 34px 30px; }
+  .sitio-pie__interior > :first-child { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  .sitio-cabecera__fila { flex-wrap: wrap; gap: 14px; justify-content: space-between; }
+  .sitio-nav { order: 3; width: 100%; justify-content: flex-start; gap: 2px; }
+  .sitio-nav__item { padding: 8px 10px; font-size: 12px; letter-spacing: 1.2px; }
+  .cinta__dato { display: none; }
+  .seccion { padding: 50px 20px; }
+  .sitio-pie__interior { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   FOTOS DE LA PAGINA DE INICIO
+   ============================================================
+   Las fotos de la bodega se ponen como fondo y no como <img> porque los
+   tres huecos (la portada y las dos cajas .par__foto) ya tienen su alto
+   definido por el diseno: con background-size: cover la foto se recorta
+   sola al tamano del hueco en cualquier pantalla, sin deformarse.
+   ============================================================ */
+.portada--inicio { background-image: url("../assets/img/sitio/portada-camino.jpg"); }
+#fotoRegion     { background-image: url("../assets/img/sitio/region-valle.jpg"); }
+#fotoFinca      { background-image: url("../assets/img/sitio/finca-vinedo.jpg"); }
+
+/* ============================================================
+   PAGINA DE LA FINCA
+   ============================================================ */
+#fotoViñedo { background-image: url("../assets/img/sitio/finca-almendros.jpg"); }
+
+/*
+   "Del vinedo a la botella". Las cuatro etapas estaban escritas en el
+   HTML pero no tenian estilo: salian una debajo de la otra, el numero
+   pegado al titulo y sin separacion entre pasos. Aca pasan a ser cuatro
+   fichas en fila, que en pantalla angosta se acomodan solas.
+*/
+.pasos {
+  display: grid; gap: 24px; margin-top: 42px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.paso {
+  background: var(--superficie); border: 1px solid var(--borde);
+  border-radius: var(--radio); padding: 28px 24px;
+}
+.paso__numero {
+  display: block; font-family: var(--fuente-titulo);
+  font-size: 34px; line-height: 1; color: var(--oro);
+}
+.paso h3 {
+  margin: 14px 0 10px; font-size: 19px; color: var(--vino);
+  letter-spacing: 1.2px; text-transform: uppercase; font-weight: 400;
+}
+.paso p { color: var(--texto-tenue); font-size: 15px; line-height: 1.75; }
+
+/*
+   Galeria de la finca. Las fotos van en <img> y no de fondo como las de
+   la portada: aca son el contenido (tienen que poder describirse con alt
+   y leerse con un epigrafe), no la decoracion de un hueco con alto fijo.
+*/
+.galeria {
+  display: grid; gap: 24px; margin-top: 10px;
+  grid-template-columns: repeat(3, 1fr);
+}
+.galeria__item { margin: 0; }
+.galeria__item img {
+  width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
+  border-radius: var(--radio); background: var(--foto-fondo);
+}
+.galeria__item figcaption {
+  margin-top: 12px; color: var(--texto-tenue); font-size: 14.5px; line-height: 1.6;
+}
+@media (max-width: 860px) { .galeria { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .galeria { grid-template-columns: 1fr; } }
+
+/*
+   Acciones de gestion dentro de una tarjeta del listado. Solo las ve un
+   administrador: a los demas ni siquiera se les dibujan los botones.
+*/
+.tarjeta__gestion {
+  display: flex; gap: 8px; margin-top: 10px;
+  padding-top: 10px; border-top: 1px dashed var(--borde);
+}
+.tarjeta__gestion .btn { flex: 1; }
+
+/* ============================================================
+   FICHA DE UN VINO (vino.html)
+
+   Dos piezas: una banda oscura arriba con la botella y la compra, y
+   abajo el texto en una columna ancha con la ficha tecnica fija al
+   costado, como en la ficha impresa de la bodega. En pantalla angosta
+   las dos columnas se apilan y la tecnica queda al final.
+   ============================================================ */
+.vino-hero { background: var(--oscuro); color: var(--sobre-oscuro); padding: 48px 24px 56px; }
+.vino-hero__interior {
+  max-width: var(--ancho-max); margin: 0 auto;
+  display: grid; grid-template-columns: 300px 1fr; gap: 54px; align-items: center;
+}
+/* Fondo claro detras de la botella: las fotos vienen recortadas en blanco. */
+.vino-hero__foto {
+  background: var(--foto-fondo); border-radius: var(--radio);
+  padding: 26px; display: flex; justify-content: center;
+}
+.vino-hero__foto img { max-width: 100%; max-height: 380px; object-fit: contain; }
+
+.miga { font-size: 13.5px; color: #a9c2cb; margin-bottom: 16px; }
+.miga a { color: #a9c2cb; text-decoration: none; }
+.miga a:hover { color: #fff; text-decoration: underline; }
+
+.vino-hero__linea {
+  font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: var(--oro);
+}
+.vino-hero__nombre {
+  font-family: var(--fuente-titulo); font-weight: 400; font-size: 42px;
+  line-height: 1.15; margin: 8px 0 12px;
+}
+.vino-hero__meta { color: #bcd3da; font-size: 15.5px; }
+.vino-hero__presentacion {
+  margin-top: 18px; color: #d4e3e8; font-size: 16.5px; line-height: 1.85; max-width: 62ch;
+}
+.vino-hero__compra {
+  margin-top: 28px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.vino-hero__precio { font-family: var(--fuente-titulo); font-size: 30px; color: #fff; }
+.vino-hero__nota { margin-top: 10px; font-size: 14px; color: #a9c2cb; }
+
+.vino-cuerpo { display: grid; grid-template-columns: 1fr 320px; gap: 54px; align-items: start; }
+.vino-bloque + .vino-bloque {
+  margin-top: 40px; padding-top: 36px; border-top: 1px solid var(--borde);
+}
+.vino-bloque__titulo {
+  font-family: var(--fuente-titulo); font-weight: 400; font-size: 25px;
+  color: var(--vino); margin-bottom: 18px;
+}
+.vino-parrafo {
+  color: var(--texto-tenue); font-size: 16.5px; line-height: 1.85;
+  max-width: 72ch; margin-bottom: 14px;
+}
+.vino-parrafo--destacado {
+  border-left: 3px solid var(--oro); padding-left: 14px; color: var(--texto);
+  margin-top: 20px;
+}
+
+/* Vista / Nariz / Boca, y los datos del vinedo: etiqueta arriba, texto debajo. */
+.cata { display: grid; gap: 16px; }
+.cata dt {
+  font-size: 12.5px; letter-spacing: 1.8px; text-transform: uppercase;
+  color: var(--oro-claro); margin-bottom: 4px;
+}
+.cata dd { margin: 0; color: var(--texto-tenue); font-size: 16px; line-height: 1.8; max-width: 72ch; }
+.cata--compacta { grid-template-columns: 1fr 1fr; gap: 18px 32px; margin-top: 22px; }
+.cata--compacta dd { font-size: 15px; }
+
+/*
+   La ficha tecnica baja con la pagina como una caja mas.
+
+   Antes era position: sticky y quedaba clavada arriba a la derecha
+   mientras el texto seguia de largo: al llegar a las notas de cata se
+   veia la ficha flotando sola al lado de un espacio vacio, y en los
+   vinos con mucho texto acompaniaba media pantalla de scroll sin
+   aportar nada. Como es una tabla de datos que se lee una vez, no una
+   barra de herramientas, no hay motivo para que siga al lector.
+*/
+.vino-tecnica {
+  background: var(--fondo-alt); border: 1px solid var(--borde);
+  border-radius: var(--radio); padding: 26px;
+}
+.vino-tecnica__titulo {
+  font-family: var(--fuente-titulo); font-weight: 400; font-size: 21px;
+  color: var(--vino); margin-bottom: 18px;
+}
+.vino-tecnica__lista { display: grid; gap: 0; }
+.vino-tecnica__lista dt {
+  font-size: 13px; letter-spacing: .6px; text-transform: uppercase; color: var(--texto-tenue);
+  padding: 10px 0 2px;
+}
+.vino-tecnica__lista dd {
+  margin: 0; padding-bottom: 10px; border-bottom: 1px solid var(--borde);
+  color: var(--texto); font-size: 15.5px;
+}
+.vino-tecnica__lista dd:last-of-type { border-bottom: none; }
+.vino-tecnica__sello {
+  margin-top: 16px; font-size: 13.5px; color: var(--oro-claro); line-height: 1.6;
+}
+.vino-tecnica__origen {
+  display: inline-block; margin-top: 14px; font-size: 13.5px; color: var(--oro-claro);
+}
+
+/* Las otras etiquetas de la misma linea. */
+.vino-hermanos {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 26px;
+}
+.vino-hermano {
+  display: block; padding: 18px 20px; background: var(--superficie);
+  border: 1px solid var(--borde); border-radius: var(--radio); text-decoration: none;
+}
+.vino-hermano {
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.vino-hermano:hover {
+  border-color: var(--oro); background: var(--superficie-2);
+  transform: translateY(-3px); box-shadow: var(--sombra-s);
+}
+.vino-hermano__nombre {
+  display: block; font-family: var(--fuente-titulo); font-size: 18px; color: var(--vino);
+}
+.vino-hermano__meta { display: block; margin-top: 4px; font-size: 14px; color: var(--texto-tenue); }
+
+@media (max-width: 980px) {
+  .vino-hero__interior { grid-template-columns: 240px 1fr; gap: 34px; }
+  .vino-cuerpo { grid-template-columns: 1fr; gap: 40px; }
+  .vino-hermanos { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 680px) {
+  .vino-hero__interior { grid-template-columns: 1fr; }
+  .vino-hero__nombre { font-size: 32px; }
+  .cata--compacta { grid-template-columns: 1fr; }
+  .vino-hermanos { grid-template-columns: 1fr; }
+}
+
+/*
+   La ficha del listado de vinos es clickeable: lleva a vino.html. Se le
+   marca el cursor y un hover suave para que se note que se puede tocar.
+*/
+.ficha--enlace { cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.ficha--enlace:hover { border-color: var(--oro); box-shadow: var(--sombra-s); }
+.ficha__titulo { color: inherit; text-decoration: none; }
+.ficha--enlace:hover .ficha__titulo { color: var(--oro-claro); }
+.ficha__acciones { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.ficha__ver { font-size: 14px; color: var(--oro-claro); }
+
+/* Enlace a la ficha completa desde el modal de compra de la tienda. */
+.detalle__ficha {
+  display: inline-block; margin-top: 14px; font-size: 14.5px; color: var(--oro-claro);
+}
+
+/* ============================================================
+   PAGINA "NOSOTROS" — el equipo
+
+   Tres tarjetas iguales en una fila. Las fotos originales no tienen el
+   mismo encuadre, asi que se recortan en circulo con object-fit: cover
+   y quedan parejas sin tener que retocarlas una por una.
+   ============================================================ */
+.equipo {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 28px; margin: 10px auto 0; max-width: 940px;
+}
+.integrante {
+  background: var(--superficie); border: 1px solid var(--borde);
+  border-radius: var(--radio); padding: 34px 24px 30px; text-align: center;
+  transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+}
+.integrante:hover {
+  transform: translateY(-5px); border-color: var(--oro); box-shadow: var(--sombra);
+}
+.integrante__foto {
+  width: 150px; height: 150px; border-radius: 50%; object-fit: cover;
+  margin: 0 auto 20px; display: block;
+  /* El aro deja la foto despegada del fondo blanco de la tarjeta. */
+  border: 3px solid var(--fondo); box-shadow: 0 0 0 2px var(--oro);
+}
+/*
+   Marcador de lugar para quien todavia no mando su foto: las iniciales
+   sobre el petroleo de la marca. Ocupa exactamente el mismo circulo que
+   una foto, asi que la fila no se desalinea.
+*/
+.integrante__iniciales {
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(140deg, #124455, #0b2c38);
+  color: #fff; font-family: var(--fuente-titulo); font-size: 44px;
+  letter-spacing: 2px; user-select: none;
+}
+.integrante__nombre {
+  font-family: var(--fuente-titulo); font-weight: 400; font-size: 21px;
+  color: var(--vino); margin: 0 0 6px;
+}
+.integrante__rol {
+  font-size: 12.5px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--oro-claro);
+}
+
+@media (max-width: 860px) { .equipo { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .equipo { grid-template-columns: 1fr; } }
+
+/* ============================================================
+   APARICION AL BAJAR
+
+   Cada seccion entra con un desplazamiento corto cuando se la alcanza
+   con el scroll. Lo prende sitio.js, no el HTML: si el JavaScript no
+   corre, nunca se agrega la clase y todo se ve de entrada. Es a
+   proposito, para que el contenido no dependa de una animacion.
+
+   Quien pidio menos movimiento en su sistema operativo no la recibe:
+   la condicion esta en sitio.js y ademas se anula aca.
+   ============================================================ */
+.revelar { opacity: 0; transform: translateY(20px); }
+.revelar--visible {
+  opacity: 1; transform: none;
+  transition: opacity .65s ease, transform .65s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .revelar, .revelar--visible { opacity: 1; transform: none; transition: none; }
+}
+
+/* ============================================================
+   DOCUMENTO LEGAL (politica de privacidad)
+   ============================================================
+   Una sola columna angosta y no el .par de dos columnas del resto
+   del sitio: esto no es contenido de venta que se acompana con una
+   foto, es un texto que la persona tiene que poder LEER. Pasados los
+   75 caracteres por renglon el ojo pierde el salto de linea, de ahi
+   el ancho fijo mas angosto que --ancho-max.
+
+   Los titulos van numerados desde el HTML y no con un contador de
+   CSS, porque el indice de arriba los nombra por numero: si el
+   numero lo pusiera la hoja de estilos, con el CSS caido el indice
+   quedaria hablando de secciones sin numero.
+   ============================================================ */
+.legal { max-width: 760px; margin: 0 auto; }
+.legal p,
+.legal li { color: var(--texto-tenue); font-size: 16px; line-height: 1.85; }
+/*
+   El reset de estilos.css pone margin:0 en TODO, asi que dos parrafos
+   seguidos quedaban pegados y se leian como uno solo. En las demas
+   paginas no se notaba porque casi no hay parrafos consecutivos; aca,
+   con doce apartados de varios parrafos cada uno, era el defecto mas
+   visible del texto.
+*/
+.legal p { margin-bottom: 16px; }
+.legal p:last-child { margin-bottom: 0; }
+/*
+   Cada h2 abre con una linea fina arriba. En un texto de doce
+   apartados corridos los titulos solos no alcanzan para marcar donde
+   termina uno y empieza el otro: la regla le da a cada seccion un
+   borde visible y la pagina deja de leerse como un solo bloque.
+*/
+.legal h2 {
+  font-family: var(--fuente-titulo); font-weight: 400;
+  font-size: 23px; color: var(--vino); letter-spacing: 1.4px;
+  margin: 46px 0 14px; padding-top: 26px;
+  border-top: 1px solid var(--borde);
+}
+/* El primer h2 no lleva regla: ya esta el indice separandolo. */
+.legal h2:first-of-type { border-top: none; padding-top: 0; margin-top: 38px; }
+.legal h3 { font-size: 16px; color: var(--texto); margin: 24px 0 8px; }
+.legal ul { padding-left: 20px; margin: 12px 0; }
+.legal li { margin-bottom: 8px; }
+.legal a { color: var(--vino); }
+/*
+   Al saltar desde el indice, el titulo quedaba pegado al borde de
+   arriba de la ventana y no se veia de que seccion era. scroll-margin
+   lo baja 24px y ademas suaviza el salto, salvo para quien pidio menos
+   movimiento en el sistema.
+*/
+.legal [id] { scroll-margin-top: 24px; }
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.legal) { scroll-behavior: smooth; }
+}
+
+/* La fecha de vigencia: chica, arriba de todo, separada del cuerpo. */
+.legal p.legal__fecha {
+  font-size: 13.5px; color: var(--texto-tenue);
+  text-transform: uppercase; letter-spacing: .6px;
+  padding-bottom: 18px; border-bottom: 1px solid var(--borde);
+  margin-bottom: 26px;
+}
+
+/* Indice de secciones. Un documento de doce apartados sin indice
+   obliga a barrer toda la pagina para encontrar "como borro mis
+   datos", que es justo lo que la gente viene a buscar. */
+.legal__indice {
+  background: var(--fondo-alt); border: 1px solid var(--borde);
+  border-radius: var(--radio); padding: 22px 26px; margin: 30px 0 8px;
+}
+/* En dos columnas el indice entra de una sola mirada; en una sola,
+   doce renglones obligan a desplazar antes de empezar a leer. */
+.legal__indice ol {
+  margin: 0; padding-left: 20px;
+  columns: 2; column-gap: 30px;
+}
+.legal__indice li {
+  margin-bottom: 7px; font-size: 14.5px;
+  break-inside: avoid; color: var(--texto-tenue);
+}
+.legal__indice a { text-decoration: none; }
+.legal__indice a:hover { text-decoration: underline; }
+@media (max-width: 620px) {
+  .legal__indice ol { columns: 1; }
+  .legal__indice { padding: 18px 20px; }
+}
+
+/* Tabla de que dato se guarda y para que. En un parrafo corrido esto
+   se vuelve ilegible; en columnas se busca un dato y se lo encuentra. */
+.legal__tabla {
+  width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 15px;
+  border: 1px solid var(--borde); border-radius: var(--radio-s);
+  overflow: hidden;
+}
+.legal__tabla th,
+.legal__tabla td {
+  text-align: left; padding: 11px 14px;
+  border-bottom: 1px solid var(--borde); vertical-align: top;
+}
+.legal__tabla th {
+  color: var(--vino); font-size: 12.5px; text-transform: uppercase;
+  letter-spacing: .8px; background: var(--fondo-alt);
+}
+.legal__tabla td { color: var(--texto-tenue); line-height: 1.7; }
+/* La ultima fila no necesita linea: ya esta el borde de la tabla. */
+.legal__tabla tr:last-child td { border-bottom: none; }
+/* Franjas alternadas: con filas de tres o cuatro renglones, el ojo
+   se pasa de fila al saltar de la primera columna a la segunda. */
+.legal__tabla tbody tr:nth-child(even) { background: #fafcfc; }
+
+/* El recuadro de "como ejercer tus derechos": es la parte accionable
+   del documento y tiene que saltar a la vista entre tanto texto. */
+.legal__caja {
+  background: var(--fondo-alt); border: 1px solid var(--borde);
+  border-left: 3px solid var(--vino);
+  border-radius: 0 var(--radio) var(--radio) 0;
+  padding: 20px 24px; margin: 24px 0;
+}
+.legal__caja > :first-child { margin-top: 0; }
+.legal__caja p:last-child { margin-bottom: 0; }
+/* Dentro de la caja los titulos no llevan la regla de separacion: la
+   caja ya esta separada del texto por su propio recuadro. */
+.legal__caja h3 { margin-top: 0; color: var(--vino); }
+
+@media (max-width: 620px) {
+  /* La tabla en dos columnas no entra en un telefono: cada fila pasa
+     a ser un bloque con su etiqueta arriba. */
+  .legal__tabla, .legal__tabla tbody, .legal__tabla tr, .legal__tabla td { display: block; width: 100%; }
+  .legal__tabla thead { display: none; }
+  .legal__tabla tr { border-bottom: 1px solid var(--borde); padding: 12px 14px; }
+  .legal__tabla tbody tr:last-child { border-bottom: none; }
+  .legal__tabla td { border: none; padding: 2px 0; }
+  .legal__tabla td::before {
+    content: attr(data-etiqueta);
+    display: block; color: var(--vino); font-size: 12px;
+    text-transform: uppercase; letter-spacing: .8px; margin-bottom: 2px;
+  }
+}
+
+/* ============================================================
+   BOTON DE ARREPENTIMIENTO EN EL PIE
+   ============================================================
+   La Resolucion 424/2020 pide que el acceso sea VISIBLE, no un
+   enlace mas de la lista. Por eso este rompe el estilo de los
+   demas enlaces del pie: pastilla propia con fondo y texto blanco.
+   Es el unico de la columna que se ve como un boton, y esa
+   diferencia es justamente lo que la norma busca.
+
+   POR QUE PASTILLA Y NO RECUADRO: el recuadro anterior era un bloque
+   de dos renglones mas alto que el logo de al lado; en una columna de
+   pie se comia la atencion de todo lo demas. La pastilla se ajusta al
+   texto (width: fit-content), con lo que ocupa un solo renglon y sigue
+   destacando sin desbalancear el pie.
+   ============================================================ */
+.sitio-pie a.pie-arrepentimiento {
+  display: inline-flex; align-items: center; gap: 7px;
+  width: fit-content; max-width: 100%;
+  margin: 10px 0 2px;
+  padding: 7px 13px 7px 11px;
+  border: 1px solid rgba(255, 255, 255, .32);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .06);
+  color: #fff; font-size: 13.5px; font-weight: 600; line-height: 1.25;
+  /* En un solo renglon o no se lee como boton: partido en dos pasa a
+     ser un bloque alto que desbalancea la columna. La grilla del pie
+     le reserva 216px con minmax(), que es lo que mide completo. */
+  white-space: nowrap;
+  transition: background .15s, border-color .15s;
+}
+/* La flechita circular es el gesto universal de "deshacer": dice de un
+   vistazo para que sirve el boton, y deja que el texto baje a 13.5px
+   sin que se pierda el sentido. */
+.sitio-pie a.pie-arrepentimiento::before {
+  content: "\21BA";
+  font-size: 15px; line-height: 1; opacity: .85;
+}
+.sitio-pie a.pie-arrepentimiento:hover {
+  background: rgba(255, 255, 255, .16);
+  border-color: rgba(255, 255, 255, .7); text-decoration: none;
+}
+
+/* ============================================================
+   UNICA REGLA AGREGADA POR LA MIGRACION A THYMELEAF + HTMX
+   ============================================================
+   El boton "Salir" del encabezado paso a estar adentro de un <form>,
+   porque cerrar la sesion ahora es un POST con token CSRF y no un
+   enlace. Un <form> es un elemento de bloque: metido dentro de
+   .cinta__cuenta, que es flex, se comportaba como una caja mas y
+   descolgaba el boton del resto de la fila.
+
+   display: contents hace que el <form> no genere caja propia: su hijo
+   (el boton) participa del flex del padre como si el form no estuviera.
+   Es la correccion mas chica posible, y no toca ninguna regla existente.
+   ============================================================ */
+.cinta__forma { display: contents; }
+
+/* ------------------------------------------------------------
+   Tarjeta de vino: el enlace que cubre toda la tarjeta
+   ------------------------------------------------------------
+   Antes, tocar una tarjeta navegaba por un onclick puesto desde
+   JavaScript (modules/vino.js:86), y para que funcionara con teclado
+   habia que agregarle tabindex, role="button" y un onkeydown que
+   escuchara Enter.
+
+   Ahora es un <a> de verdad estirado sobre la tarjeta. Gratis vienen el
+   clic del medio, "abrir en pestana nueva", el foco con Tab y el menu
+   contextual, que el onclick no daba.
+
+   Son dos propiedades y ninguna pisa nada: .tarjeta no declaraba
+   position, asi que esto la completa en vez de corregirla.
+   ------------------------------------------------------------ */
+.tarjeta { position: relative; }
+.tarjeta__enlace { position: absolute; inset: 0; z-index: 1; }
+/* El boton de compra tiene que quedar POR ENCIMA del enlace, o el clic
+   en "Agregar" navegaria a la ficha en vez de sumar la botella. Es el
+   equivalente del stopPropagation() que hacia modules/vino.js:62. */
+.tarjeta__cuerpo .btn { position: relative; z-index: 2; }
+
+/* ------------------------------------------------------------
+   Burbuja del carrito vacio: BUG QUE YA EXISTIA
+   ------------------------------------------------------------
+   .sitio-carrito__cuenta declara display:flex, y una regla de autor le
+   gana siempre al atributo hidden (que el navegador aplica con un
+   display:none de su hoja por defecto). Resultado: con el carrito
+   vacio, la burbuja seguia mostrando un "0" en todas las paginas.
+
+   No lo trajo la migracion: pasaba igual antes, cuando la burbuja la
+   escondia sitio.js:277 con burbuja.hidden = true. Se arregla aca
+   porque es una linea y porque ahora el atributo lo pone el servidor.
+
+   Es el mismo patron que estilos.css ya usaba para .banco[hidden] y
+   .tarjeta-pago[hidden].
+   ------------------------------------------------------------ */
+.sitio-carrito__cuenta[hidden] { display: none; }
+
+/* ------------------------------------------------------------
+   ETAPA 3 — LA TIENDA DEL LADO DEL SERVIDOR
+   ------------------------------------------------------------
+   Tres reglas nuevas. Ninguna pisa nada de lo que ya habia: las tres
+   describen marcado que antes no existia.
+   ------------------------------------------------------------ */
+
+/* El boton "Agregar" ahora vive dentro de un <form>, para que funcione
+   sin JavaScript y para que Thymeleaf le ponga el token CSRF.
+   .tarjeta__cuerpo es un flex en columna y el boton era un hijo
+   directo, asi que ocupaba todo el ancho. Metido en un formulario
+   dejaria de serlo y se encogeria al texto.
+
+   display:contents hace que el formulario no genere caja: el boton
+   vuelve a ser el flex item y se ve igual que antes. Es el mismo
+   recurso que ya usa .cinta__forma mas arriba. */
+.tarjeta__compra { display: contents; }
+
+/* El atajo que aparece en la tarjeta despues de agregar al carrito.
+   Hereda el tamanio chico de la tarjeta y no compite con el boton. */
+.tarjeta__ir-al-carrito {
+  font-size: 13px; color: var(--oro); text-align: center;
+  position: relative; z-index: 2;
+}
+
+/* El indicador de carga de los filtros. hx-indicator le pone la clase
+   .htmx-request mientras viaja el pedido y se la saca al volver, asi
+   que el cartel "Buscando..." solo se ve durante la espera.
+
+   Reemplaza a los <div class="esqueleto"> que tienda.js:39 metia con
+   innerHTML antes de cada fetch.
+
+   El bloque de prefers-reduced-motion del sitio esta MAS ARRIBA en
+   este archivo y nombra solo a .revelar, asi que no alcanza a esta
+   regla: hace falta el suyo propio, aca abajo. Quien pidio menos
+   movimiento igual ve el cartel; lo que se saca es el desvanecido. */
+#cargandoCatalogo { opacity: 0; transition: opacity .2s ease; }
+#cargandoCatalogo.htmx-request { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  #cargandoCatalogo { transition: none; }
+}

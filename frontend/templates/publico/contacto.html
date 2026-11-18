@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/comunes :: cabeza('Contacto — Alba en los Andes', 'Contacto de la bodega Alba en los Andes, Tupungato, Valle de Uco, Mendoza.')}">
+  <title>Contacto — Alba en los Andes</title>
+</head>
+
+<body>
+
+<header th:replace="~{fragmentos/comunes :: encabezado('contacto')}"></header>
+
+<main id="contenido">
+    <section class="portada-chica">
+      <h1>Contacto</h1>
+      <p>Escribinos por compras mayoristas, visitas a la finca o lo que necesites.</p>
+    </section>
+
+    <section class="seccion">
+      <div class="seccion__interior">
+        <div class="par">
+          <div class="par__texto">
+            <h2 class="seccion__titulo">Dónde estamos</h2>
+            <p><strong>Bodega Alba en los Andes</strong><br>
+               Tupungato, Valle de Uco<br>
+               Mendoza, Argentina</p>
+            <p><strong>Email</strong><br>
+               <a href="mailto:contacto@albaenlosandes.com">contacto@albaenlosandes.com</a></p>
+            <p><strong>Visitas a la finca</strong><br>
+               Con reserva previa, de martes a sábado.</p>
+
+            <!--/*
+              Aviso honesto: este formulario no manda mails. Dejarlo sin
+              decir nada haria que alguien escriba esperando respuesta.
+              Para una consulta sobre un pedido ya hecho existe el circuito
+              de cancelaciones, que SI llega al panel de gestion.
+            */-->
+            <p class="nota-tenue">
+              Este formulario todavía no envía correos: valida lo que escribís
+              y lo muestra en pantalla. Si tu consulta es por un pedido ya
+              hecho, se gestiona desde
+              <a th:href="@{/cuenta}" href="/cuenta">Mis pedidos</a>, que sí llega a la bodega.
+            </p>
+          </div>
+
+          <div class="par__texto">
+            <!--/*
+              EL ACUSE DE RECIBO. Es el mismo que armaba contacto.js:52
+              vaciando el formulario con innerHTML y escribiendo cuatro
+              nodos en su lugar. Ahora lo decide el servidor: si la
+              consulta valido bien, manda este bloque en vez del
+              formulario.
+            */-->
+            <div class="form-contacto" th:if="${enviada}">
+              <div class="estado__icono" style="font-size:52px;color:var(--ok);text-align:center">✓</div>
+              <h2 style="text-align:center;margin:10px 0;font-size:24px">¡Gracias!</h2>
+              <p style="text-align:center;color:var(--texto-tenue);line-height:1.7">
+                Registramos tu consulta a nombre de <span th:text="${consulta.nombre}">Nombre</span>.
+              </p>
+              <p style="text-align:center;color:var(--texto-tenue);font-size:14px;margin-top:14px">
+                Recordá que este formulario todavía no envía correos.
+              </p>
+            </div>
+
+            <!--/*
+              EL FORMULARIO. Dos diferencias con el de antes:
+
+              1) Tiene action y method. Antes no tenia ninguno de los dos
+                 y el envio lo interceptaba JavaScript, asi que sin
+                 JavaScript no hacia nada. Ahora funciona igual sin JS.
+
+              2) Valida dos veces, como pide la primera presentacion:
+                 required / minlength / type="email" avisan en el acto
+                 desde el navegador, y Bean Validation vuelve a
+                 comprobarlo en el servidor, que es donde cuenta.
+
+              th:field escribe solo el id, el name y el value de cada
+              campo, y los vuelve a completar si la validacion falla: lo
+              que la persona ya escribio no se pierde.
+            */-->
+            <form class="form-contacto" id="formContacto"
+                  th:unless="${enviada}"
+                  th:action="@{/contacto}" th:object="${consulta}" method="post">
+              <h2 class="seccion__titulo" style="font-size:24px">Escribinos</h2>
+
+              <div class="form-grupo">
+                <label for="nombre">Nombre y apellido</label>
+                <input type="text" th:field="*{nombre}" autocomplete="name"
+                       required minlength="3"
+                       th:classappend="${#fields.hasErrors('nombre')} ? ' invalido'">
+                <span class="form-error" aria-live="polite"
+                      th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></span>
+              </div>
+
+              <div class="form-grupo">
+                <label for="email">Email</label>
+                <input type="email" th:field="*{email}" autocomplete="email" required
+                       th:classappend="${#fields.hasErrors('email')} ? ' invalido'">
+                <span class="form-error" aria-live="polite"
+                      th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></span>
+              </div>
+
+              <div class="form-grupo">
+                <label for="asunto">Asunto</label>
+                <!--/*
+                  Cada <option> lleva su value explicito. En el HTML
+                  viejo no lo tenian: el navegador usaba el texto de
+                  adentro y alcanzaba. Con th:field no alcanza, porque
+                  Thymeleaf necesita el valor para saber cual marcar
+                  como seleccionada cuando el formulario se vuelve a
+                  dibujar con lo que la persona ya habia elegido.
+                */-->
+                <select th:field="*{asunto}">
+                  <option value="Consulta general">Consulta general</option>
+                  <option value="Compras mayoristas">Compras mayoristas</option>
+                  <option value="Visita a la finca">Visita a la finca</option>
+                  <option value="Prensa">Prensa</option>
+                </select>
+              </div>
+
+              <div class="form-grupo">
+                <label for="mensaje">Mensaje</label>
+                <textarea th:field="*{mensaje}" rows="6" required minlength="10"
+                          th:classappend="${#fields.hasErrors('mensaje')} ? ' invalido'"></textarea>
+                <span class="form-error" aria-live="polite"
+                      th:if="${#fields.hasErrors('mensaje')}" th:errors="*{mensaje}"></span>
+              </div>
+
+              <button type="submit" class="btn btn--primario btn--bloque">Enviar consulta</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+<footer th:replace="~{fragmentos/comunes :: pie}"></footer>
+
+</body>
+</html>

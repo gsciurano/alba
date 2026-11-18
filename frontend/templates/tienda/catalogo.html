@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  ============================================================
+   LA TIENDA — catalogo, filtros y carrito
+  ============================================================
+   Reemplaza a tienda.html + la mitad de js/tienda.js. El HTML viejo
+   tenia los filtros escritos a mano con los <select> VACIOS y un
+   <div id="contenedorCatalogo"></div>: las opciones, la grilla, el
+   contador de resultados y el estado "no encontramos vinos" los
+   dibujaba JavaScript despues de pedir el catalogo entero por fetch.
+
+   LAS CLASES DE CSS SON LAS MISMAS. Ni estilos.css ni sitio.css se
+   tocaron para esta pantalla: .filtros, .filtro, .filtros__buscar,
+   .filtros__resultado, .grilla, .estado y .estado__icono estan tal
+   como estaban. El marcado se copio del original.
+*/-->
+<head th:replace="~{fragmentos/comunes :: cabeza('Comprar — Alba en los Andes', 'Tienda online de la bodega Alba en los Andes. Vinos de Tupungato, Valle de Uco, Mendoza.')}">
+  <title>Comprar — Alba en los Andes</title>
+</head>
+
+<!--/*
+  ============================================================
+   EL TOKEN CSRF, DECLARADO UNA VEZ PARA TODA LA PAGINA
+  ============================================================
+   Spring Security exige un token en toda escritura (POST, PUT,
+   DELETE). Sin el, el servidor contesta 403 y la accion no pasa. Es
+   lo que impide que otro sitio le haga hacer una compra al visitante
+   con una peticion escondida en una imagen.
+
+   Los formularios con th:action lo llevan solo: Thymeleaf les mete un
+   <input type="hidden" name="_csrf"> al generarlos. Pero hx-delete no
+   es un formulario: HTMX arma el pedido sin inputs, asi que el token
+   tiene que ir en una cabecera.
+
+   hx-headers en el <body> alcanza para toda la pagina: HTMX hereda
+   los atributos hx-* de los elementos de arriba, asi que cualquier
+   hx-delete o hx-post de aca para abajo lo manda sin declararlo otra
+   vez.
+
+   POR QUE ASI Y NO CON UN <script>: es un atributo, no codigo. No hay
+   un archivo .js que alguien tenga que recordar incluir, y se ve
+   leyendo el HTML.
+*/-->
+<body th:attr="hx-headers=|{&quot;${_csrf.headerName}&quot;: &quot;${_csrf.token}&quot;}|">
+
+<header th:replace="~{fragmentos/comunes :: encabezado('tienda')}"></header>
+
+<main id="contenido">
+
+  <section class="portada-chica">
+    <h1>Comprar</h1>
+    <p>Envíos a todo el país. Beber con moderación.</p>
+  </section>
+
+  <section class="seccion" id="catalogo">
+    <div class="seccion__interior">
+
+      <!--/*
+        ============================================================
+         LOS FILTROS
+        ============================================================
+         UN SOLO FORMULARIO PARA LOS SEIS CAMPOS.
+
+         OJO CON LO QUE HTMX HEREDA Y LO QUE NO. hx-target, hx-swap,
+         hx-include, hx-push-url y hx-indicator SI se heredan de los
+         elementos de arriba, por eso estan declarados una sola vez
+         aca. El VERBO -hx-get, hx-post, hx-delete- NO se hereda:
+         tiene que estar en el elemento que dispara el pedido.
+
+         Lo tuve puesto solo en el <form> y los filtros no hacian
+         nada: ni un error en la consola, ni un pedido al servidor.
+         La pagina simplemente no reaccionaba, que es la forma mas
+         dificil de darse cuenta. Por eso cada campo repite su hx-get
+         y el resto se hereda.
+
+         hx-include="closest form" es lo que hace que el pedido lleve
+         LOS SEIS valores y no solo el que se toco. Sin eso, elegir un
+         varietal perderia el orden y el precio maximo que ya estaban
+         puestos.
+
+         LA DIRECCION FILTRADA SE ESCRIBE EN LA BARRA, y es lo que
+         convierte un catalogo filtrado en algo que se puede
+         compartir, guardar en favoritos y al que se vuelve con el
+         boton Atras. Antes la direccion era siempre tienda.html y los
+         filtros no quedaban en ningun lado.
+
+         La empuja el SERVIDOR con la cabecera HX-Push-Url, y no
+         hx-push-url="true" aca: ese atributo empujaria la direccion
+         del pedido, que es /tienda/grilla, o sea la del fragmento.
+         Ver la explicacion larga en TiendaController.grilla.
+
+         role="search" se conserva del HTML original.
+
+         SIN JAVASCRIPT ESTE FORMULARIO SIGUE FUNCIONANDO: es un
+         <form method="get" action="/tienda"> de verdad, con su boton
+         de enviar. HTMX solo evita la recarga.
+      */-->
+      <form class="filtros" role="search"
+            method="get" th:action="@{/tienda}" action="/tienda"
+            th:attr="hx-get=@{/tienda/grilla}"
+            hx-target="#resultado"
+            hx-swap="outerHTML"
+            hx-include="closest form"
+            hx-indicator="#cargandoCatalogo">
+
+        <div class="filtro filtros__buscar">
+          <label for="fBuscar">Buscar</label>
+          <!--/*
+            BUSQUEDA MIENTRAS SE ESCRIBE. 'changed' evita el pedido
+            cuando la tecla no cambio el texto (las flechas, por
+            ejemplo) y 'delay:300ms' espera a que la persona deje de
+            tipear: sin eso, "malbec" serian seis pedidos al servidor
+            y las respuestas podrian llegar desordenadas.
+
+            300 ms es el numero habitual: por debajo se nota el
+            tecleo, por encima se nota la espera.
+          */-->
+          <input type="search" id="fBuscar" name="texto"
+                 th:value="${filtros.texto}"
+                 placeholder="Nombre, varietal, línea..."
+                 th:attr="hx-get=@{/tienda/grilla}"
+                 hx-trigger="input changed delay:300ms, search">
+        </div>
+
+        <div class="filtro">
+          <label for="fVarietal">Varietal</label>
+          <select id="fVarietal" name="varietal"
+                  th:attr="hx-get=@{/tienda/grilla}" hx-trigger="change">
+            <option value="">Todos</option>
+            <option th:each="v : ${varietales}" th:value="${v}" th:text="${v}"
+                    th:selected="${v == filtros.varietal}">Malbec</option>
+          </select>
+        </div>
+
+        <div class="filtro">
+          <label for="fLinea">Línea</label>
+          <select id="fLinea" name="linea"
+                  th:attr="hx-get=@{/tienda/grilla}" hx-trigger="change">
+            <option value="">Todas</option>
+            <option th:each="l : ${lineas}" th:value="${l}" th:text="${l}"
+                    th:selected="${l == filtros.linea}">Gran Reserva</option>
+          </select>
+        </div>
+
+        <div class="filtro">
+          <label for="fCosecha">Cosecha</label>
+          <select id="fCosecha" name="cosecha"
+                  th:attr="hx-get=@{/tienda/grilla}" hx-trigger="change">
+            <option value="">Todas</option>
+            <option th:each="c : ${cosechas}" th:value="${c}" th:text="${c}"
+                    th:selected="${#strings.toString(c) == filtros.cosecha}">2021</option>
+          </select>
+        </div>
+
+        <div class="filtro">
+          <label for="fPrecio">Precio máximo</label>
+          <select id="fPrecio" name="precioMax"
+                  th:attr="hx-get=@{/tienda/grilla}" hx-trigger="change">
+            <option value="">Sin límite</option>
+            <option th:each="t : ${topes}" th:value="${t.valor}" th:text="${t.etiqueta}"
+                    th:selected="${t.valor == filtros.precioMax}">hasta $15.000</option>
+          </select>
+        </div>
+
+        <div class="filtro">
+          <label for="fOrden">Ordenar por</label>
+          <select id="fOrden" name="orden"
+                  th:attr="hx-get=@{/tienda/grilla}" hx-trigger="change">
+            <option value="nombre"      th:selected="${filtros.orden == null or filtros.orden == 'nombre'}">Nombre</option>
+            <option value="precio-asc"  th:selected="${filtros.orden == 'precio-asc'}">Precio: menor a mayor</option>
+            <option value="precio-desc" th:selected="${filtros.orden == 'precio-desc'}">Precio: mayor a menor</option>
+            <option value="cosecha"     th:selected="${filtros.orden == 'cosecha'}">Cosecha</option>
+          </select>
+        </div>
+
+        <!--/*
+          "Limpiar filtros" es un enlace a /tienda sin parametros, no
+          un boton que recorre los campos poniendolos en blanco como
+          hacia limpiarFiltros() en tienda.js:98. El catalogo sin
+          filtros ES /tienda: con un enlace, el estado limpio queda en
+          el historial y se puede volver.
+
+          Solo aparece si hay algo que limpiar.
+        */-->
+        <!--/*
+          SIEMPRE VISIBLE, como el #btnLimpiar del HTML viejo.
+
+          Lo tuve con th:if="${!filtros.sinUsar}" para que apareciera
+          solo si habia algo que limpiar, y no funcionaba: este enlace
+          esta en la barra de filtros, FUERA del bloque #resultado que
+          HTMX reemplaza. Filtrar no lo vuelve a dibujar, asi que
+          nunca aparecia. Mostrarlo siempre es ademas lo que hacia la
+          version anterior.
+        */-->
+        <a class="btn btn--fantasma btn--chico"
+           th:href="@{/tienda}" href="/tienda">Limpiar filtros</a>
+
+        <!--/*
+          El boton de enviar es para quien no tiene JavaScript: con
+          HTMX andando, los campos ya dispararon el pedido solos y
+          este boton no hace falta. Se oculta con CSS propio y no con
+          'hidden', porque sin JavaScript tiene que verse.
+
+          La clase .solo-sin-js se agrega en sitio.css (ver el informe:
+          es una de las reglas nuevas).
+        */-->
+        <noscript>
+          <button type="submit" class="btn btn--fantasma btn--chico">Aplicar filtros</button>
+        </noscript>
+
+        <!--/*
+          EL INDICADOR DE CARGA. hx-indicator (declarado arriba, en el
+          form) le pone la clase .htmx-request a este elemento
+          mientras el pedido viaja, y se la saca al terminar. Es el
+          reemplazo de los <div class="esqueleto"> que tienda.js:39
+          metia a mano con innerHTML antes de cada fetch.
+        */-->
+        <p class="filtros__resultado" id="cargandoCatalogo" aria-hidden="true">Buscando…</p>
+      </form>
+
+      <!--/*
+        ============================================================
+         EL RESULTADO: contador + grilla
+        ============================================================
+         Los filtros reemplazan este bloque entero (hx-swap="outerHTML"
+         sobre #resultado), asi que el fragmento tiene que volver a
+         traer el id: si lo perdiera, el segundo filtro no encontraria
+         donde poner la respuesta.
+      */-->
+      <div th:fragment="resultado" id="resultado">
+
+        <!--/*
+          EL CONTADOR CONSERVA SU aria-live="polite". Es lo que le
+          anuncia "7 vinos encontrados" a quien no ve la grilla
+          cambiar. El texto se arma en la plantilla porque es
+          presentacion: singular o plural segun el numero, igual que
+          hacia tienda.js:141.
+        */-->
+        <p class="filtros__resultado" id="resultadoFiltro" aria-live="polite"
+           th:text="${#lists.size(vinos)} + ' vino' + (${#lists.size(vinos)} == 1 ? '' : 's')
+                    + ' encontrado' + (${#lists.size(vinos)} == 1 ? '' : 's')">10 vinos encontrados</p>
+
+        <!--/*
+          EL VACIO. Es el mismo marcado que escribia tienda.js:145,
+          con una diferencia: el boton "Limpiar filtros" de ahi era un
+          <button> con un listener; aca es un enlace a /tienda, igual
+          que el de la barra de filtros.
+        */-->
+        <div th:if="${#lists.isEmpty(vinos)}" class="estado">
+          <div class="estado__icono" aria-hidden="true">🔍</div>
+          <h3>No encontramos vinos con esos filtros</h3>
+          <p>Probá cambiando la búsqueda o los filtros.</p>
+          <a class="btn btn--fantasma" style="margin-top:16px"
+             th:href="@{/tienda}" href="/tienda">Limpiar filtros</a>
+        </div>
+
+        <div th:unless="${#lists.isEmpty(vinos)}"
+             th:replace="~{fragmentos/vino :: grilla}"></div>
+      </div>
+
+    </div>
+  </section>
+</main>
+
+<footer th:replace="~{fragmentos/comunes :: pie}"></footer>
+
+</body>
+</html>

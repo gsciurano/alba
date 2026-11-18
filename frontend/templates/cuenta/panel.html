@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  ============================================================
+   EL PANEL DE MI CUENTA — LAS CINCO SECCIONES
+  ============================================================
+   Esta plantilla no es una pagina: es la bolsa de fragmentos que
+   perfil.html arma. El menu de la izquierda y el panel de la derecha
+   viven en el fragmento 'cuerpo'; cada seccion tiene el suyo.
+
+   DE DONDE SALE CADA SECCION, para poder compararlas con lo que habia:
+       cuerpo        cuenta.js:716  (menu y panel)
+       datos         cuenta.js:785
+       pedidos       cuenta.js:860  + tarjetaPedido en 876
+       solicitudes   cuenta.js:926
+       preferencias  cuenta.js:983
+       seguridad     cuenta.js:1129
+
+   ------------------------------------------------------------------
+    POR QUE EL MENU VIAJA ADENTRO DEL FRAGMENTO QUE SE REEMPLAZA
+   ------------------------------------------------------------------
+   Al cambiar de seccion cambian dos cosas: el contenido y cual item
+   del menu esta marcado. Si HTMX reemplazara solo el contenido, el
+   menu seguiria marcando la seccion anterior y habria que corregirlo
+   con JavaScript aparte. Van juntos, y el servidor manda las dos cosas
+   ya coherentes.
+
+   LOS ITEMS SON ENLACES DE VERDAD (th:href), y el hx-get es un agregado
+   encima: con HTMX se cambia nada mas que el panel, y sin HTMX el mismo
+   enlace carga la pagina entera. Era lo que el #hash de cuenta.js:720
+   no podia hacer, porque el servidor nunca veia que seccion se miraba.
+
+   LOS ESTILOS SON LOS QUE YA ESTABAN (.perfil, .perfil__menu,
+   .perfil__item, .pedido, .marca-sol, .tildes...): esta migracion no
+   toco estilos.css ni sitio.css para estas secciones.
+*/-->
+<body>
+
+<!--/* ============================================================
+      EL CUERPO: MENU + PANEL
+      ============================================================ */-->
+<div th:fragment="cuerpo" class="perfil" id="perfil">
+
+  <nav class="perfil__menu" aria-label="Secciones de mi cuenta">
+    <a th:each="sec : ${secciones}"
+       class="perfil__item"
+       th:classappend="${sec.id == seccion.id} ? ' activo' : ''"
+       th:href="@{'/cuenta/' + ${sec.id}}"
+       th:attr="hx-get=@{'/cuenta/' + ${sec.id}},
+                aria-current=${sec.id == seccion.id} ? 'true' : null"
+       hx-target="#perfil"
+       hx-swap="outerHTML">
+      <span th:text="${sec.texto}">Datos principales</span>
+    </a>
+  </nav>
+
+  <div class="perfil__panel" id="perfilPanel">
+
+    <header class="perfil__cabeza">
+      <h2 th:text="${seccion.titulo}">Datos principales</h2>
+      <p class="nota-tenue" th:if="${seccion.bajada}" th:text="${seccion.bajada}">Tus datos.</p>
+    </header>
+
+    <!--/*
+      EL AVISO DE "QUEDO GUARDADO" ES UN RENGLON EN LA PAGINA y no el
+      toast() flotante de cuenta.js:831. Un cartel que se va solo a los
+      tres segundos obliga a estar mirando; este queda hasta la proxima
+      accion, y un lector de pantalla lo anuncia por el aria-live.
+    */-->
+    <p class="form-aviso" aria-live="polite"
+       th:if="${aviso != null}" th:text="${aviso}"></p>
+    <p class="form-error" aria-live="polite"
+       th:if="${error != null}" th:text="${error}"></p>
+
+    <!--/*
+      LA SECCION SE ELIGE POR EL NOMBRE DEL FRAGMENTO, no con un
+      th:switch de cinco ramas. Cada fragmento de abajo se llama igual
+      que el id de su seccion ('datos', 'pedidos', ...), asi que el
+      nombre se arma con el id y se incluye solo el que corresponde.
+
+      POR QUE NO UN th:switch: th:replace se procesa ANTES que th:case
+      (tiene mas precedencia), asi que un switch de th:replace incluye
+      las cinco secciones y recien despues descarta; con eso, abrir
+      "Datos principales" fallaba al dibujar los pedidos, que no estan
+      en el modelo de esa seccion.
+
+      El id no puede ser cualquier cosa: el controlador lo valida
+      contra SECCIONES y cae en la primera si no lo reconoce, asi que
+      aca siempre llega uno de los cinco.
+    */-->
+    <th:block th:replace="~{cuenta/panel :: __${seccion.id}__}"></th:block>
+
+  </div>
+</div>
+
+
+<!--/* ============================================================
+      1 · DATOS PRINCIPALES
+      ============================================================
+      hx-post reemplaza el panel entero con lo que contesta el
+      servidor, que es lo que hacia mostrarSeccion() despues de
+      guardar (cuenta.js:836): se redibuja con lo que dice la base y
+      no con lo que uno cree que guardo.
+*/-->
+<form th:fragment="datos" class="perfil__form"
+      th:action="@{/cuenta/datos}" method="post"
+      th:attr="hx-post=@{/cuenta/datos}" hx-target="#perfil" hx-swap="outerHTML">
+
+  <div class="form-fila-2">
+    <div class="form-grupo">
+      <label for="pNombre">Nombre</label>
+      <input type="text" id="pNombre" name="nombre" required minlength="2"
+             autocomplete="given-name" th:value="${perfil.nombre}">
+    </div>
+    <div class="form-grupo">
+      <label for="pApellido">Apellido</label>
+      <input type="text" id="pApellido" name="apellido" required minlength="2"
+             autocomplete="family-name" th:value="${perfil.apellido}">
+    </div>
+  </div>
+
+  <div class="form-grupo">
+    <label for="pEmail">Email</label>
+    <input type="email" id="pEmail" name="email" required
+           autocomplete="email" th:value="${perfil.email}">
+  </div>
+
+  <div class="form-grupo">
+    <label for="pTelefono">Teléfono</label>
+    <input type="tel" id="pTelefono" name="telefono"
+           autocomplete="tel" th:value="${perfil.telefono}">
+  </div>
+
+  <p class="nota-tenue">El email es con el que ingresás a tu cuenta.</p>
+
+  <div class="perfil__acciones">
+    <button type="submit" class="btn btn--primario">Guardar cambios</button>
+  </div>
+</form>
+
+
+<!--/* ============================================================
+      2 · MIS PEDIDOS
+      ============================================================ */-->
+<th:block th:fragment="pedidos">
+
+  <div class="vacio-cuenta" th:if="${misPedidos.isEmpty()}">
+    <p>Todavía no hiciste ningún pedido.</p>
+    <a class="btn btn--primario" th:href="@{/tienda}" href="/tienda">Ver el catálogo</a>
+  </div>
+
+  <!--/*
+    Ya vienen del mas nuevo al mas viejo: el orden lo hace el
+    controlador, no la plantilla.
+  */-->
+  <article class="pedido" th:each="p : ${misPedidos}">
+
+    <header class="pedido__cabeza">
+      <div>
+        <span class="pedido__numero" th:text="'Pedido #' + ${p.idPedido}">Pedido #12</span>
+        <span class="nota-tenue"
+              th:text="' · ' + ${#temporals.format(p.fecha, 'dd/MM/yyyy HH:mm')}"> · 03/11/2026</span>
+      </div>
+      <span class="marca-sol"
+            th:classappend="' marca-sol--' + ${#strings.toLowerCase(p.estado)}"
+            th:text="${T(com.albaenlosandes.inventario.web.Textos).de(p.estado)}">Confirmado</span>
+    </header>
+
+    <ul class="pedido__items">
+      <li th:each="d : ${p.detalles}">
+        <span th:text="${d.cantidad} + ' × ' + ${d.producto.nombre}">2 × Finca Malbec</span>
+        <span class="reng__precio"
+              th:text="'$ ' + ${#numbers.formatInteger(d.precioUnitario * d.cantidad, 1, 'POINT')}">$ 80.000</span>
+      </li>
+    </ul>
+
+    <div class="pedido__pie">
+      <span class="nota-tenue"
+            th:text="${T(com.albaenlosandes.inventario.web.Textos).de(p.medioPago)}">Transferencia</span>
+      <strong th:text="'$ ' + ${#numbers.formatInteger(p.total, 1, 'POINT')}">$ 88.800</strong>
+    </div>
+
+    <!--/*
+      SI YA PIDIO CANCELAR ESTE PEDIDO se muestra en que quedo, y no el
+      boton: pedirlo dos veces no suma nada y confunde. Era la decision
+      de cuenta.js:886.
+
+      El cruce pedido -> solicitud lo arma el controlador en un mapa
+      ('solicitudPorPedido'), no la plantilla: buscar en una lista desde
+      el HTML es escribir una consulta en el peor lugar posible.
+    */-->
+    <th:block th:with="s=${solicitudPorPedido.get(p.idPedido)}">
+
+      <div class="pedido__acciones" th:if="${s != null}">
+        <div class="solicitud-estado">
+          <span class="marca-sol"
+                th:classappend="' marca-sol--' + ${#strings.toLowerCase(s.estado)}"
+                th:text="${T(com.albaenlosandes.inventario.web.Textos).de(s.estado)}">Pendiente</span>
+          <span class="nota-tenue"
+                th:text="'Pediste cancelar el ' + ${#temporals.format(s.fechaSolicitud, 'dd/MM/yyyy')}">Pediste cancelar el 04/11/2026</span>
+          <p class="solicitud-respuesta" th:if="${s.respuesta}" th:text="${s.respuesta}"></p>
+          <p class="nota-tenue" th:unless="${s.respuesta}">Te vamos a responder a la brevedad.</p>
+        </div>
+      </div>
+
+      <!--/*
+        Solo un pedido CONFIRMADO se puede pedir cancelar: uno entregado
+        ya esta en manos de la persona y uno cancelado no tiene que
+        poder cancelarse de nuevo (cuenta.js:897).
+      */-->
+      <div class="pedido__acciones"
+           th:if="${s == null and p.estado.name() == 'CONFIRMADO'}">
+        <a class="btn btn--fantasma btn--chico"
+           th:href="@{'/cuenta/cancelacion/' + ${p.idPedido}}">Quiero cancelarlo</a>
+      </div>
+    </th:block>
+
+  </article>
+</th:block>
+
+
+<!--/* ============================================================
+      3 · MIS SOLICITUDES DE CANCELACION
+      ============================================================
+      Las solicitudes tambien se ven dentro de cada pedido, pero ahi
+      estan mezcladas con el historial. Como seccion propia responden
+      la pregunta con la que vuelve quien pidio cancelar: "en que quedo
+      mi pedido" (cuenta.js:926).
+*/-->
+<th:block th:fragment="solicitudes">
+
+  <div class="vacio-cuenta" th:if="${misSolicitudes.isEmpty()}">
+    <p>No pediste cancelar ningún pedido.</p>
+    <a class="btn btn--fantasma" th:href="@{/cuenta/pedidos}" href="/cuenta/pedidos">Ver mis pedidos</a>
+  </div>
+
+  <article class="pedido" th:each="s : ${misSolicitudes}">
+    <header class="pedido__cabeza">
+      <div>
+        <span class="pedido__numero"
+              th:text="${s.pedido != null} ? 'Pedido #' + ${s.pedido.idPedido} : 'Solicitud #' + ${s.idSolicitud}">Pedido #12</span>
+        <span class="nota-tenue"
+              th:text="' · ' + ${#temporals.format(s.fechaSolicitud, 'dd/MM/yyyy HH:mm')}"> · 04/11/2026</span>
+      </div>
+      <span class="marca-sol"
+            th:classappend="' marca-sol--' + ${#strings.toLowerCase(s.estado)}"
+            th:text="${T(com.albaenlosandes.inventario.web.Textos).de(s.estado)}">Pendiente</span>
+    </header>
+
+    <p class="solicitud-motivo">
+      <strong>Motivo: </strong>
+      <span th:text="${T(com.albaenlosandes.inventario.web.Textos).de(s.motivo)}">Me arrepentí de la compra</span>
+    </p>
+
+    <p class="nota-tenue" th:if="${s.comentario}" th:text="'Escribiste: ' + ${s.comentario}"></p>
+
+    <p class="solicitud-respuesta" th:if="${s.respuesta}" th:text="${s.respuesta}"></p>
+    <p class="nota-tenue" th:unless="${s.respuesta}">Te vamos a responder a la brevedad.</p>
+
+    <div class="pedido__acciones" th:if="${s.pedido != null}">
+      <a class="btn btn--fantasma btn--chico" th:href="@{/cuenta/pedidos}">Ver el pedido</a>
+    </div>
+  </article>
+</th:block>
+
+
+<!--/* ============================================================
+      4 · PREFERENCIAS DE VINO
+      ============================================================
+      Las opciones salen del catalogo real y no de una lista escrita a
+      mano: las arma el controlador (prepararPreferencias). Aca solo se
+      dibujan.
+*/-->
+<th:block th:fragment="preferencias">
+
+  <form class="perfil__form"
+        th:action="@{/cuenta/preferencias}" method="post"
+        th:attr="hx-post=@{/cuenta/preferencias}" hx-target="#perfil" hx-swap="outerHTML">
+
+    <fieldset class="perfil__grupo">
+      <legend>Varietales</legend>
+      <div class="tildes">
+        <label class="tilde" th:each="v, i : ${varietales}">
+          <input type="checkbox" name="varietal"
+                 th:id="'varietal' + ${i.index}" th:value="${v}"
+                 th:checked="${favVarietales.contains(v)}">
+          <span class="tilde__texto" th:text="${v}">Malbec</span>
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset class="perfil__grupo">
+      <legend>Líneas</legend>
+      <div class="tildes">
+        <label class="tilde" th:each="l, i : ${lineas}">
+          <input type="checkbox" name="linea"
+                 th:id="'linea' + ${i.index}" th:value="${l}"
+                 th:checked="${favLineas.contains(l)}">
+          <span class="tilde__texto" th:text="${l}">Gran Reserva</span>
+        </label>
+      </div>
+    </fieldset>
+
+    <div class="perfil__acciones">
+      <button type="submit" class="btn btn--primario">Guardar preferencias</button>
+    </div>
+  </form>
+
+  <!--/*
+    LOS VINOS QUE COINCIDEN son la razon de que esta seccion exista: sin
+    esto el formulario seria un par de listas de tildes que no hacen
+    nada (cuenta.js:1061).
+  */-->
+  <div class="perfil__sugeridos">
+
+    <p class="nota-tenue" th:unless="${eligioAlgo}">
+      Todavía no elegiste nada. Cuando guardes, acá te vamos a mostrar los vinos que coinciden.
+    </p>
+
+    <th:block th:if="${eligioAlgo}">
+      <p class="nota-tenue" th:if="${sugeridos.isEmpty()}">
+        Por ahora no tenemos vinos en stock que coincidan con lo que elegiste.
+      </p>
+
+      <th:block th:unless="${sugeridos.isEmpty()}">
+        <h3 class="perfil__subtitulo">Para vos</h3>
+        <div class="vino-hermanos">
+          <a class="vino-hermano" th:each="v : ${sugeridos}"
+             th:href="@{'/vinos/' + ${v.id}}">
+            <span class="vino-hermano__nombre" th:text="${v.nombre}">Finca Malbec</span>
+            <span class="vino-hermano__meta"
+                  th:text="${v.varietal} + (${v.cosecha != null} ? ' · ' + ${v.cosecha} : '')">Malbec · 2023</span>
+            <span class="vino-hermano__meta"
+                  th:text="'$ ' + ${#numbers.formatInteger(v.precio, 1, 'POINT')}">$ 40.000</span>
+          </a>
+        </div>
+      </th:block>
+    </th:block>
+  </div>
+</th:block>
+
+
+<!--/* ============================================================
+      5 · SEGURIDAD
+      ============================================================
+      NINGUNA DE LAS TRES CONTRASENAS VUELVE EN LA RESPUESTA: el
+      formulario sale siempre vacio, haya salido bien o mal. Rellenar un
+      campo de contrasena con lo que se tecleo significa mandarlo de
+      vuelta por la red y dejarlo en el HTML.
+*/-->
+<form th:fragment="seguridad" class="perfil__form"
+      th:action="@{/cuenta/seguridad}" method="post"
+      th:attr="hx-post=@{/cuenta/seguridad}" hx-target="#perfil" hx-swap="outerHTML">
+
+  <div class="form-grupo">
+    <label for="sActual">Contraseña actual</label>
+    <input type="password" id="sActual" name="actual" required autocomplete="current-password">
+  </div>
+
+  <div class="form-fila-2">
+    <div class="form-grupo">
+      <label for="sNueva">Contraseña nueva</label>
+      <input type="password" id="sNueva" name="nueva" required autocomplete="new-password">
+    </div>
+    <div class="form-grupo">
+      <label for="sRepetir">Repetir la nueva</label>
+      <input type="password" id="sRepetir" name="repetir" required autocomplete="new-password">
+    </div>
+  </div>
+
+  <!--/*
+    La lista de requisitos sale de UsuarioService.REQUISITOS_PASSWORD,
+    la misma con la que el servidor controla despues. Lo que se perdio
+    al migrar es el tilde que se marcaba solo al tipear (era
+    vigilarPassword, puro JavaScript); lo que se gano es que la lista y
+    el control ya no pueden decir cosas distintas.
+  */-->
+  <div class="requisitos">
+    <p class="requisitos__titulo">La contraseña nueva tiene que tener:</p>
+    <ul class="requisitos__lista">
+      <li class="requisito" th:each="r : ${requisitosPassword}">
+        <span class="requisito__marca" aria-hidden="true">○</span>
+        <span class="requisito__texto" th:text="${r}">al menos 8 caracteres</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="perfil__acciones">
+    <button type="submit" class="btn btn--primario">Cambiar contraseña</button>
+  </div>
+</form>
+
+</body>
+</html>

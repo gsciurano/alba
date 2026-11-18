@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/comunes :: cabeza('Botón de arrepentimiento — Alba en los Andes', 'Arrepentite de una compra dentro de los 10 días corridos, sin costo y sin dar explicaciones, como establece la Resolución 424/2020.')}">
+  <title>Botón de arrepentimiento — Alba en los Andes</title>
+</head>
+<!--/*
+  BOTON DE ARREPENTIMIENTO (Resolucion 424/2020).
+
+  POR QUE ES UNA PAGINA Y NO UN ENLACE A LA LEY. La resolucion exige
+  que el sitio tenga un boton VISIBLE EN LA PAGINA DE INICIO que lleve
+  a un lugar donde se pueda ejercer el derecho. Enlazar el texto de la
+  norma no alcanza: eso informa que el derecho existe, no permite
+  usarlo.
+
+  POR QUE NO TIENE FORMULARIO PROPIO. El tramite ya existe en
+  cuenta.html: cada pedido tiene su boton de cancelacion y el backend
+  guarda la solicitud con motivo ARREPENTIMIENTO. Duplicarlo con otro
+  formulario que escriba en la misma tabla abriria un segundo camino
+  que mantener, con el riesgo de que uno de los dos quede desactualizado.
+  Esta pagina explica el derecho y lleva al tramite que ya funciona.
+
+  LA ALTERNATIVA POR CORREO NO ES UN ADORNO: alguien que no recuerda
+  su contrasena, o que compro y despues perdio el acceso a la cuenta,
+  tiene que poder arrepentirse igual. Si el unico camino pasara por
+  ingresar al sitio, el derecho quedaria condicionado a algo que la
+  norma no exige.
+*/-->
+<body>
+
+<header th:replace="~{fragmentos/comunes :: encabezado('')}"></header>
+
+<main id="contenido">
+
+    <section class="portada-chica">
+      <h1>Botón de arrepentimiento</h1>
+      <p>Cancelá tu compra dentro de los 10 días, sin costo y sin explicaciones</p>
+    </section>
+
+    <section class="seccion">
+      <div class="seccion__interior">
+        <div class="legal">
+
+          <p>
+            Si comprás a distancia, la ley te da <strong>10 días corridos</strong> para
+            arrepentirte, contados desde que recibís el producto o desde que se cierra el
+            contrato, lo que suceda después. Lo establecen el artículo 34 de la
+            <a href="https://www.argentina.gob.ar/normativa/nacional/ley-24240-638/texto"
+               target="_blank" rel="noopener noreferrer">Ley 24.240</a> y la
+            <a href="https://www.argentina.gob.ar/normativa/nacional/norma-342869/texto"
+               target="_blank" rel="noopener noreferrer">Resolución 424/2020</a>.
+          </p>
+
+          <div class="legal__caja">
+            <p>
+              <strong>No tiene ningún costo para vos y no hace falta que des
+              explicaciones.</strong> El costo de la devolución corre por nuestra cuenta.
+              Te devolvemos todo lo que hayas pagado.
+            </p>
+          </div>
+
+          <h2>Cómo ejercerlo</h2>
+          <p>
+            Entrá a tus pedidos, buscá el que querés cancelar y elegí
+            <em>Me arrepentí de la compra</em>. Queda registrado al instante y podés
+            seguir su estado desde tu cuenta.
+          </p>
+
+          <p>
+            <a class="btn btn--primario" th:href="@{/cuenta/pedidos}" href="/cuenta/pedidos">Ir a mis pedidos</a>
+          </p>
+
+          <p>
+            Si no podés entrar a tu cuenta, escribinos a
+            <a href="mailto:contacto@albaenlosandes.com">contacto@albaenlosandes.com</a>
+            desde el correo con el que compraste, indicando tu <strong>número de
+            pedido</strong>. Vale igual y tiene el mismo efecto.
+          </p>
+
+          <h2>Qué pasa después</h2>
+          <ul>
+            <li>
+              Dentro de las primeras 24 horas desde la compra, la cancelación se aprueba
+              sola y el pedido queda sin efecto en el momento.
+            </li>
+            <li>
+              Pasado ese plazo, y siempre dentro de los 10 días, la solicitud queda en
+              revisión y la resuelve una persona. Te respondemos por correo.
+            </li>
+            <li>
+              Si ya recibiste el vino, coordinamos el retiro. Tiene que estar sin abrir y
+              en su envase original.
+            </li>
+            <li>
+              La devolución del dinero se hace por la misma vía por la que pagaste, una
+              vez recibido el producto.
+            </li>
+          </ul>
+
+          <h2>Si tu caso es otro</h2>
+          <p>
+            El arrepentimiento es para cuando simplemente cambiaste de idea. Si te llegó
+            un vino equivocado, incompleto o en mal estado, no uses este camino: avisanos
+            y lo reponemos o te devolvemos el importe, como explican los
+            <a th:href="@{/legal/terminos#problemas}" href="/legal/terminos#problemas">términos y condiciones</a>. Es un derecho
+            distinto y no consume los 10 días.
+          </p>
+
+          <p>
+            Ver también los <a th:href="@{/legal/terminos}" href="/legal/terminos">términos y condiciones</a> y la
+            <a th:href="@{/legal/privacidad}" href="/legal/privacidad">política de privacidad</a>.
+          </p>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+<footer th:replace="~{fragmentos/comunes :: pie}"></footer>
+
+</body>
+</html>

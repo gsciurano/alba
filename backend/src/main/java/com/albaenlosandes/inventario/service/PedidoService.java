@@ -24,15 +24,21 @@ public class PedidoService {
     private final ProductoRepository productoRepository;
     private final UsuarioRepository usuarioRepository;
     private final MovimientoStockRepository movimientoRepository;
+    private final CalculadoraDeCuentas calculadora;
+    private final Cupones cupones;
 
     public PedidoService(PedidoRepository pedidoRepository,
                          ProductoRepository productoRepository,
                          UsuarioRepository usuarioRepository,
-                         MovimientoStockRepository movimientoRepository) {
+                         MovimientoStockRepository movimientoRepository,
+                         CalculadoraDeCuentas calculadora,
+                         Cupones cupones) {
         this.pedidoRepository = pedidoRepository;
         this.productoRepository = productoRepository;
         this.usuarioRepository = usuarioRepository;
         this.movimientoRepository = movimientoRepository;
+        this.calculadora = calculadora;
+        this.cupones = cupones;
     }
 
     /**
@@ -77,6 +83,27 @@ public class PedidoService {
      */
     @Transactional
     public Pedido crearPedido(Pedido pedido) {
+        /*
+         * La API REST y la app de escritorio no manejan cupones, asi
+         * que entran por aca y el codigo va en null. La tienda web usa
+         * la version de abajo.
+         */
+        return crearPedido(pedido, null);
+    }
+
+    /**
+     * El mismo checkout, con un codigo de cupon tecleado por el
+     * cliente.
+     *
+     * EL CODIGO LLEGA COMO TEXTO Y NADA MAS. Lo que ese codigo vale
+     * -si existe, cuanto descuenta- lo resuelve Cupones de este lado.
+     * Lo unico que viaja desde el navegador es lo que la persona
+     * escribio en la cajita. Un codigo que no existe no es un error:
+     * se ignora y el pedido se hace sin descuento, igual que lo
+     * mostraba la pantalla.
+     */
+    @Transactional
+    public Pedido crearPedido(Pedido pedido, String codigoCupon) {
 
         // ---- 1. Validar el usuario ----
         Integer idUsuario = pedido.getUsuario() != null ? pedido.getUsuario().getIdUsuario() : null;
@@ -155,17 +182,36 @@ public class PedidoService {
             }
         }
 
-        // ---- 5. Completar los renglones y calcular el total ----
-        BigDecimal total = BigDecimal.ZERO;
+        // ---- 5. Completar los renglones y hacer las cuentas ----
+        BigDecimal subtotal = BigDecimal.ZERO;
         for (DetallePedido detalle : pedido.getDetalles()) {
             Producto producto = bloqueados.get(detalle.getProducto().getIdProducto());
             detalle.setProducto(producto);
             detalle.setPrecioUnitario(producto.getPrecio());   // foto del precio actual
             detalle.setPedido(pedido);                         // enlaza el renglon con su pedido
-            total = total.add(producto.getPrecio().multiply(BigDecimal.valueOf(detalle.getCantidad())));
+            subtotal = subtotal.add(producto.getPrecio().multiply(BigDecimal.valueOf(detalle.getCantidad())));
         }
 
-        pedido.setTotal(total);
+        /*
+         * EL DESGLOSE SE GUARDA. Antes aca se escribia solo la suma de
+         * los vinos y se la llamaba 'total'; el envio, el 21% y el
+         * descuento se calculaban en el navegador y se perdian. Ver
+         * CalculadoraDeCuentas y la migracion
+         * agregar_desglose_del_total.sql.
+         *
+         * Los precios con los que se calcula son los de los productos
+         * BLOQUEADOS en el paso 3, que es la unica version del precio
+         * que no puede cambiar mientras dura la transaccion.
+         */
+        CalculadoraDeCuentas.Cuentas cuentas =
+                calculadora.calcular(subtotal, cupones.buscar(codigoCupon).orElse(null));
+
+        pedido.setSubtotal(cuentas.subtotal());
+        pedido.setDescuento(cuentas.descuento());
+        pedido.setCupon(cuentas.cupon());
+        pedido.setEnvio(cuentas.envio());
+        pedido.setImpuestos(cuentas.impuestos());
+        pedido.setTotal(cuentas.total());
         pedido.setEstado(EstadoPedido.CONFIRMADO);
         /*
          * La tarjeta se cobra en el acto, asi que el pedido nace con el

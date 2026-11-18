@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  ============================================================
+   PEDIR LA CANCELACION DE UN PEDIDO
+  ============================================================
+   Era el modal de cuenta.js:1201 y ahora es una pantalla con su
+   direccion, /cuenta/cancelacion/81. El por que esta en
+   CancelacionController.
+
+   LO QUE SE CONSERVA TAL CUAL: el orden de la pantalla (primero el
+   motivo, despues las preguntas que quizas lo resuelven, despues el
+   aviso de que va a pasar, y recien al final el boton), y los estilos
+   .faq-caja, .faq y .aviso-politica, que ya estaban en sitio.css.
+
+   ESE ORDEN NO ES DECORATIVO: la mitad de las cancelaciones se piden
+   por algo que una pregunta frecuente contesta. Poner el boton arriba
+   seria invitar a mandar la solicitud sin leer.
+*/-->
+<head th:replace="~{fragmentos/comunes :: cabeza('Cancelar un pedido — Alba en los Andes', 'Pedí la cancelación de un pedido de Alba en los Andes.')}">
+  <title>Cancelar un pedido — Alba en los Andes</title>
+</head>
+<body th:attr="hx-headers=|{&quot;${_csrf.headerName}&quot;: &quot;${_csrf.token}&quot;}|">
+
+<header th:replace="~{fragmentos/comunes :: encabezado('cuenta')}"></header>
+
+<main id="contenido">
+
+  <section class="portada-chica">
+    <h1 th:text="'Cancelar el pedido #' + ${pedido.idPedido}">Cancelar el pedido</h1>
+    <p th:text="${#temporals.format(pedido.fecha, 'dd/MM/yyyy HH:mm')} + ' · $ ' +
+                ${#numbers.formatInteger(pedido.total, 1, 'POINT')}">03/11/2026 · $ 88.800</p>
+  </section>
+
+  <section class="seccion">
+    <div class="caja-cuenta">
+
+      <form class="form-cuenta"
+            th:action="@{'/cuenta/cancelacion/' + ${pedido.idPedido}}" method="post">
+
+        <!--/*
+          AL CAMBIAR EL MOTIVO se pide solo el bloque de ayuda
+          (hx-get), que es lo unico que depende del motivo. El
+          comentario que la persona haya empezado a escribir no se
+          toca, que es lo que pasaria si se recargara la pantalla.
+
+          Sin HTMX el <select> no hace nada solo, y para eso esta el
+          boton "Ver qué pasa con este motivo" de abajo: la pantalla
+          funciona igual, con un viaje mas.
+        */-->
+        <div class="form-grupo">
+          <label for="cMotivo">¿Qué pasó?</label>
+          <select id="cMotivo" name="motivo"
+                  th:attr="hx-get=@{'/cuenta/cancelacion/' + ${pedido.idPedido} + '/ayuda'}"
+                  hx-trigger="change"
+                  hx-target="#ayuda"
+                  hx-swap="outerHTML">
+            <option th:each="m : ${motivos}"
+                    th:value="${m.key}"
+                    th:text="${m.value}"
+                    th:selected="${m.key == elegido}">Me arrepentí de la compra</option>
+          </select>
+        </div>
+
+        <!--/*
+          EL BLOQUE QUE CAMBIA CON EL MOTIVO. Se reemplaza entero
+          (hx-swap="outerHTML"), asi que el fragmento de abajo vuelve a
+          traer este mismo <div> con su id.
+        */-->
+        <div th:replace="~{cuenta/cancelacion :: ayuda}"></div>
+
+        <div class="form-grupo">
+          <label for="cComentario">Comentario</label>
+          <textarea id="cComentario" name="comentario" rows="4"
+                    placeholder="Contanos qué pasó (opcional, pero ayuda a resolverlo más rápido)"></textarea>
+        </div>
+
+        <p class="form-error" aria-live="polite"
+           th:if="${error != null}" th:text="${error}"></p>
+
+        <div class="perfil__acciones">
+          <!--/*
+            El boton se apaga cuando la politica dice que sobre este
+            pedido no hay nada que pedir (un pedido ya cancelado, por
+            ejemplo). Era el disabled de cuenta.js:1254. El servidor lo
+            vuelve a controlar al confirmar: esto es para no hacer
+            perder el viaje, no es la guarda.
+          */-->
+          <button type="submit" class="btn btn--primario"
+                  th:disabled="${!evaluacion.sePuedePedir()}">Enviar solicitud</button>
+
+          <!--/* Sin HTMX, esta es la forma de refrescar la ayuda. */-->
+          <button type="submit" class="btn btn--fantasma"
+                  th:formaction="@{'/cuenta/cancelacion/' + ${pedido.idPedido}}"
+                  formmethod="get">Ver qué pasa con este motivo</button>
+
+          <a class="btn btn--fantasma" th:href="@{/cuenta/pedidos}">Mejor no</a>
+        </div>
+      </form>
+
+    </div>
+  </section>
+
+</main>
+
+<footer th:replace="~{fragmentos/comunes :: pie}"></footer>
+
+
+<!--/* ============================================================
+      LO QUE DEPENDE DEL MOTIVO: las preguntas y el aviso
+      ============================================================ */-->
+<div th:fragment="ayuda" id="ayuda">
+
+  <!--/*
+    LAS PREGUNTAS FRECUENTES PRIMERO, antes del aviso y del boton:
+    "quizas esto te lo resuelve ahora mismo" (cuenta.js:1245). Si no
+    hay ninguna para el motivo, el bloque no se dibuja en vez de
+    quedar un titulo con nada abajo.
+  */-->
+  <div class="faq-caja" th:unless="${preguntas.isEmpty()}">
+    <p class="faq-caja__titulo">Quizás esto te lo resuelve ahora mismo</p>
+    <details class="faq" th:each="q : ${preguntas}">
+      <summary th:text="${q.pregunta}">¿Cuánto tarda la entrega?</summary>
+      <p th:text="${q.respuesta}">Entre 3 y 5 días hábiles.</p>
+    </details>
+  </div>
+
+  <!--/*
+    QUE VA A PASAR CON ESTE PEDIDO, en palabras y antes de confirmar.
+    El color distingue los dos casos, como en cuenta.js:1252: verde si
+    se cancela en el acto, ambar si pasa a revision de un
+    administrador.
+  */-->
+  <p class="aviso-politica"
+     th:classappend="${evaluacion.cancelacionDirecta()} ? ' aviso-politica--directa' : ' aviso-politica--revision'"
+     th:text="${evaluacion.explicacion()}">Este pedido se cancela en el acto.</p>
+</div>
+
+</body>
+</html>

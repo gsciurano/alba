@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  ============================================================
+   RECUPERAR LA CONTRASENA — LOS CUATRO PASOS
+  ============================================================
+   Era el modal de cuenta.js:293. Ahora es una pantalla, y el paso que
+   se muestra lo decide el servidor con ${paso}; el por que de cada
+   decision esta en RecuperoController.
+
+   POR QUE UNA SOLA PLANTILLA Y NO CUATRO: los cuatro pasos comparten
+   el encabezado ("Paso N de 4"), la caja y el ancho, y lo unico que
+   cambia es el formulario del medio. En cuatro archivos ese marco
+   estaria copiado cuatro veces.
+
+   LOS ESTILOS SON LOS QUE YA ESTABAN (.recupero, .recupero__cabeza,
+   .casilleros, .casillero): esta pantalla no sumo ni un selector.
+   Antes vivia dentro de .modal; ahora dentro de .caja-cuenta, que es
+   la misma caja del ingreso.
+*/-->
+<head th:replace="~{fragmentos/comunes :: cabeza('Recuperar mi contraseña — Alba en los Andes', 'Volvé a entrar a tu cuenta de Alba en los Andes.')}">
+  <title>Recuperar mi contraseña — Alba en los Andes</title>
+</head>
+<body>
+
+<header th:replace="~{fragmentos/comunes :: encabezado('cuenta')}"></header>
+
+<main id="contenido">
+
+  <section class="seccion">
+    <div class="caja-cuenta">
+      <div class="recupero">
+
+        <!--/* El encabezado comun: en que paso va y que se espera. */-->
+        <header class="recupero__cabeza">
+          <p class="recupero__paso" th:text="'Paso ' + ${paso} + ' de 4'">Paso 1 de 4</p>
+
+          <th:block th:switch="${paso}">
+            <th:block th:case="2">
+              <h2 class="recupero__titulo">Confirmá que sos vos</h2>
+              <p class="recupero__bajada">Este es el teléfono de la cuenta, con algunos números tapados.</p>
+            </th:block>
+            <th:block th:case="3">
+              <h2 class="recupero__titulo">Escribí el código</h2>
+              <p class="recupero__bajada"
+                 th:text="'Mandamos 6 números a ' + ${emailParcial} + '.'">Mandamos 6 números a tu correo.</p>
+            </th:block>
+            <th:block th:case="4">
+              <h2 class="recupero__titulo">Elegí tu contraseña nueva</h2>
+              <p class="recupero__bajada">Que no sea una que uses en otro lado.</p>
+            </th:block>
+            <th:block th:case="*">
+              <h2 class="recupero__titulo">Recuperar mi contraseña</h2>
+              <p class="recupero__bajada">Decinos con qué email entrás y te ayudamos a volver a tu cuenta.</p>
+            </th:block>
+          </th:block>
+        </header>
+
+        <p class="form-error" aria-live="polite"
+           th:if="${error != null}" th:text="${error}"></p>
+
+
+        <!--/* ============ PASO 1 · EL EMAIL ============ */-->
+        <form class="form-cuenta" th:if="${paso == 1}"
+              th:action="@{/cuenta/recupero}" method="post">
+          <div class="form-grupo">
+            <label for="recEmail">Email de tu cuenta</label>
+            <input type="email" id="recEmail" name="email" required
+                   autocomplete="email" autofocus th:value="${email}">
+          </div>
+          <button type="submit" class="btn btn--primario btn--bloque">Continuar</button>
+        </form>
+
+
+        <!--/* ============ PASO 2 · EL TELEFONO ============
+          LOS CASILLEROS NO SON DECORACION: muestran de un vistazo
+          cuantos numeros faltan, que es justo lo que hay que
+          comunicar. Son tantos como dijo el servidor (${faltan}), no
+          un numero fijo.
+
+          Cada casillero es un campo con el MISMO nombre, asi que
+          llegan juntos y el controlador los pega. Sin JavaScript se
+          pasa de uno a otro con el tabulador; con JavaScript
+          (js/casilleros.js) se salta solo, se borra para atras y se
+          puede pegar el codigo entero.
+        */-->
+        <form class="form-cuenta" th:if="${paso == 2}"
+              th:action="@{/cuenta/recupero/telefono}" method="post">
+          <input type="hidden" name="token" th:value="${token}">
+          <input type="hidden" name="email" th:value="${email}">
+          <input type="hidden" name="faltan" th:value="${faltan}">
+          <input type="hidden" name="telefonoParcial" th:value="${telefonoParcial}">
+
+          <p class="recupero__telefono" th:text="${telefonoParcial}">261 5•• ••34</p>
+          <label class="recupero__rotulo"
+                 th:text="${faltan == 1} ? 'Escribí el número que falta'
+                                         : 'Escribí los ' + ${faltan} + ' números que faltan'">Escribí los números que faltan</label>
+
+          <div class="casilleros" data-casilleros>
+            <input class="casillero" th:each="i : ${#numbers.sequence(1, faltan)}"
+                   type="text" name="digitos" inputmode="numeric" maxlength="1"
+                   autocomplete="off" required
+                   th:attr="aria-label='Número ' + ${i} + ' de ' + ${faltan}">
+          </div>
+
+          <button type="submit" class="btn btn--primario btn--bloque">Confirmar</button>
+        </form>
+
+
+        <!--/* ============ PASO 3 · EL CODIGO ============ */-->
+        <form class="form-cuenta" th:if="${paso == 3}"
+              th:action="@{/cuenta/recupero/codigo}" method="post">
+          <input type="hidden" name="token" th:value="${token}">
+          <input type="hidden" name="email" th:value="${email}">
+          <input type="hidden" name="emailParcial" th:value="${emailParcial}">
+
+          <div class="casilleros" data-casilleros>
+            <input class="casillero" th:each="i : ${#numbers.sequence(1, 6)}"
+                   type="text" name="codigo" inputmode="numeric" maxlength="1"
+                   autocomplete="off" required
+                   th:attr="aria-label='Número ' + ${i} + ' de 6'">
+          </div>
+
+          <button type="submit" class="btn btn--primario btn--bloque">Confirmar código</button>
+
+          <p class="recupero__ayuda">
+            Si no aparece en unos minutos, mirá en correo no deseado.
+            El código vence a los 15 minutos.
+          </p>
+        </form>
+
+
+        <!--/* ============ PASO 4 · LA CONTRASENA NUEVA ============ */-->
+        <form class="form-cuenta" th:if="${paso == 4}"
+              th:action="@{/cuenta/recupero/clave}" method="post">
+          <input type="hidden" name="token" th:value="${token}">
+          <input type="hidden" name="email" th:value="${email}">
+
+          <div class="form-grupo">
+            <label for="recPass">Contraseña nueva</label>
+            <input type="password" id="recPass" name="nueva" required
+                   autocomplete="new-password" autofocus>
+          </div>
+          <div class="form-grupo">
+            <label for="recPass2">Repetir la nueva</label>
+            <input type="password" id="recPass2" name="repetir" required
+                   autocomplete="new-password">
+          </div>
+
+          <!--/*
+            La misma lista que el alta y que Seguridad, y la misma con
+            la que el servidor controla: UsuarioService.REQUISITOS_PASSWORD.
+          */-->
+          <div class="requisitos">
+            <p class="requisitos__titulo">La contraseña nueva tiene que tener:</p>
+            <ul class="requisitos__lista">
+              <li class="requisito" th:each="r : ${requisitosPassword}">
+                <span class="requisito__marca" aria-hidden="true">○</span>
+                <span class="requisito__texto" th:text="${r}">al menos 8 caracteres</span>
+              </li>
+            </ul>
+          </div>
+
+          <button type="submit" class="btn btn--primario btn--bloque">Guardar contraseña</button>
+        </form>
+
+        <p class="form-olvide">
+          <a class="enlace-suave" th:href="@{/cuenta}">Volver al ingreso</a>
+        </p>
+
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer th:replace="~{fragmentos/comunes :: pie}"></footer>
+
+<script th:src="@{/js/casilleros.js}" defer></script>
+
+</body>
+</html>

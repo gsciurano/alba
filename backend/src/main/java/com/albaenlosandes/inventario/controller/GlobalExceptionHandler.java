@@ -32,8 +32,26 @@ import java.util.TreeMap;
  *   404 Not Found   -> lo pedido no existe (lo resuelve cada controller).
  *   409 Conflict    -> el dato es valido pero choca con la base (email repetido).
  *   500 Server Error-> se rompio algo nuestro. Es el unico que es "culpa" del servidor.
+ *
+ * ------------------------------------------------------------------
+ *  POR QUE AHORA DICE basePackages
+ * ------------------------------------------------------------------
+ * Desde que el sitio web se sirve desde este mismo Spring, hay dos
+ * clases de controladores: los de /api/** que devuelven JSON y los de
+ * /web (paquete 'web') que devuelven paginas HTML.
+ *
+ * Sin el basePackages, esta clase atendia tambien los errores de las
+ * paginas: pedir /vinos/999 (un vino que no existe) terminaba
+ * devolviendo un JSON de error con codigo 500 en vez de la pagina de
+ * "no se encuentra" con un 404. Para quien navega eso es una pantalla
+ * de texto crudo; para un buscador, "esta direccion existe pero el
+ * servidor esta roto".
+ *
+ * Limitandolo al paquete 'controller', la API se comporta EXACTAMENTE
+ * igual que antes —ni un codigo ni un mensaje cambian— y las paginas
+ * vuelven a usar el manejo de errores normal de Spring MVC.
  */
-@RestControllerAdvice
+@RestControllerAdvice(basePackages = "com.albaenlosandes.inventario.controller")
 public class GlobalExceptionHandler {
 
     /** Arma siempre la misma forma de respuesta, para que el front sepa que esperar. */
@@ -83,6 +101,17 @@ public class GlobalExceptionHandler {
     }
 
     /** 400 - Reglas de negocio: stock insuficiente, usuario inexistente, etc. */
+    /**
+     * 410 GONE: el recupero de contrasena vencio o se quedo sin intentos.
+     * La pantalla lo distingue del 400 para volver sola al primer paso en
+     * vez de dejar a la persona escribiendo en un formulario muerto.
+     */
+    @ExceptionHandler(RecuperoVencidoException.class)
+    public ResponseEntity<Map<String, Object>> recuperoVencido(RecuperoVencidoException ex,
+                                                               HttpServletRequest req) {
+        return respuesta(HttpStatus.GONE, ex.getMessage(), req);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> negocio(IllegalArgumentException ex,
                                                        HttpServletRequest req) {

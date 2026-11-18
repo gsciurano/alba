@@ -56,6 +56,55 @@ public class Pedido {
     @Column(name = "medio_pago", nullable = false)
     private MedioPago medioPago;
 
+    /**
+     * ==============================================================
+     *  EL DESGLOSE DE LA CUENTA
+     * ==============================================================
+     *
+     * Las cinco columnas de plata de un pedido, con una sola regla
+     * entre ellas:
+     *
+     *     total = subtotal - descuento + envio + impuestos
+     *
+     * Hasta la migracion agregar_desglose_del_total.sql solo existia
+     * 'total', y guardaba la suma de los vinos. El envio, el 21% y el
+     * descuento del cupon los calculaba el navegador en
+     * js/tienda.js:337 y se perdian al confirmar: la pantalla le
+     * mostraba un numero al cliente y la base guardaba otro.
+     *
+     * NINGUNO DE ESTOS CINCO VALORES LLEGA DESDE EL NAVEGADOR. Los
+     * calcula CalculadoraDeCuentas con los precios que tiene la base
+     * en ese instante, y PedidoService los escribe. Si vinieran en el
+     * pedido HTTP, cualquiera podria comprar con descuento del 100%
+     * mandando un formulario a mano.
+     */
+    @Column(nullable = false)
+    private BigDecimal subtotal = BigDecimal.ZERO;
+
+    /** Lo que resta el cupon. Se guarda en POSITIVO y se resta. */
+    @Column(nullable = false)
+    private BigDecimal descuento = BigDecimal.ZERO;
+
+    /**
+     * El codigo del cupon tal como se tecleo, o null si no se uso
+     * ninguno. No hay tabla de cupones: ver Cupones.java.
+     */
+    @Column(length = 30)
+    private String cupon;
+
+    @Column(nullable = false)
+    private BigDecimal envio = BigDecimal.ZERO;
+
+    @Column(nullable = false)
+    private BigDecimal impuestos = BigDecimal.ZERO;
+
+    /**
+     * LO QUE PAGA EL CLIENTE, envio e impuestos adentro.
+     *
+     * OJO: antes de la migracion esta columna era el subtotal. Los
+     * pedidos anteriores quedaron con envio e impuestos en cero, asi
+     * que para ellos los dos numeros coinciden. Para los nuevos, no.
+     */
     @Column(nullable = false)
     private BigDecimal total = BigDecimal.ZERO;
 
@@ -113,6 +162,16 @@ public class Pedido {
     public void setEstado(EstadoPedido estado) { this.estado = estado; }
     public MedioPago getMedioPago() { return medioPago; }
     public void setMedioPago(MedioPago medioPago) { this.medioPago = medioPago; }
+    public BigDecimal getSubtotal() { return subtotal; }
+    public void setSubtotal(BigDecimal subtotal) { this.subtotal = subtotal; }
+    public BigDecimal getDescuento() { return descuento; }
+    public void setDescuento(BigDecimal descuento) { this.descuento = descuento; }
+    public String getCupon() { return cupon; }
+    public void setCupon(String cupon) { this.cupon = cupon; }
+    public BigDecimal getEnvio() { return envio; }
+    public void setEnvio(BigDecimal envio) { this.envio = envio; }
+    public BigDecimal getImpuestos() { return impuestos; }
+    public void setImpuestos(BigDecimal impuestos) { this.impuestos = impuestos; }
     public BigDecimal getTotal() { return total; }
     public void setTotal(BigDecimal total) { this.total = total; }
     public Boolean getPagoConfirmado() { return pagoConfirmado; }

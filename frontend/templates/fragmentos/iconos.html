@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  ============================================================
+   ICONOS — un fragmento por icono
+  ============================================================
+   De donde vienen: estaban escritos como cadenas de texto dentro de
+   js/modules/sitio.js (el objeto ICONOS) y de js/admin.js (la funcion
+   svg()), y se inyectaban en la pagina con innerHTML a traves de la
+   clave 'html' de util.crear(). Eran diez lugares distintos.
+
+   POR QUE FRAGMENTOS Y NO th:utext: th:utext escribe HTML sin escapar.
+   Aca el contenido es nuestro y no habria riesgo real, pero cada uso de
+   th:utext hay que auditarlo uno por uno y es facil que manana alguien
+   copie el patron para meter un dato que si viene de la base. Un
+   fragmento no tiene ese problema: es marcado, no una cadena.
+
+   Los SVG son los mismos de antes, sin cambios de trazo, asi que el CSS
+   que los estiliza sigue valiendo igual.
+*/-->
+<body>
+
+<!--/* ---------- iconos del encabezado y el pie (eran ICONOS en sitio.js) ---------- */-->
+
+<svg th:fragment="persona" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+     stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <circle cx="12" cy="8" r="3.6"/>
+  <path d="M4.5 20c0-3.6 3.4-5.6 7.5-5.6s7.5 2 7.5 5.6"/>
+</svg>
+
+<svg th:fragment="panel" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+     stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <rect x="3" y="3" width="7.5" height="7.5" rx="1"/>
+  <rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/>
+  <rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/>
+  <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/>
+</svg>
+
+<svg th:fragment="salir" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+     stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M15 4h4a1 1 0 011 1v14a1 1 0 01-1 1h-4"/>
+  <path d="M10 8l-4 4 4 4M6 12h10"/>
+</svg>
+
+<svg th:fragment="carrito" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+     stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <circle cx="9" cy="20" r="1.4"/>
+  <circle cx="18" cy="20" r="1.4"/>
+  <path d="M2 3h3l2.5 12h11L21 7H6"/>
+</svg>
+
+</body>
+</html>

@@ -3,110 +3,89 @@
 Sistema de gestión de inventario y venta online para la bodega **Alba en los
 Andes** (Tupungato, Valle de Uco, Mendoza).
 
-El trabajo tiene dos etapas, y cada una vive en su propia carpeta:
-
 ```
-alba/
-├── backend/     Etapa 1 — API REST con Spring Boot + MySQL
-└── frontend/    Etapa 2 — Tienda web con HTML5 + CSS3 + JavaScript
+gestor-inventario/
+├── backend/     Java: la API, los controladores del sitio, las reglas de negocio
+├── frontend/    Lo que ve el cliente: páginas, estilos, imágenes, JavaScript
+├── sql/         Los scripts para crear y actualizar la base MySQL
+└── docs/        Qué hay en cada archivo, y qué falta hacer
 ```
 
-Las dos partes **no son independientes**: el frontend no tiene datos propios,
-los pide al backend. Si el backend está apagado, la tienda muestra un aviso de
-que no puede conectarse.
+→ **[`docs/ESTRUCTURA.md`](docs/ESTRUCTURA.md) explica para qué sirve cada
+archivo del proyecto, uno por uno.** Si no sabés dónde buscar algo, empezá ahí.
+
+Las páginas **las arma el servidor**: Spring Boot lee las plantillas de
+`frontend/templates/`, las llena con los datos de MySQL y manda el HTML
+terminado. No hay un segundo servidor para el frontend, y el navegador no
+necesita JavaScript para que el sitio funcione.
 
 ---
 
-## Qué hay en cada carpeta
+## Cómo levantar el proyecto
 
-### `backend/` — Etapa 1
+### 1) La base
 
-API REST hecha con **Spring Boot 3.5.16** sobre **MySQL**, con JPA/Hibernate
-como ORM. Expone los endpoints que consume la tienda y contiene toda la lógica
-de negocio: validación de stock, congelado de precios, baja lógica y
-trazabilidad de los movimientos de inventario.
+MySQL corriendo y la base `gestor_inventario` creada con los scripts de
+[`sql/`](sql/), **en el orden que indica
+[`docs/ESTRUCTURA.md`](docs/ESTRUCTURA.md)**. El primero crea todo:
 
-Incluye además un cliente de escritorio en **Java Swing** (`src/.../escritorio/`)
-que consume esos mismos endpoints, usado para la defensa de la Etapa 1.
+```bash
+mysql -u root -p < sql/gestor_inventario_alba.sql
+```
 
-→ Ver [`backend/README.md`](backend/README.md) para el detalle de endpoints,
-entidades y decisiones de diseño.
+Los `agregar_*.sql` son migraciones: se corren **una sola vez cada una y en
+orden**, porque `spring.jpa.hibernate.ddl-auto=none` — Hibernate no toca el
+esquema, usa las tablas tal como las dejó el script.
 
-### `frontend/` — Etapa 2
+### 2) El servidor
 
-Tienda pública + panel de administración, en **HTML5, CSS3 y JavaScript puro
-(módulos ES)**. Sin frameworks, sin npm, sin paso de compilación: son archivos
-`.html`, `.css` y `.js` que se sirven tal cual.
+```bash
+cd backend && ./arrancar.sh
+```
 
-→ Ver [`frontend/README.md`](frontend/README.md) para la estructura, el mapeo
-de requisitos y las limitaciones conocidas.
+`arrancar.sh` saca las claves del correo del llavero de macOS y levanta Spring
+Boot. Si tu MySQL no usa la clave por defecto:
+
+```bash
+cd backend && DB_PASSWORD="tu-clave" ./arrancar.sh
+```
+
+Está listo cuando aparece `Started GestorInventarioApplication`. El log de cada
+corrida queda en `backend/arranque.log`.
+
+### 3) El navegador
+
+**http://localhost:8080** — y eso es todo. Algunas direcciones:
+
+| Dirección | Qué es |
+|---|---|
+| `/` | La portada |
+| `/vinos` | El catálogo |
+| `/tienda` | La tienda |
+| `/cuenta` | Ingresar o crear cuenta |
+| `/admin.html` | El panel de administración (todavía el viejo) |
+
+Para probar sin crear una cuenta, los usuarios están a la vista en la pantalla
+de ingreso: `admin@albaenlosandes.com / Admin123` y `juan@mail.com / Cliente123`.
 
 ---
 
-## Cómo levantar el proyecto completo
+## Las tres partes, y cómo se hablan
 
-Hacen falta **dos terminales**, porque son dos servidores distintos.
+**El sitio web** no hace llamadas a la API: los controladores de
+`backend/.../web/` usan los servicios directamente y devuelven HTML. El total de
+una compra, el descuento de stock y el precio congelado los calcula el servidor,
+nunca el navegador.
 
-**1) La base de datos**
+**La aplicación de escritorio** (Java Swing, `backend/.../escritorio/`) es otro
+programa y habla con el **mismo servidor** por HTTP, contra `/api/**`. Por eso
+esa API queda abierta: no es un navegador, no tiene cookie de sesión ni token
+CSRF. Está explicado, con el camino para cerrarla, en
+`backend/.../config/SecurityConfig.java`.
 
-MySQL tiene que estar corriendo y la base `gestor_inventario` creada. Los
-scripts están en `backend/src/main/resources/db/`.
-
-El script base es `gestor_inventario_alba.sql`. Los `agregar_*.sql` son
-migraciones que se corren **una vez cada una y en orden**, porque
-`spring.jpa.hibernate.ddl-auto=none`: Hibernate no toca el esquema, usa las
-tablas tal como las dejó el script. Las últimas dos:
-
-```bash
-mysql -u root -p gestor_inventario < backend/src/main/resources/db/agregar_pago_transferencia.sql
-mysql -u root -p gestor_inventario < backend/src/main/resources/db/agregar_ingreso_con_google.sql
-```
-
-**2) El backend** (puerto 8080)
-
-```bash
-cd backend && DB_PASSWORD="tu-clave" ./mvnw spring-boot:run
-```
-
-Para comprobar que arrancó bien:
-
-```bash
-curl http://localhost:8080/api/productos
-```
-
-Tiene que devolver la lista de vinos en JSON. Si devuelve un error 500, casi
-siempre es que `DB_PASSWORD` está mal: la aplicación arranca igual, pero no
-puede entrar a la base.
-
-**3) El frontend** (puerto 8099)
-
-```bash
-cd frontend && python3 -m http.server 8099
-```
-
-Y después, en el navegador:
-
-- Tienda: http://localhost:8099/index.html
-- Administración: http://localhost:8099/admin.html
-
-Hace falta servirlo con un servidor: abrir el `index.html` con doble clic no
-funciona, porque los módulos de JavaScript están bloqueados bajo `file://`.
-
----
-
-## Cómo se comunican las dos partes
-
-El frontend habla con el backend por HTTP, en un solo archivo:
-`frontend/js/modules/api.js`. Ahí está la dirección del servidor
-(`http://localhost:8080/api`) y la traducción entre los nombres que usa cada
-lado (por ejemplo `idProducto` ↔ `id`, `anada` ↔ `cosecha`).
-
-Esto significa que si el backend cambia de puerto o de servidor, se toca **un
-solo archivo** y el resto de la tienda no se entera.
-
-La lógica de negocio no está duplicada: al confirmar una compra el navegador
-manda solamente qué vino y cuántas botellas. El total, el precio congelado, el
-descuento de stock y el registro del movimiento los calcula el backend.
+**El panel de administración** todavía es la página vieja
+(`frontend/static/admin.html`) y también le pega a `/api/**`. Es lo único que
+falta migrar; está anotado en [`docs/MEJORAS-PENDIENTES.md`](docs/MEJORAS-PENDIENTES.md).
 
 ---
 
@@ -120,6 +99,21 @@ spring.datasource.password=${DB_PASSWORD:root}
 ```
 
 Hay que definir `DB_PASSWORD` antes de arrancar (por ejemplo en `~/.zshrc`).
+
+### El recupero de contraseña
+
+Quien se olvidó la contraseña confirma **dos cosas distintas** antes de poder
+cambiarla: completa los dígitos tapados del teléfono de la cuenta
+(`261-1••••11`), y después escribe un código de 6 números que le llega por mail.
+
+Los dígitos **solos no alcanzan**, y está puesto así a propósito: un teléfono no
+es un secreto y cuatro dígitos son diez mil combinaciones. Ese paso confirma
+quién dice ser; **lo que autoriza el cambio es el código**, porque para leerlo
+hay que entrar a la casilla. Tres intentos por paso y el pedido se quema.
+
+Los recuperos a medias viven **en memoria** (`ServicioRecupero`), duran 15
+minutos y no necesitan tabla ni migración. Si se reinicia Spring Boot, los que
+estaban por la mitad hay que empezarlos de nuevo.
 
 ### El correo saliente
 
@@ -174,7 +168,13 @@ un Client ID es público por diseño, viaja en el HTML y lo ve cualquiera que
 abra el sitio. Lo que no aparece en ningún lado es el *Client Secret*, y no
 hace falta: el flujo de "Sign in with Google" por ID token no lo usa.
 
-Tiene que ser **el mismo** en `application.properties` y en `js/cuenta.js`:
-el back-end comprueba que el token venga emitido para ese client id, así que
-si no coinciden se rechazan todos los ingresos. En Google Cloud hay que
-tener cargado `http://localhost:8099` en *Authorized JavaScript origins*.
+Ahora se escribe **en un solo lugar**, `application.properties`: de ahí lo lee
+el servicio que valida el token y de ahí lo saca también la pantalla de ingreso
+para dibujar el botón. Antes estaba además escrito a mano en el JavaScript, y
+dos copias de lo mismo terminan separándose.
+
+En Google Cloud hay que tener cargado `http://localhost:8080` en *Authorized
+JavaScript origins* — y tal cual: `127.0.0.1` y `localhost` son orígenes
+distintos para Google, aunque sean la misma máquina. El origen de la página se
+escribe en la consola del navegador al abrir el ingreso, para copiarlo y
+pegarlo.

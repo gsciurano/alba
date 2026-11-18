@@ -7,6 +7,7 @@ import com.albaenlosandes.inventario.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,6 +49,26 @@ public class ProductoService {
 
     public Optional<Producto> obtenerPorId(Integer id) {
         return productoRepository.findById(id);
+    }
+
+    /**
+     * Varios productos por id, EN UNA SOLA CONSULTA.
+     *
+     * Lo usa el carrito de la sesion (web/CarritoSesion), que guarda
+     * solo los ids y tiene que resolver nombre, precio y stock cada vez
+     * que se dibuja una vista. Pidiendolos de a uno con obtenerPorId
+     * eran tantas consultas como renglones, multiplicadas por las veces
+     * que la vista preguntaba (el subtotal, la burbuja del encabezado y
+     * el detalle son tres recorridas del mismo carrito).
+     *
+     * Devuelve los que existen; los ids que no estan simplemente no
+     * aparecen, igual que findById devuelve vacio.
+     */
+    public List<Producto> obtenerPorIds(Collection<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return productoRepository.findAllById(ids);
     }
 
     public List<Producto> obtenerPorLinea(Linea linea) {
