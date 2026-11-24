@@ -127,6 +127,28 @@ public class CompatibilidadController {
     }
 
     /**
+     * AL REVES QUE TODOS LOS DEMAS: aca la direccion linda es la que
+     * todavia no existe.
+     *
+     * El panel se sirve como archivo estatico (static/admin.html), asi
+     * que su direccion real es /admin.html. Pero /admin es la que se
+     * escribe de memoria, la que quedo en enlaces del sitio y la que
+     * alguien tipea a mano, y sin esto devuelve 404 con la pagina de
+     * error de Spring, que para quien mira parece que el panel se
+     * rompio.
+     *
+     * 302 y no 301 a proposito: cuando el panel se migre a Thymeleaf,
+     * /admin pasa a ser la direccion de verdad y este metodo se borra.
+     * Un 301 le habria dicho a los navegadores que se queden con
+     * /admin.html para siempre, y lo tendrian cacheado justo cuando
+     * deja de ser cierto.
+     */
+    @GetMapping("/admin")
+    public RedirectView panel() {
+        return new RedirectView("/admin.html");
+    }
+
+    /**
      * Un 301 y no el 302 que devuelve 'redirect:' por defecto.
      *
      * La diferencia no es cosmetica: 302 significa "por ahora esta aca"
@@ -141,9 +163,14 @@ public class CompatibilidadController {
     }
 
     /*
-     * Falta todavia admin.html: el panel sigue sirviendose como archivo
-     * estatico porque su etapa de migracion no llego. Suma su
-     * redireccion aca el dia que /admin exista, y recien entonces se
-     * borra el archivo de static/.
+     * El panel sigue sirviendose como archivo estatico porque su etapa
+     * de migracion no llego: por eso el unico redireccionamiento de
+     * este archivo que apunta a un .html es el de /admin, y va al
+     * revez que los demas.
+     *
+     * El dia que el panel pase a Thymeleaf: /admin se convierte en la
+     * ruta de verdad, el metodo panel() de arriba se borra, y en su
+     * lugar entra un 301 de /admin.html a /admin como todos los otros.
+     * Recien entonces se puede borrar static/admin.html.
      */
 }

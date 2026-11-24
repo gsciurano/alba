@@ -268,67 +268,64 @@ export const auditoria = {
 //  SESION — ahora contra el servidor
 // ============================================================
 
+/**
+ * QUIEN ESTA INGRESADO LO DECIDE EL SERVIDOR.
+ *
+ * COMO ERA ANTES Y POR QUE SE ROMPIO. El ingreso era cosa del navegador:
+ * esta pantalla llamaba a POST /api/usuarios/login y se guardaba la
+ * respuesta en el localStorage. El panel leia ese dato para saber si
+ * quien miraba era administrador. Desde que el ingreso pasa por Spring
+ * Security, quien entra queda registrado en una sesion del servidor y el
+ * localStorage no se escribe nunca: el panel no reconocia a un
+ * administrador ingresado de verdad y lo devolvia a la pantalla de
+ * ingreso, que al verlo ingresado lo mandaba de nuevo a su perfil. El
+ * panel quedaba inalcanzable.
+ *
+ * COMO ES AHORA. Se le pregunta al servidor con GET /cuenta/quien-soy,
+ * que responde desde la sesion. El localStorage pasa a ser una copia
+ * para no repetir el pedido en cada dibujo de la pantalla, no la fuente
+ * de la verdad: si alguien lo edita a mano no habilita nada, porque cada
+ * pedido del panel lo revisa SecurityConfig contra la sesion.
+ *
+ * ESTO SE BORRA cuando el panel pase a Thymeleaf: ahi los datos del
+ * administrador van a llegar dibujados en la pagina.
+ */
 const CLAVE_SESION = "alba_sesion";
 
-/**
- * QUE CAMBIO: antes el ingreso se validaba contra una lista escrita en el
- * propio JavaScript, asi que el rol de cada persona lo decidia el
- * navegador. Ahora lo decide POST /api/usuarios/login y el navegador solo
- * recuerda la respuesta.
- *
- * HASTA DONDE LLEGA ESTO: el servidor confirma quien es, pero no entrega
- * ninguna credencial de sesion. Lo que queda guardado es un dato, no una
- * llave: sirve para que la pagina sepa a quien saludar y que mostrar, no
- * para autorizar nada. Los endpoints de administracion siguen abiertos a
- * cualquiera que llame a la API directamente. Cerrarlos es trabajo de
- * Spring Security, fuera del alcance de esta entrega.
- *
- * La contrasena no se guarda en ningun lado: viaja una vez y se descarta.
- */
 export const sesion = {
-  async login(email, password) {
-    const u = await api.usuarios.login(email, password);
-    const datos = {
-      idUsuario: u.idUsuario,
-      nombre:    u.nombre,
-      apellido:  u.apellido,
-      email:     u.email,
-      telefono:  u.telefono || "",
-      rol:       u.rol                       // ADMIN o CLIENTE
-    };
-    localStorage.setItem(CLAVE_SESION, JSON.stringify(datos));
-    return datos;
-  },
-
   /**
-   * Ingreso con Google. Guarda la sesion igual que login(): de ahi en
-   * adelante al resto de la aplicacion le da lo mismo por donde entro.
+   * Le pregunta al servidor quien esta ingresado y actualiza la copia
+   * local. Hay que llamarla (y esperarla) antes de mirar esAdmin() o
+   * actual(), porque al abrir la pagina la copia puede estar vacia o
+   * vieja.
    *
-   * Si es la primera vez, el back-end crea la cuenta como CLIENTE; si
-   * ya habia una con ese email, la vincula en vez de duplicarla.
+   * Devuelve los datos, o null si no hay nadie ingresado.
+   *
+   * POR QUE MIRA EL CONTENT-TYPE: cuando no hay sesion, Spring no
+   * contesta 401 sino que redirige a la pantalla de ingreso, asi que
+   * fetch ve un 200 con HTML adentro. Sin esta comprobacion, el
+   * JSON.parse de una pagina web termina en un error raro en vez de en
+   * un "no hay nadie ingresado".
    */
-  async loginGoogle(credential) {
-    const u = await api.usuarios.ingresarConGoogle(credential);
-    const datos = {
-      idUsuario: u.idUsuario,
-      nombre:    u.nombre,
-      apellido:  u.apellido,
-      email:     u.email,
-      telefono:  u.telefono || "",
-      rol:       u.rol
-    };
-    localStorage.setItem(CLAVE_SESION, JSON.stringify(datos));
-    return datos;
-  },
-
-  /** Alta de cliente nuevo. Si sale bien, lo deja ya ingresado. */
-  async registrar({ nombre, apellido, email, telefono, password }) {
-    await api.usuarios.crear({
-      nombre, apellido, email, telefono,
-      rol: "CLIENTE",
-      passwordHash: password
-    });
-    return this.login(email, password);
+  async sincronizar() {
+    try {
+      const respuesta = await fetch("/cuenta/quien-soy", {
+        headers: { Accept: "application/json" },
+        credentials: "same-origin"
+      });
+      const tipo = respuesta.headers.get("content-type") || "";
+      if (!respuesta.ok || !tipo.includes("application/json")) {
+        localStorage.removeItem(CLAVE_SESION);
+        return null;
+      }
+      const datos = await respuesta.json();
+      localStorage.setItem(CLAVE_SESION, JSON.stringify(datos));
+      return datos;
+    } catch {
+      // Sin red no se puede saber: se conserva la copia y decide quien
+      // llamo. El servidor igual no deja pasar a nadie que no corresponda.
+      return this.actual();
+    }
   },
 
   actual() {
@@ -336,35 +333,39 @@ export const sesion = {
     catch { return null; }
   },
 
-  /**
-   * Pisa los datos guardados de quien esta ingresado, conservando el resto.
-   *
-   * PARA QUE: la sesion guarda una COPIA del nombre, el email y el telefono,
-   * porque el encabezado los necesita en cada pagina sin tener que pedirlos
-   * al servidor. Cuando el cliente edita su perfil, esa copia queda vieja y
-   * el encabezado sigue saludando con el nombre anterior hasta volver a
-   * ingresar. Esto la pone al dia.
-   *
-   * NO cambia el rol aunque venga en los datos: el rol lo decide el servidor
-   * al ingresar y nada de lo que pase despues en el navegador deberia poder
-   * tocarlo.
-   */
-  actualizar(datos) {
-    const previo = this.actual();
-    if (!previo) return null;
-    const { rol, idUsuario, ...editables } = datos || {};
-    const nuevo = { ...previo, ...editables };
-    localStorage.setItem(CLAVE_SESION, JSON.stringify(nuevo));
-    return nuevo;
-  },
-
   esAdmin()   { return this.actual()?.rol === "ADMIN"; },
+
   nombreCompleto() {
     const u = this.actual();
     return u ? [u.nombre, u.apellido].filter(Boolean).join(" ") : "";
   },
 
-  logout() { localStorage.removeItem(CLAVE_SESION); }
+  /**
+   * Cierra la sesion DEL SERVIDOR, que es la unica que importa: borrar
+   * solo la copia local dejaba la sesion viva, y con volver atras en el
+   * navegador se entraba de nuevo.
+   *
+   * Es un POST con el token CSRF que vino en quien-soy, porque Spring
+   * rechaza un cierre de sesion sin token. Se arma un formulario de
+   * verdad en lugar de un fetch para que el navegador siga la
+   * redireccion a la portada por su cuenta.
+   */
+  async cerrar() {
+    const datos = await this.sincronizar();
+    localStorage.removeItem(CLAVE_SESION);
+    const formulario = document.createElement("form");
+    formulario.method = "post";
+    formulario.action = "/cuenta/salir";
+    if (datos?.csrfToken) {
+      const campo = document.createElement("input");
+      campo.type = "hidden";
+      campo.name = "_csrf";
+      campo.value = datos.csrfToken;
+      formulario.appendChild(campo);
+    }
+    document.body.appendChild(formulario);
+    formulario.submit();
+  }
 };
 
 // ============================================================

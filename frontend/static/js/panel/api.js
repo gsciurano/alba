@@ -215,6 +215,15 @@ export function pedidoDesdeApi(p) {
       ? [p.pagoConfirmadoPor.nombre, p.pagoConfirmadoPor.apellido].filter(Boolean).join(" ")
       : "",
     esperaComprobante: p.medioPago === "TRANSFERENCIA" && p.pagoConfirmado !== true,
+    /*
+     * Mercado Pago pendiente es OTRA cosa que una transferencia
+     * pendiente, y por eso es otra bandera: la transferencia espera que
+     * un administrador la acredite, y esto espera que el cliente pague.
+     * Mostrar las dos con el mismo cartel mandaria a la bodega a buscar
+     * en su cuenta una plata que nadie mando todavia.
+     */
+    esperaMercadoPago: p.medioPago === "MERCADO_PAGO" && p.pagoConfirmado !== true,
+    pagoExternoId: p.pagoExternoId || "",
     // El back-end guarda un unico 'total' (suma de cantidad x precio
     // congelado). No guarda envio ni impuestos desglosados, asi que el
     // subtotal es ese total y los otros dos quedan en cero.

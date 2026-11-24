@@ -91,7 +91,7 @@
           llega al navegador. Eso es lo que permite la sesion de servidor.
         */-->
         <a th:if="${usuario.rol.name() == 'ADMIN'}" class="cinta__enlace"
-           th:href="@{/admin}" href="/admin">
+           th:href="@{/admin.html}" href="/admin.html">
           <svg th:replace="~{fragmentos/iconos :: panel}"></svg>
           <span>Panel</span>
         </a>
@@ -264,7 +264,7 @@
       <a th:href="@{/cuenta/pedidos}" href="/cuenta/pedidos">Mis pedidos</a>
       <a th:href="@{/cuenta/solicitudes}" href="/cuenta/solicitudes">Mis solicitudes</a>
       <a th:if="${usuario != null and usuario.rol.name() == 'ADMIN'}"
-         th:href="@{/admin}" href="/admin">Panel de gestión</a>
+         th:href="@{/admin.html}" href="/admin.html">Panel de gestión</a>
     </div>
 
     <!--/*

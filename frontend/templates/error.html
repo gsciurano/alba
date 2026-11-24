@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<!--/*
+  ==================================================================
+   LA PANTALLA DE ERROR DEL SITIO
+  ==================================================================
+
+  POR QUE EXISTE. Sin esta plantilla, cualquier direccion que no
+  exista, o una que exista pero no corresponda (el panel de gestion
+  mirado por un cliente), muestra la pagina blanca de Spring Boot:
+  "Whitelabel Error Page. This application has no explicit mapping for
+  /error". Es texto en ingles, con la hora y una traza, y para quien
+  mira no dice si se equivoco al tipear o si el sitio se rompio.
+
+  COMO LA ENCUENTRA SPRING. Se llama error.html y vive en la raiz de
+  las plantillas: eso es todo lo que hace falta. El controlador de
+  errores que Spring Boot ya trae busca una vista llamada "error" y
+  encuentra esta. No hay nada que configurar ni ningun controlador
+  nuevo que escribir.
+
+  QUE NO MUESTRA, A PROPOSITO: ni la traza ni el mensaje interno de la
+  excepcion. A quien esta del otro lado no le sirven, y pueden contar
+  de mas sobre como esta hecho el sitio por dentro. El motivo real
+  sigue estando donde corresponde, en el log de la corrida
+  (backend/arranque.log).
+
+  EL ENCABEZADO Y EL PIE SON LOS DEL SITIO: desde una pantalla de
+  error se tiene que poder volver a cualquier parte, y para eso ya
+  esta el menu de siempre. Que ${usuario} llegue hasta aca lo arregla
+  ModeloGlobal, que nombra tambien al controlador de errores.
+*/-->
+
+<head th:replace="~{fragmentos/comunes :: cabeza('No encontramos esa página — Alba en los Andes', 'La dirección que buscás no existe o no está disponible.')}">
+  <title>Error — Alba en los Andes</title>
+</head>
+
+<body>
+
+<header th:replace="~{fragmentos/comunes :: encabezado('')}"></header>
+
+<main id="contenido">
+  <section class="seccion">
+    <div class="seccion__interior">
+
+      <!--/*
+        TRES CASOS, NO UNO SOLO. "No existe" y "no te corresponde" son
+        cosas distintas, y el consejo util es distinto en cada una: en
+        una conviene volver al catalogo, en la otra ingresar con la
+        cuenta que corresponde. El tercer caso es todo lo demas, que si
+        es un problema del sitio.
+
+        El numero sale de ${status}, que lo pone el propio controlador
+        de errores de Spring Boot.
+      */-->
+      <div th:switch="${status != null ? status.toString() : '0'}">
+
+        <div th:case="'404'">
+          <p class="nota-tenue">Error 404</p>
+          <h1>No encontramos esa página</h1>
+          <p>La dirección no existe, o la página se mudó cuando el sitio
+             cambió de forma. No es algo que hayas hecho mal.</p>
+          <p>
+            <a class="btn btn--primario" th:href="@{/}" href="/">Ir al inicio</a>
+            <a class="btn" th:href="@{/vinos}" href="/vinos">Ver los vinos</a>
+          </p>
+        </div>
+
+        <div th:case="'403'">
+          <p class="nota-tenue">Error 403</p>
+          <h1>Esta parte no es para tu cuenta</h1>
+          <p th:if="${usuario == null}">
+            Hay que ingresar para entrar acá.
+          </p>
+          <p th:if="${usuario != null}">
+            Estás ingresado como <span th:text="${usuario.email}">tu cuenta</span>,
+            y esta parte del sitio es solo para la bodega. Si es tu panel
+            de gestión, hay que ingresar con la cuenta de administrador.
+          </p>
+          <p>
+            <a class="btn btn--primario" th:href="@{/cuenta}" href="/cuenta">Ir a mi cuenta</a>
+            <a class="btn" th:href="@{/}" href="/">Ir al inicio</a>
+          </p>
+        </div>
+
+        <div th:case="*">
+          <p class="nota-tenue">Error <span th:text="${status}">500</span></p>
+          <h1>Algo se rompió de este lado</h1>
+          <p>No es tu culpa: el error es del sitio. Probá de nuevo en un
+             momento; si sigue pasando, el motivo quedó anotado en el log
+             del servidor.</p>
+          <p>
+            <a class="btn btn--primario" th:href="@{/}" href="/">Ir al inicio</a>
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer th:replace="~{fragmentos/comunes :: pie}"></footer>
+
+</body>
+</html>

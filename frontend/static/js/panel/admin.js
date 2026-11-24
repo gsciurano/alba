@@ -73,19 +73,27 @@ const ESTADOS_SOLICITUD = {
 /**
  * GUARDA DE ACCESO.
  *
- * El ingreso ya no se hace aca: se hace en cuenta.html contra
- * POST /api/usuarios/login, y el servidor es el que dice el rol. Esta
- * pagina solo comprueba que quien llego sea un ADMIN y, si no, lo manda
- * a ingresar.
+ * El ingreso no se hace aca: se hace en /cuenta contra Spring Security,
+ * y quien entro queda en una sesion del servidor. Esta pagina le
+ * pregunta al servidor quien es (GET /cuenta/quien-soy) y, si no es un
+ * ADMIN, lo manda a ingresar.
  *
- * ES UNA GUARDA DE PANTALLA, NO DE SEGURIDAD: evita que alguien entre por
- * error o curioseando, pero los endpoints del back-end siguen abiertos a
- * quien llame a la API directamente. Cerrarlos es trabajo de Spring
- * Security, fuera del alcance de esta entrega.
+ * HAY QUE ESPERAR LA RESPUESTA antes de mirar el rol. Preguntarselo al
+ * localStorage sin sincronizar fue justo el error que dejo el panel
+ * inalcanzable: al abrir la pagina la copia local esta vacia, asi que un
+ * administrador ingresado de verdad se iba a /cuenta, y /cuenta, al
+ * verlo ingresado, lo devolvia a su perfil.
+ *
+ * ESTA GUARDA ES DE PANTALLA, NO DE SEGURIDAD, y ya no hace falta que lo
+ * sea: ahora /admin.html y /admin/** los protege SecurityConfig por rol,
+ * asi que sin sesion de administrador el navegador nunca llega a bajar
+ * este archivo. Lo que sigue abierto a proposito es /api/**, que consume
+ * la aplicacion de escritorio; el motivo esta en SecurityConfig.
  */
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  await sesion.sincronizar();
   if (!sesion.esAdmin()) {
-    location.replace("cuenta.html");
+    location.replace("/cuenta");
     return;
   }
   entrarAlPanel();
@@ -93,7 +101,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function entrarAlPanel() {
   $("#appAdmin").classList.remove("oculto");
-  $("#btnSalir").addEventListener("click", () => { sesion.logout(); location.href = "index.html"; });
+  // sesion.cerrar() cierra la sesion DEL SERVIDOR y el navegador queda en
+  // la portada por la redireccion que manda Spring. Antes se borraba solo
+  // la copia local: la sesion seguia viva y con volver atras se entraba
+  // de nuevo al panel.
+  $("#btnSalir").addEventListener("click", () => { sesion.cerrar(); });
   $$(".nav-item").forEach(b => b.addEventListener("click", () => ir(b.dataset.vista)));
 
   const cont = $("#vistaContenedor");
@@ -991,7 +1003,9 @@ function vistaPedidos(cont) {
       { clave: "medioPago", rotulo: "Pago",
         render: p => p.esperaComprobante
           ? crear("span", { class: "marca-estado marca-estado--pendiente" }, "Esperando comprobante")
-          : capitalizar(p.medioPago || "") },
+          : p.esperaMercadoPago
+            ? crear("span", { class: "marca-estado marca-estado--pendiente" }, "Mercado Pago sin pagar")
+            : medioDePago(p.medioPago) },
       { clave: "total",  rotulo: "Total", orden: true, clase: "num",
         render: p => crear("span", { class: "fuerte" }, pesos(p.total)) },
       { clave: "estado", rotulo: "Estado", orden: true,
@@ -1115,7 +1129,7 @@ function abrirDetallePedido(p) {
 
   const panel = panelModal({
     titulo: "Pedido #" + p.id,
-    bajada: fecha(p.fecha) + " · " + capitalizar(p.medioPago || ""),
+    bajada: fecha(p.fecha) + " · " + medioDePago(p.medioPago),
     // El estado se ve ACA, no solo adentro del desplegable: en la tabla de
     // atras tiene su marca de color y al abrir el detalle se perdia. Ademas
     // separa lo que el pedido ES de lo que se va a cambiar.
@@ -1174,6 +1188,17 @@ const dato = (rotulo, valor) => crear("div", { class: "detalle-dato" },
   crear("div", { class: "detalle-dato__valor" }, valor));
 
 const capitalizar = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
+
+/*
+ * El medio de pago, escrito como se dice.
+ *
+ * POR QUE NO ALCANZA capitalizar(): los valores del enum son una sola
+ * palabra salvo MERCADO_PAGO, que con capitalizar() sale "Mercado_pago".
+ * Un guion bajo en pantalla delata que se esta mostrando el valor crudo
+ * de la base en lugar del nombre de algo.
+ */
+const medioDePago = (valor) =>
+  valor === "MERCADO_PAGO" ? "Mercado Pago" : capitalizar(valor || "");
 
 // ============================================================
 //  6) CLIENTES Y USUARIOS

@@ -85,12 +85,21 @@ public class SecurityConfig {
                                  "/favicon.ico", "/error").permitAll()
 
                 /*
-                 * Las paginas .html sueltas que quedan en static/ son las
-                 * que todavia no se migraron. Se van borrando una por una
-                 * a medida que cada pantalla pasa a Thymeleaf, y cuando no
-                 * quede ninguna, esta linea se va con ellas.
+                 * LAS DIRECCIONES VIEJAS, abiertas porque solo redirigen.
+                 * index.html, tienda.html y las demas no son archivos: son
+                 * los 301 de CompatibilidadController a las direcciones
+                 * nuevas. Dejarlas pasar no muestra nada que la pagina de
+                 * destino no muestre igual.
+                 *
+                 * ANTES ESTO ERA UN "/*.html" SUELTO, y ahi estaba el
+                 * agujero: la unica pagina .html que de verdad existe es
+                 * admin.html, el panel, asi que ese permitAll lo dejaba
+                 * abierto a cualquiera. La regla de abajo lo cierra.
                  */
-                .requestMatchers("/*.html").permitAll()
+                .requestMatchers("/index.html", "/finca.html", "/nosotros.html",
+                                 "/contacto.html", "/privacidad.html", "/terminos.html",
+                                 "/arrepentimiento.html", "/tienda.html", "/vinos.html",
+                                 "/vino.html", "/cuenta.html").permitAll()
 
                 /* Todo lo publico del sitio. */
                 .requestMatchers("/", "/vinos", "/vinos/**", "/tienda", "/tienda/**",
@@ -105,8 +114,14 @@ public class SecurityConfig {
                  * la guarda de pantalla de admin.js:86. Quien no sea
                  * administrador no recibe el HTML del panel: no es que lo
                  * reciba y se lo escondan.
+                 *
+                 * ESTAN LAS DOS FORMAS DE PEDIRLO: /admin.html, que es el
+                 * archivo que todavia vive en static/ y es el panel de
+                 * verdad, y /admin/** para cuando el panel se migre a
+                 * Thymeleaf y pase a tener sus propias direcciones. La
+                 * primera se va el dia que se borre el archivo.
                  */
-                .requestMatchers("/admin/**").hasRole(Rol.ADMIN.name())
+                .requestMatchers("/admin.html", "/admin/**").hasRole(Rol.ADMIN.name())
 
                 /* El resto de "Mi cuenta" exige haber ingresado. */
                 .requestMatchers("/cuenta/**").authenticated()
@@ -169,7 +184,14 @@ public class SecurityConfig {
         return (pedido, respuesta, autenticacion) -> {
             boolean esAdmin = autenticacion.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals("ROLE_" + Rol.ADMIN.name()));
-            respuesta.sendRedirect(pedido.getContextPath() + (esAdmin ? "/admin" : "/"));
+            /*
+             * OJO CON ESTA DIRECCION: tiene que ser una que exista. El
+             * panel todavia es el archivo static/admin.html, no una ruta
+             * de Thymeleaf, asi que mandar a "/admin" terminaba en un 404
+             * justo despues de un ingreso correcto. Cuando el panel se
+             * migre, aca va a decir "/admin".
+             */
+            respuesta.sendRedirect(pedido.getContextPath() + (esAdmin ? "/admin.html" : "/"));
         };
     }
 }
