@@ -34,6 +34,12 @@ target/
 *.env
 !*.env.ejemplo
 
+# Credenciales de prueba de Mercado Pago, para tenerlas a mano mientras se
+# prueba el cobro. Son de cuentas de prueba y no mueven plata real, pero un
+# archivo con credenciales adentro del repositorio se termina subiendo igual:
+# por eso se ignora.
+CREDENCIALES-PRUEBA.md
+
 # ---- Archivos del sistema operativo ----
 .DS_Store
 Thumbs.db

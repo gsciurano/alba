@@ -92,7 +92,14 @@ agrupada y nombrada aparte para que se vea que es lo que falta migrar, y es el
 único motivo por el que siguen vivos `static/js/panel/api.js`,
 `store.js`, `util.js`, `validacion.js`, `graficos.js` y `static/data/productos.js`.
 
-El día que el panel pase a Thymeleaf, esa carpeta entera se borra. Está anotado
+Quién está ingresado ya no lo decide él: se lo pregunta al servidor con
+`GET /cuenta/quien-soy` (`SesionController`), porque el ingreso pasa por Spring
+Security y el `localStorage` que leía antes quedó siempre vacío. El `localStorage`
+que sigue usando es nada más que una copia para no repetir el pedido: editarlo a
+mano no habilita nada, cada pedido lo revisa `SecurityConfig` contra la sesión.
+
+El día que el panel pase a Thymeleaf, esa carpeta entera se borra, y con ella
+`/cuenta/quien-soy`. Está anotado
 en [`../docs/MEJORAS-PENDIENTES.md`](../docs/MEJORAS-PENDIENTES.md).
 
 ---

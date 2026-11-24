@@ -58,6 +58,7 @@ controladores de `backend/.../web/`.
 | `tienda/catalogo.html` | La tienda: filtros, grilla y acceso al carrito |
 | `tienda/carrito.html` | El carrito |
 | `tienda/pagar.html` | Finalizar compra: datos, envío y medio de pago |
+| `error.html` | La pantalla de error del sitio (404, 403 y el resto), en vez de la página blanca de Spring |
 | `tienda/confirmacion.html` | "Pedido confirmado", con el comprobante |
 | `tienda/cuentas.html` | El desglose del total (subtotal, envío, impuestos), compartido por el carrito, el pago y la confirmación |
 | `tienda/fragmentos.html` | Los pedazos de pantalla que devuelven las acciones del carrito |
@@ -157,7 +158,8 @@ backend/
 | `IngresoController.java` | El alta de cuenta y el botón de Google (el ingreso con contraseña lo hace Spring Security) |
 | `RecuperoController.java` | Los cuatro pasos del recupero de contraseña |
 | `CancelacionController.java` | La pantalla para pedir la cancelación de un pedido |
-| `CompatibilidadController.java` | Las direcciones viejas (`index.html`, `tienda.html`…) redirigen a las nuevas |
+| `CompatibilidadController.java` | Las direcciones viejas (`index.html`, `tienda.html`…) redirigen a las nuevas, y `/admin` al panel |
+| `SesionController.java` | Le dice al panel viejo quién está ingresado (`/cuenta/quien-soy`), que es lo único que no puede saber solo |
 | `ModeloGlobal.java` | Los datos que el encabezado necesita en **todas** las páginas: quién entró y cuántas botellas hay en el carrito |
 | `CarritoSesion.java` | El carrito, guardado en la sesión del servidor y no en el navegador |
 | `VinoVista.java` | Un vino, con lo que una pantalla necesita mostrar |
@@ -202,6 +204,7 @@ está escrito en `config/SecurityConfig.java`.
 | `ServicioCorreo.java` | Manda el comprobante de compra y el código del recupero |
 | `TransporteApiBrevo.java` | Manda el correo por HTTPS, para redes que bloquean SMTP |
 | `ServicioGoogle.java` | Verifica el token que firma Google antes de creerle |
+| `ServicioMercadoPago.java` | El cobro por Mercado Pago: arma la preferencia y pregunta si el pago entró |
 | `ServicioRecupero.java` | Los cuatro pasos del recupero: token, intentos y vencimiento |
 
 ### `config/` — seguridad
@@ -252,6 +255,7 @@ actualizando, y cada uno es una etapa del proyecto.
 | `agregar_pago_transferencia.sql` | La confirmación de pago por transferencia |
 | `agregar_ingreso_con_google.sql` | Las columnas que necesita el ingreso con Google |
 | `agregar_desglose_del_total.sql` | Guarda el desglose del total en cada pedido |
+| `agregar_mercado_pago.sql` | El medio de pago Mercado Pago y el rastro del cobro |
 
 ---
 
@@ -259,6 +263,8 @@ actualizando, y cada uno es una etapa del proyecto.
 
 | Archivo | Qué es |
 |---|---|
+| `COMO-CORRER.md` | El paso a paso para levantar el sitio, las cuentas de prueba y qué hacer cuando algo no anda |
+| `MERCADO-PAGO.md` | Cómo sacar la credencial, encender el cobro por Mercado Pago y probarlo |
 | `ESTRUCTURA.md` | Este mapa |
 | `MEJORAS-PENDIENTES.md` | Lo que falta hacer, un pedido por tema, listo para copiar y pegar |
 

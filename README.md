@@ -37,6 +37,12 @@ Los `agregar_*.sql` son migraciones: se corren **una sola vez cada una y en
 orden**, porque `spring.jpa.hibernate.ddl-auto=none` — Hibernate no toca el
 esquema, usa las tablas tal como las dejó el script.
 
+> **Paso a paso detallado, con las teclas de VS Code y qué hacer cuando algo no
+> anda: [`docs/COMO-CORRER.md`](docs/COMO-CORRER.md).**
+>
+> **Para cobrar con Mercado Pago (hace falta una credencial de prueba):
+> [`docs/MERCADO-PAGO.md`](docs/MERCADO-PAGO.md).**
+
 ### 2) El servidor
 
 ```bash
