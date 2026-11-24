@@ -522,9 +522,14 @@ public class ServicioCorreo {
         return "$ " + String.format("%,d", monto.longValue()).replace(',', '.');
     }
 
+    /**
+     * El medio de pago, escrito como se dice.
+     *
+     * Delega en Textos, que es donde ya vive esta traduccion para las
+     * pantallas. Tenerla dos veces es como se termina mandando un correo
+     * que dice "Mercado_pago" mientras la pantalla dice "Mercado Pago".
+     */
     private String capitalizar(MedioPago medio) {
-        if (medio == null) return "";
-        String n = medio.name().toLowerCase();
-        return n.substring(0, 1).toUpperCase() + n.substring(1);
+        return com.albaenlosandes.inventario.web.Textos.de(medio);
     }
 }

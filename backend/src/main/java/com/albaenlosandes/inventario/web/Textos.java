@@ -82,7 +82,19 @@ public final class Textos {
         return capitalizar(estado == null ? null : estado.name());
     }
 
+    /**
+     * El medio de pago.
+     *
+     * MERCADO_PAGO ES LA EXCEPCION y por eso la tabla de una sola fila:
+     * capitalizar() lo dejaria en "Mercado_pago", y un guion bajo en
+     * pantalla delata que se esta mostrando el valor crudo de la base en
+     * lugar del nombre de algo. Los otros tres son una sola palabra y no
+     * necesitan traduccion.
+     */
     public static String de(MedioPago medio) {
+        if (medio == MedioPago.MERCADO_PAGO) {
+            return "Mercado Pago";
+        }
         return capitalizar(medio == null ? null : medio.name());
     }
 

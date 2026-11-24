@@ -4,6 +4,8 @@ import com.albaenlosandes.inventario.config.UsuarioAutenticado;
 import com.albaenlosandes.inventario.model.*;
 import com.albaenlosandes.inventario.service.*;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -55,6 +57,8 @@ import java.util.List;
 @RequestMapping("/tienda")
 public class TiendaController {
 
+    private static final Logger log = LoggerFactory.getLogger(TiendaController.class);
+
     /**
      * Los topes del desplegable "Precio maximo", tal como estaban
      * escritos a mano en tienda.html.
@@ -80,6 +84,7 @@ public class TiendaController {
     private final PedidoService pedidos;
     private final UsuarioService usuarios;
     private final ServicioCorreo correo;
+    private final ServicioMercadoPago mercadoPago;
 
     public TiendaController(ProductoService productos,
                             CarritoSesion carrito,
@@ -87,7 +92,8 @@ public class TiendaController {
                             Cupones cupones,
                             PedidoService pedidos,
                             UsuarioService usuarios,
-                            ServicioCorreo correo) {
+                            ServicioCorreo correo,
+                            ServicioMercadoPago mercadoPago) {
         this.productos = productos;
         this.carrito = carrito;
         this.calculadora = calculadora;
@@ -95,6 +101,7 @@ public class TiendaController {
         this.pedidos = pedidos;
         this.usuarios = usuarios;
         this.correo = correo;
+        this.mercadoPago = mercadoPago;
     }
 
     // ============================================================
@@ -415,6 +422,18 @@ public class TiendaController {
             }
         }
 
+        /*
+         * SI MERCADO PAGO NO ESTA CONFIGURADO, NO SE ACEPTA, aunque el
+         * formulario llegue pidiendolo. La ficha no se dibuja sin
+         * credencial, pero sacar una ficha de la pantalla no impide que
+         * alguien mande el formulario a mano, y el final seria un pedido
+         * creado que no se puede cobrar.
+         */
+        if (compra.getMedioPago() == MedioPago.MERCADO_PAGO && !mercadoPago.isDisponible()) {
+            errores.rejectValue("medioPago", "mp",
+                    "El pago con Mercado Pago no está disponible. Elegí tarjeta o transferencia.");
+        }
+
         if (carrito.isVacio()) {
             return "redirect:/tienda/carrito";
         }
@@ -456,6 +475,38 @@ public class TiendaController {
             ponerElCarritoEnElModelo(modelo);
                 modelo.addAttribute("aviso", e.getMessage());
             return "tienda/pagar";
+        }
+
+        /*
+         * MERCADO PAGO SE VA DEL SITIO ACA.
+         *
+         * El pedido ya existe y ya descontó el stock -igual que con la
+         * transferencia- y queda esperando la plata. Lo que falta es
+         * mandar a la persona a pagar.
+         *
+         * NO SALE EL COMPROBANTE TODAVIA: un comprobante de un pedido que
+         * nadie pago es un mail que dice algo falso. Sale cuando Mercado
+         * Pago confirme el pago, en darPorPagado().
+         *
+         * SI MERCADO PAGO NO CONTESTA se cancela el pedido recien creado,
+         * lo que devuelve el stock, y se avisa en pantalla. Dejarlo vivo
+         * seria dejar botellas reservadas para una compra que no empezo.
+         */
+        if (guardado.getMedioPago() == MedioPago.MERCADO_PAGO) {
+            try {
+                ServicioMercadoPago.Cobro cobro = mercadoPago.crearCobro(guardado);
+                pedidos.guardarPreferencia(guardado.getIdPedido(), cobro.idPreferencia());
+                carrito.vaciar();
+                return "redirect:" + cobro.aDondePagar();
+            } catch (Exception e) {
+                pedidos.cambiarEstado(guardado.getIdPedido(), EstadoPedido.CANCELADO);
+                ponerElCarritoEnElModelo(modelo);
+                modelo.addAttribute("aviso",
+                        "No pudimos abrir el pago de Mercado Pago, así que el pedido #"
+                        + guardado.getIdPedido() + " quedó cancelado y las botellas volvieron al stock. "
+                        + "Probá de nuevo o elegí otro medio de pago.");
+                return "tienda/pagar";
+            }
         }
 
         /*
@@ -503,7 +554,112 @@ public class TiendaController {
         modelo.addAttribute("botellas", pedido.getDetalles().stream()
                 .mapToInt(DetallePedido::getCantidad).sum());
         modelo.addAttribute("datosBancarios", DatosBancarios.LOS_DE_LA_BODEGA);
+        /*
+         * Un pedido de Mercado Pago sin pago confirmado es el caso en el
+         * que la persona volvio sola, sin pasar por la direccion de
+         * vuelta (porque el sitio corre en localhost y Mercado Pago no
+         * acepta esa direccion). Para eso la pantalla ofrece el boton
+         * "Ya pagué", que es lo que llama a verificarPago().
+         */
+        modelo.addAttribute("esperandoMercadoPago",
+                pedido.getMedioPago() == MedioPago.MERCADO_PAGO
+                        && !Boolean.TRUE.equals(pedido.getPagoConfirmado()));
         return "tienda/confirmacion";
+    }
+
+    // ============================================================
+    //  LA VUELTA DE MERCADO PAGO
+    // ============================================================
+
+    /**
+     * A donde vuelve la persona despues de pagar, cuando hay una
+     * direccion publica configurada.
+     *
+     * LO QUE LLEGA EN LA URL NO SE CREE. Mercado Pago agrega
+     * status=approved y payment_id, pero eso es texto en una barra de
+     * direcciones y se puede escribir a mano. Lo unico que se usa de aca
+     * es el numero de pedido, para saber por cual preguntar; si esta
+     * pagado o no lo contesta Mercado Pago cuando se le pregunta con la
+     * credencial de la bodega.
+     *
+     * SIEMPRE TERMINA EN LA CONFIRMACION DEL PEDIDO, pagado o no: la
+     * pantalla ya sabe mostrar las dos situaciones, y es la que la
+     * persona espera ver despues de comprar.
+     */
+    @GetMapping("/mercadopago/volver")
+    public String volverDeMercadoPago(
+            @RequestParam(name = "external_reference", required = false) Integer idPedido,
+            RedirectAttributes flash) {
+
+        if (idPedido == null) {
+            return "redirect:/tienda";
+        }
+        Pedido pedido = pedidos.obtenerPorId(idPedido).orElse(null);
+        if (pedido == null) {
+            return "redirect:/tienda";
+        }
+        darPorPagadoSiCorresponde(pedido, flash);
+        return "redirect:/tienda/pedido/" + idPedido;
+    }
+
+    /**
+     * El boton "Ya pagué" de la pantalla de confirmacion.
+     *
+     * POR QUE EXISTE. Sin direccion publica no hay vuelta automatica:
+     * Mercado Pago no puede mandar a nadie a localhost. La persona paga,
+     * vuelve sola al sitio y aca se le pregunta a Mercado Pago si ese
+     * pago entro. Es el mismo chequeo que hace la vuelta automatica, con
+     * la diferencia de quien lo dispara.
+     *
+     * ES UN POST Y NO UN ENLACE porque cambia algo: si el pago esta
+     * aprobado, el pedido pasa a pagado y sale el comprobante.
+     */
+    @PostMapping("/pedido/{id}/verificar-pago")
+    public String verificarPago(@PathVariable Integer id, RedirectAttributes flash) {
+        Pedido pedido = pedidos.obtenerPorId(id)
+                .orElseThrow(() -> new IllegalArgumentException("No existe el pedido #" + id));
+        darPorPagadoSiCorresponde(pedido, flash);
+        return "redirect:/tienda/pedido/" + id;
+    }
+
+    /**
+     * Le pregunta a Mercado Pago por el pago de este pedido y, si esta
+     * aprobado, lo da por pagado y manda el comprobante.
+     *
+     * EL COMPROBANTE SALE ACA Y NO AL CREAR EL PEDIDO: con Mercado Pago
+     * el pedido nace sin pagar, y un comprobante de algo que nadie pago
+     * dice una mentira. Sale una sola vez porque registrarPagoExterno es
+     * idempotente: si el pedido ya estaba pagado, este metodo no vuelve a
+     * entrar al if.
+     */
+    private void darPorPagadoSiCorresponde(Pedido pedido, RedirectAttributes flash) {
+        if (pedido.getMedioPago() != MedioPago.MERCADO_PAGO
+                || Boolean.TRUE.equals(pedido.getPagoConfirmado())) {
+            return;
+        }
+        try {
+            var pago = mercadoPago.buscarPagoAprobado(pedido);
+            if (pago.isPresent()) {
+                Pedido pagado = pedidos.registrarPagoExterno(
+                        pedido.getIdPedido(), pago.get().id());
+                correo.enviarComprobante(pagado);
+                flash.addFlashAttribute("avisoPago",
+                        "Listo: Mercado Pago confirmó el pago. Te mandamos el comprobante por correo.");
+            } else {
+                flash.addFlashAttribute("avisoPago",
+                        "Mercado Pago todavía no nos confirma el pago. Si recién pagaste, "
+                        + "esperá unos segundos y volvé a probar.");
+            }
+        } catch (Exception e) {
+            /*
+             * No se le cuenta a la persona el error del servicio: no le
+             * sirve y puede contar de mas. El motivo real queda en el log
+             * de la corrida, que es donde se lo busca.
+             */
+            log.warn("No se pudo verificar el pago del pedido #{}", pedido.getIdPedido(), e);
+            flash.addFlashAttribute("avisoPago",
+                    "No pudimos consultarle a Mercado Pago en este momento. Probá de nuevo en un rato.");
+        }
     }
 
     // ============================================================

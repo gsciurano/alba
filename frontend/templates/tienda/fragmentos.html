@@ -330,7 +330,52 @@
   <th:block th:if="${compra.medioPago?.name() == 'TRANSFERENCIA'}">
     <div th:replace="~{tienda/fragmentos :: transferencia}"></div>
   </th:block>
+  <th:block th:if="${compra.medioPago?.name() == 'MERCADO_PAGO'}">
+    <div th:replace="~{tienda/fragmentos :: mercadoPago}"></div>
+  </th:block>
 </th:block>
+
+
+<!--/* ============================================================
+     MERCADO PAGO
+     ============================================================
+     ACA NO SE PIDE NADA, y eso es la idea: los datos de la tarjeta se
+     ponen en el sitio de Mercado Pago, no en este. Por eso este bloque
+     explica lo que va a pasar en vez de tener campos.
+
+     Es el unico medio de pago de la tienda que cobra de verdad: la
+     tarjeta de la otra ficha es simulada.
+     ============================================================ */-->
+<div th:fragment="mercadoPago" class="banco" id="bloqueMercadoPago">
+
+  <!--/*
+    EL AVISO DE PRUEBA VA PRIMERO Y BIEN GRANDE. Con credenciales TEST-
+    la plata no se mueve, y alguien que crea que compro de verdad va a
+    esperar un vino que nadie va a mandar.
+  */-->
+  <p th:if="${mercadoPagoDePrueba}" class="banco__aviso">
+    ⚠ Modo de prueba: no se cobra plata de verdad. Se paga con las tarjetas
+    de prueba de Mercado Pago.
+  </p>
+
+  <h4 class="banco__titulo">Vas a pagar en Mercado Pago</h4>
+
+  <p class="nota-tenue">
+    Al apretar <strong>Pagar</strong> te llevamos al sitio de Mercado Pago,
+    donde elegís con qué pagar: tarjeta de crédito o débito, dinero en tu
+    cuenta, o efectivo en Rapipago y Pago Fácil.
+  </p>
+
+  <p class="nota-tenue">
+    Tus datos de pago los pone Mercado Pago, no este sitio: acá no guardamos
+    ni vemos el número de tu tarjeta.
+  </p>
+
+  <p class="nota-tenue">
+    El pedido queda registrado ahora y se da por pagado cuando Mercado Pago
+    nos confirma el pago.
+  </p>
+</div>
 
 
 <!--/* ============================================================

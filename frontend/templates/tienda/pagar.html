@@ -171,6 +171,21 @@
                 <span class="medio__titulo">Transferencia</span>
                 <span class="medio__detalle">Te pasamos el CBU</span>
               </label>
+
+              <!--/*
+                MERCADO PAGO SOLO APARECE SI HAY CREDENCIAL. Es el unico
+                medio que depende de un servicio de afuera: sin el access
+                token configurado el cobro no se puede hacer, y una ficha
+                que falla al apretar "Pagar" deja a la persona con una
+                compra a medias. El dato lo pone ModeloGlobal, asi que la
+                ficha aparece en la maquina que tiene la clave y no en la
+                que no la tiene.
+              */-->
+              <label th:if="${mercadoPagoDisponible}" class="medio" for="medio-MERCADO_PAGO">
+                <input type="radio" id="medio-MERCADO_PAGO" th:field="*{medioPago}" value="MERCADO_PAGO">
+                <span class="medio__titulo">Mercado Pago</span>
+                <span class="medio__detalle">Tarjeta, dinero en cuenta o efectivo</span>
+              </label>
             </div>
 
             <!--/*
@@ -185,6 +200,17 @@
               que es lo que hace falta cuando la etiqueta existe para
               ser un blanco.
             */-->
+            <!--/*
+              EL ERROR DEL MEDIO DE PAGO NECESITA SU PROPIO RENGLON. Los
+              otros campos muestran el suyo al lado del casillero, pero
+              las fichas no tenian ninguno, asi que un medio rechazado
+              por el servidor -Mercado Pago sin credencial, por ejemplo-
+              volvia a la pantalla sin decir por que. Un formulario que
+              rebota en silencio es el peor de los dos mundos: no compra
+              y no explica.
+            */-->
+            <span class="form-error" th:errors="*{medioPago}" aria-live="polite"></span>
+
             <div id="bloquesDePago" th:insert="~{tienda/fragmentos :: bloquesDePago}"></div>
           </section>
         </div>

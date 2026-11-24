@@ -89,6 +89,25 @@
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
+        <!--
+            MERCADO PAGO. El SDK oficial, que es un cliente HTTP con los
+            objetos de la API ya escritos (preferencias, pagos, busquedas).
+
+            POR QUE EL SDK Y NO fetch A MANO: la firma de los pedidos, los
+            reintentos, el idempotency-key y la forma exacta de cada
+            respuesta los mantiene Mercado Pago. Escribirlo a mano es
+            mantener su API en este repositorio.
+
+            La version esta clavada a proposito: una version "latest"
+            cambia el comportamiento del cobro sin que nadie lo haya
+            decidido, y esto mueve plata.
+        -->
+        <dependency>
+            <groupId>com.mercadopago</groupId>
+            <artifactId>sdk-java</artifactId>
+            <version>3.7.0</version>
+        </dependency>
+
         <!-- Driver de MySQL (solo se necesita en tiempo de ejecucion) -->
         <dependency>
             <groupId>com.mysql</groupId>

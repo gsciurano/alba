@@ -214,15 +214,21 @@ public class PedidoService {
         pedido.setTotal(cuentas.total());
         pedido.setEstado(EstadoPedido.CONFIRMADO);
         /*
-         * La tarjeta se cobra en el acto, asi que el pedido nace con el
-         * pago confirmado. La transferencia no: la plata todavia no esta,
-         * y queda esperando que un administrador la acredite.
+         * SOLO LA TARJETA NACE PAGADA, porque es la unica que se cobra en
+         * el acto (y encima es simulada). Los otros dos medios nacen
+         * esperando la plata, cada uno a su manera:
+         *
+         *   TRANSFERENCIA  la acredita un administrador cuando la ve en
+         *                  la cuenta de la bodega.
+         *   MERCADO_PAGO   la acredita la respuesta de Mercado Pago
+         *                  cuando dice que el pago esta aprobado
+         *                  (registrarPagoExterno, mas abajo).
          *
          * Se decide ACA y no en el navegador porque es una regla de plata:
          * si viniera en el JSON, cualquiera podria mandar
          * pagoConfirmado=true y darse por pagado solo.
          */
-        pedido.setPagoConfirmado(pedido.getMedioPago() != MedioPago.TRANSFERENCIA);
+        pedido.setPagoConfirmado(pedido.getMedioPago() == MedioPago.TARJETA);
         pedido.setPagoConfirmadoEn(null);
         pedido.setPagoConfirmadoPor(null);
         Pedido guardado = pedidoRepository.save(pedido);       // cascade guarda los detalles
@@ -369,6 +375,66 @@ public class PedidoService {
             pedido.setPagoConfirmadoEn(null);
             pedido.setPagoConfirmadoPor(null);
         }
+        return pedidoRepository.save(pedido);
+    }
+
+    // ==================================================================
+    //  CONFIRMACION DEL PAGO POR MERCADO PAGO
+    // ==================================================================
+
+    /**
+     * Da por pagado un pedido porque Mercado Pago dijo que el pago esta
+     * aprobado, y guarda el numero de pago como respaldo.
+     *
+     * POR QUE NO ALCANZA confirmarPago(). Ese metodo exige un
+     * administrador, y aca no hay ninguna persona tildando nada: lo
+     * confirma la respuesta del servicio. Guardar un administrador
+     * inventado seria decir que alguien reviso algo que nadie reviso.
+     *
+     * NO RECIBE "confirmado=false": un pago aprobado no se destilda. Si
+     * hubo que devolver la plata, eso es una devolucion en Mercado Pago y
+     * una cancelacion del pedido, no un tilde que se saca.
+     *
+     * ES IDEMPOTENTE a proposito: la pantalla de confirmacion puede
+     * recargarse, y la vuelta de Mercado Pago puede llegar dos veces. Si
+     * el pedido ya estaba pagado con ese mismo numero de pago, no pasa
+     * nada y devuelve lo que ya habia.
+     */
+    @Transactional
+    public Pedido registrarPagoExterno(Integer idPedido, String idPagoExterno) {
+        Pedido pedido = pedidoRepository.findById(idPedido)
+                .orElseThrow(() -> new IllegalArgumentException("No existe el pedido con id " + idPedido));
+
+        if (pedido.getMedioPago() != MedioPago.MERCADO_PAGO) {
+            throw new IllegalArgumentException(
+                    "El pedido #" + idPedido + " se pago con " + pedido.getMedioPago()
+                    + ": no hay ningun pago de Mercado Pago que registrarle.");
+        }
+        if (pedido.getEstado() == EstadoPedido.CANCELADO) {
+            throw new IllegalArgumentException(
+                    "El pedido #" + idPedido + " esta cancelado: no se le puede acreditar el pago.");
+        }
+        if (Boolean.TRUE.equals(pedido.getPagoConfirmado())) {
+            return pedido;
+        }
+
+        pedido.setPagoExternoId(idPagoExterno);
+        pedido.setPagoConfirmado(true);
+        pedido.setPagoConfirmadoEn(LocalDateTime.now());
+        pedido.setPagoConfirmadoPor(null);   // no lo confirmo una persona
+        return pedidoRepository.save(pedido);
+    }
+
+    /**
+     * Guarda la preferencia con la que se mando a alguien a pagar, antes
+     * de que pague. Sirve para distinguir un pedido que nunca llego a la
+     * pantalla de Mercado Pago de uno que llego y se abandono.
+     */
+    @Transactional
+    public Pedido guardarPreferencia(Integer idPedido, String idPreferencia) {
+        Pedido pedido = pedidoRepository.findById(idPedido)
+                .orElseThrow(() -> new IllegalArgumentException("No existe el pedido con id " + idPedido));
+        pedido.setPagoPreferenciaId(idPreferencia);
         return pedidoRepository.save(pedido);
     }
 }

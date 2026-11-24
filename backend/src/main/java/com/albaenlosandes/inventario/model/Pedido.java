@@ -112,10 +112,14 @@ public class Pedido {
      * CONFIRMACION DEL PAGO. Es un eje distinto del 'estado': un pedido
      * puede estar CONFIRMADO y la transferencia todavia sin acreditar.
      *
-     * La tarjeta nace en true (se cobra en el acto). La
+     * La tarjeta nace en true (se cobra en el acto, y es simulada). La
      * transferencia nace en false y la tilda un administrador cuando ve
      * la plata en la cuenta; de ahi sale "esperando comprobante", que no
      * se guarda en ningun lado: se deduce de medioPago + pagoConfirmado.
+     *
+     * Mercado Pago tambien nace en false, pero no lo tilda una persona:
+     * lo tilda la respuesta de Mercado Pago cuando dice que el pago esta
+     * aprobado. Ver pagoExternoId.
      */
     @Column(name = "pago_confirmado", nullable = false)
     private Boolean pagoConfirmado = false;
@@ -127,10 +131,36 @@ public class Pedido {
      * Quien dio el pago por acreditado. Tildar un pago es decir "entro
      * plata": sin saber quien lo tildo no hay a quien preguntarle cuando
      * el banco no muestra el deposito.
+     *
+     * Queda NULO cuando el pago lo confirmo Mercado Pago, porque no hubo
+     * ninguna persona: ahi el respaldo es pagoExternoId.
      */
     @ManyToOne
     @JoinColumn(name = "pago_confirmado_por")
     private Usuario pagoConfirmadoPor;
+
+    /**
+     * EL NUMERO DE PAGO DE MERCADO PAGO, cuando se pago por ahi.
+     *
+     * POR QUE SE GUARDA. Es el unico dato que permite ir del pedido al
+     * cobro: con el se busca el pago en el panel de Mercado Pago, se pide
+     * una devolucion o se contesta un reclamo. Sin el, un pedido dado por
+     * pagado es una afirmacion sin respaldo.
+     *
+     * Es texto y no un numero: el id de Mercado Pago es largo y no se
+     * hacen cuentas con el.
+     */
+    @Column(name = "pago_externo_id", length = 40)
+    private String pagoExternoId;
+
+    /**
+     * El id de la preferencia: el "carrito" que se le manda a Mercado
+     * Pago antes de pagar. Sirve para rastrear un pago que nunca se
+     * completo, porque dice que la persona llego hasta la pantalla de
+     * Mercado Pago y ahi se corto.
+     */
+    @Column(name = "pago_preferencia_id", length = 64)
+    private String pagoPreferenciaId;
 
     /**
      * cascade = ALL: al guardar el pedido se guardan sus renglones.
@@ -180,6 +210,10 @@ public class Pedido {
     public void setPagoConfirmadoEn(LocalDateTime pagoConfirmadoEn) { this.pagoConfirmadoEn = pagoConfirmadoEn; }
     public Usuario getPagoConfirmadoPor() { return pagoConfirmadoPor; }
     public void setPagoConfirmadoPor(Usuario pagoConfirmadoPor) { this.pagoConfirmadoPor = pagoConfirmadoPor; }
+    public String getPagoExternoId() { return pagoExternoId; }
+    public void setPagoExternoId(String pagoExternoId) { this.pagoExternoId = pagoExternoId; }
+    public String getPagoPreferenciaId() { return pagoPreferenciaId; }
+    public void setPagoPreferenciaId(String pagoPreferenciaId) { this.pagoPreferenciaId = pagoPreferenciaId; }
     public Boolean getActivo() { return activo; }
     public void setActivo(Boolean activo) { this.activo = activo; }
     public List<DetallePedido> getDetalles() { return detalles; }

@@ -87,6 +87,57 @@ else
 fi
 
 # ------------------------------------------------------------
+#  MERCADO PAGO (opcional)
+#
+#  Es el unico medio de pago que cobra de verdad. Si el token no esta
+#  guardado no se pregunta nada: la tienda arranca igual y no ofrece ese
+#  medio. Es lo correcto, porque hay dos medios mas que no dependen de
+#  ningun servicio de afuera.
+#
+#  MIENTRAS ESTO SEA UN TRABAJO DE FACULTAD va el token de PRUEBA, que
+#  empieza con "TEST-": el circuito es el real y la plata no se mueve.
+#  Se saca de mercadopago.com.ar/developers -> Tus integraciones ->
+#  (la aplicacion) -> Credenciales.
+#
+#  Para guardarlo una vez:
+#    security add-generic-password -U -s mercadopago-alba -a access-token -w
+# ------------------------------------------------------------
+if [ -z "${MP_ACCESS_TOKEN:-}" ]; then
+    MP_ACCESS_TOKEN="$(security find-generic-password \
+                        -s "mercadopago-alba" -a "access-token" -w 2>/dev/null || true)"
+fi
+export MP_ACCESS_TOKEN
+
+# La direccion publica para volver de pagar. Vacia mientras el sitio
+# corra en localhost: Mercado Pago no acepta esa direccion, y sin ella
+# el pago se verifica con el boton "Ya pagué" de la confirmacion.
+export MP_URL_PUBLICA="${MP_URL_PUBLICA:-}"
+
+# PRUEBA O PRODUCCION. No se puede deducir del token: desde que Mercado
+# Pago unifico los prefijos, las credenciales de prueba y las productivas
+# empiezan las dos con "APP_USR-" y lo unico que las separa es de que
+# solapa del panel se copiaron. Asi que se declara, y por defecto prueba.
+if [ "${MP_MODO:-prueba}" = "produccion" ]; then
+    export MP_PRODUCCION=true
+else
+    export MP_PRODUCCION=false
+fi
+
+if [ -n "$MP_ACCESS_TOKEN" ]; then
+    if [ "$MP_PRODUCCION" = "true" ]; then
+        echo "ATENCION: Mercado Pago en modo PRODUCCION. Las compras COBRAN PLATA DE VERDAD."
+    else
+        echo "Mercado Pago en modo PRUEBA: no se cobra plata de verdad."
+        echo "  (el token tiene que ser el de la solapa 'Prueba' del panel de Mercado Pago)"
+    fi
+    if [ -z "$MP_URL_PUBLICA" ]; then
+        echo "  Sin MP_URL_PUBLICA: despues de pagar hay que apretar 'Ya pagué' en la confirmacion."
+    fi
+else
+    echo "Mercado Pago apagado (no hay token guardado). La tienda ofrece tarjeta y transferencia."
+fi
+
+# ------------------------------------------------------------
 #  EL LOG VA TAMBIEN A UN ARCHIVO.
 #
 #  POR QUE: el envio del comprobante es @Async y se traga sus errores

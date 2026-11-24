@@ -2,9 +2,11 @@ package com.albaenlosandes.inventario.web;
 
 import com.albaenlosandes.inventario.config.UsuarioAutenticado;
 import com.albaenlosandes.inventario.model.Usuario;
+import com.albaenlosandes.inventario.service.ServicioMercadoPago;
 import com.albaenlosandes.inventario.service.UsuarioService;
 
 import java.util.List;
+import org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,7 +33,16 @@ import org.springframework.web.bind.annotation.ModelAttribute;
  * del propio navegador, asi que se podia editar a mano. Ahora viene de
  * la sesion del servidor.
  */
-@ControllerAdvice(basePackages = "com.albaenlosandes.inventario.web")
+/*
+ * TAMBIEN ALCANZA AL CONTROLADOR DE ERRORES de Spring Boot, que es el
+ * que dibuja templates/error.html cuando aparece un 403 o un 404. No
+ * esta en el paquete 'web', asi que sin nombrarlo aparte la pantalla de
+ * error se dibujaria sin ${usuario}: a quien estuviera ingresado le
+ * mostraria "Ingresar" en la cinta de arriba, como si lo hubiera
+ * desconectado el error.
+ */
+@ControllerAdvice(basePackages = "com.albaenlosandes.inventario.web",
+                  assignableTypes = BasicErrorController.class)
 public class ModeloGlobal {
 
     /**
@@ -95,12 +106,39 @@ public class ModeloGlobal {
                 .toList();
     }
 
+    /**
+     * Si la tienda puede cobrar por Mercado Pago.
+     *
+     * POR QUE ES UN DATO DEL MODELO Y NO UNA FICHA FIJA EN LA PANTALLA:
+     * sin credencial configurada el cobro no se puede hacer, y ofrecer un
+     * medio de pago que va a fallar al apretar "Pagar" es peor que no
+     * ofrecerlo. Asi la ficha aparece en la maquina que tiene la clave y
+     * no aparece en la que no la tiene, sin tocar la plantilla.
+     */
+    @ModelAttribute("mercadoPagoDisponible")
+    public boolean mercadoPagoDisponible() {
+        return mercadoPago.isDisponible();
+    }
+
+    /**
+     * Si las credenciales son de prueba. Se usa para avisarlo en el
+     * checkout: que una compra no mueva plata de verdad no se puede
+     * dejar adivinando.
+     */
+    @ModelAttribute("mercadoPagoDePrueba")
+    public boolean mercadoPagoDePrueba() {
+        return mercadoPago.isDisponible() && mercadoPago.esDePrueba();
+    }
+
     private final CarritoSesion carrito;
     private final String googleClientId;
+    private final ServicioMercadoPago mercadoPago;
 
     public ModeloGlobal(CarritoSesion carrito,
+                        ServicioMercadoPago mercadoPago,
                         @Value("${alba.google.client-id:}") String googleClientId) {
         this.carrito = carrito;
+        this.mercadoPago = mercadoPago;
         this.googleClientId = googleClientId;
     }
 }

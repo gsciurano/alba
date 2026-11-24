@@ -107,6 +107,58 @@
           <div th:replace="~{tienda/fragmentos :: transferencia}"></div>
         </th:block>
 
+        <!--/* ========== MERCADO PAGO ==========
+          DOS SITUACIONES DISTINTAS Y HAY QUE DECIR CUAL ES:
+
+          Pagado      Mercado Pago confirmo el pago. Se muestra el
+                      numero de pago, que es el respaldo con el que se
+                      puede reclamar o pedir una devolucion.
+          Esperando   el pedido existe pero el pago no esta confirmado.
+                      Pasa siempre que el sitio corre en localhost,
+                      porque Mercado Pago no puede mandar a nadie de
+                      vuelta a esa direccion: la persona paga, vuelve
+                      sola y aprieta el boton.
+
+          EL BOTON ES UN POST, no un enlace: si el pago entro, el pedido
+          pasa a pagado y sale el comprobante. Eso cambia cosas, y lo que
+          cambia cosas no se hace con un enlace que un navegador puede
+          precargar.
+        */-->
+        <th:block th:if="${pedido.medioPago.name() == 'MERCADO_PAGO'}">
+          <div class="banco" id="bloquePagoMercadoPago">
+
+            <p th:if="${avisoPago != null}" class="banco__aviso" th:text="${avisoPago}">...</p>
+
+            <th:block th:if="${pedido.pagoConfirmado}">
+              <h4 class="banco__titulo">Pago confirmado por Mercado Pago</h4>
+              <div th:if="${pedido.pagoExternoId != null}" class="banco__fila">
+                <span class="banco__rotulo">N° de pago</span>
+                <span class="banco__valor" th:text="${pedido.pagoExternoId}">0</span>
+              </div>
+              <p class="nota-tenue">
+                Guardá este número: es con el que Mercado Pago identifica tu pago.
+              </p>
+            </th:block>
+
+            <th:block th:if="${esperandoMercadoPago}">
+              <h4 class="banco__titulo">Esperando la confirmación del pago</h4>
+              <p class="nota-tenue">
+                Si ya pagaste en Mercado Pago, apretá el botón y le preguntamos
+                a ellos. Puede tardar unos segundos en aparecer.
+              </p>
+              <form th:action="@{'/tienda/pedido/' + ${pedido.idPedido} + '/verificar-pago'}"
+                    method="post">
+                <button type="submit" class="btn btn--primario">Ya pagué, verificar</button>
+              </form>
+              <p class="nota-tenue" style="margin-top:12px">
+                Tu pedido ya está registrado con el número
+                <strong th:text="'#' + ${pedido.idPedido}">#0</strong>: no hace falta
+                volver a comprar.
+              </p>
+            </th:block>
+          </div>
+        </th:block>
+
         <a class="btn btn--primario" style="margin-top:24px"
            th:href="@{/tienda}" href="/tienda">Seguir comprando</a>
       </div>
